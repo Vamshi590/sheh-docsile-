@@ -165,16 +165,24 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   }
 
   // Auto-calculate financial fields
+  // Extract values for dependency array to avoid ESLint warnings
+  const totalAmountValue = formData['TOTAL AMOUNT']
+  const advancePaidValue = formData['ADVANCE PAID']
+  const amountReceivedValue = formData['AMOUNT RECEIVED']
+  const discountPercentageValue = formData['DISCOUNT PERCENTAG']
+  const currentDiscountAmount = formData['DISCOUNT AMOUNT']
+  const currentAmountDue = formData['AMOUNT DUE']
+
   useEffect(() => {
     const totalAmount =
-      typeof formData['TOTAL AMOUNT'] === 'number' ? (formData['TOTAL AMOUNT'] as number) : 0
+      typeof totalAmountValue === 'number' ? (totalAmountValue as number) : 0
     const advancePaid =
-      typeof formData['ADVANCE PAID'] === 'number' ? (formData['ADVANCE PAID'] as number) : 0
+      typeof advancePaidValue === 'number' ? (advancePaidValue as number) : 0
     const amountReceived =
-      typeof formData['AMOUNT RECEIVED'] === 'number' ? (formData['AMOUNT RECEIVED'] as number) : 0
+      typeof amountReceivedValue === 'number' ? (amountReceivedValue as number) : 0
     const discountPercentage =
-      typeof formData['DISCOUNT PERCENTAG'] === 'number'
-        ? (formData['DISCOUNT PERCENTAG'] as number)
+      typeof discountPercentageValue === 'number'
+        ? (discountPercentageValue as number)
         : 0
 
     // Calculate discount amount
@@ -183,12 +191,15 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
     // Calculate amount due
     const amountDue = totalAmount - advancePaid - amountReceived - discountAmount
 
-    setFormData((prev) => ({
-      ...prev,
-      'DISCOUNT AMOUNT': discountAmount,
-      'AMOUNT DUE': amountDue
-    }))
-  }, [formData])
+    // Only update if the calculated values are different from current values
+    if (currentDiscountAmount !== discountAmount || currentAmountDue !== amountDue) {
+      setFormData((prev) => ({
+        ...prev,
+        'DISCOUNT AMOUNT': discountAmount,
+        'AMOUNT DUE': amountDue
+      }))
+    }
+  }, [totalAmountValue, advancePaidValue, amountReceivedValue, discountPercentageValue, currentDiscountAmount, currentAmountDue])
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {

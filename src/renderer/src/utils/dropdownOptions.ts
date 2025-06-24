@@ -71,6 +71,16 @@ export const doctorOptions = [
   'Dr. Meena Patel'
 ]
 
+export const paymentModeOptions = [
+  'Cash',
+  'Credit Card',
+  'Debit Card',
+  'UPI',
+  'Net Banking',
+  'Check',
+  'Insurance'
+]
+
 export const medicineOptions = [
   'Paracetamol 500mg',
   'Ibuprofen 400mg',

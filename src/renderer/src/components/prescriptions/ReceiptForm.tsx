@@ -4,7 +4,8 @@ import {
   paidForOptionNames,
   departmentOptions,
   referredByOptions,
-  doctorOptions
+  doctorOptions,
+  paymentModeOptions
 } from '../../utils/dropdownOptions'
 
 export interface Patient {
@@ -17,10 +18,12 @@ export interface Patient {
   age: string
   gender: string
   address: string
+  dob?: string
   // Include uppercase versions for compatibility with form data
   AGE?: string
   GENDER?: string
   ADDRESS?: string
+  DOB?: string
 }
 
 interface Prescription {
@@ -65,7 +68,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     
     // Payment information
     'PAID FOR': '',
-    MODE: '',
+    MODE: 'Cash',
     'TOTAL AMOUNT': '',
     'ADVANCE PAID': '0',
     'AMOUNT RECEIVED': '',
@@ -205,6 +208,11 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
   const [showPaidForDropdown, setShowPaidForDropdown] = useState(false)
   const [filteredPaidForOptions, setFilteredPaidForOptions] = useState<string[]>([])
   const paidForRef = useRef<HTMLDivElement>(null)
+  
+  // Payment mode autocomplete states
+  const [showPaymentModeDropdown, setShowPaymentModeDropdown] = useState(false)
+  const [filteredPaymentModeOptions, setFilteredPaymentModeOptions] = useState<string[]>(paymentModeOptions)
+  const paymentModeRef = useRef<HTMLDivElement>(null)
 
   // Doctor information autocomplete states
   const [showDoctorDropdown, setShowDoctorDropdown] = useState(false)
@@ -223,16 +231,32 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
 
   // Update form when selectedPatient changes
   useEffect(() => {
+    console.log('selectedPatient in ReceiptForm:', selectedPatient)
     if (selectedPatient) {
-      setFormData((prevData) => ({
-        ...prevData,
+      console.log('Updating form data with patient details:', {
         'PATIENT ID': selectedPatient.patientId,
         'PATIENT NAME': selectedPatient.guardian || selectedPatient.name,
         'PHONE NUMBER': selectedPatient.phone,
         AGE: selectedPatient.age,
         GENDER: selectedPatient.gender,
-        ADDRESS: selectedPatient.address
-      }))
+        ADDRESS: selectedPatient.address,
+        DOB: selectedPatient.dob || ''
+      })
+      
+      setFormData((prevData) => {
+        const updatedData = {
+          ...prevData,
+          'PATIENT ID': selectedPatient.patientId,
+          'PATIENT NAME': selectedPatient.guardian || selectedPatient.name,
+          'PHONE NUMBER': selectedPatient.phone,
+          AGE: selectedPatient.age,
+          GENDER: selectedPatient.gender,
+          ADDRESS: selectedPatient.address,
+          DOB: selectedPatient.dob || ''
+        }
+        console.log('Updated form data:', updatedData)
+        return updatedData
+      })
     }
   }, [selectedPatient])
 
@@ -396,11 +420,25 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    try {
-      await onSubmit(formData)
-    } catch (error) {
-      console.error('Error submitting form:', error)
+    console.log('Submitting form with data:', formData)
+    console.log('Selected patient at submission:', selectedPatient)
+
+    // Ensure patient details are included in submission
+    const submissionData = {
+      ...formData,
+      'PATIENT ID': selectedPatient?.patientId || formData['PATIENT ID'] || '',
+      'PATIENT NAME': selectedPatient?.name || selectedPatient?.guardian || formData['PATIENT NAME'] || '',
+      'GUARDIAN NAME': selectedPatient?.guardian || formData['GUARDIAN NAME'] || '',
+      'PHONE NUMBER': selectedPatient?.phone || formData['PHONE NUMBER'] || '',
+      AGE: selectedPatient?.age || formData.AGE || '',
+      GENDER: selectedPatient?.gender || formData.GENDER || '',
+      ADDRESS: selectedPatient?.address || formData.ADDRESS || '',
+      DOB: selectedPatient?.dob || formData.DOB || '',
+      MODE: formData.MODE || 'Cash'
     }
+    
+    console.log('Submitting form with final data:', submissionData)
+    await onSubmit(submissionData)
   }
 
   // Handle paid for select
@@ -409,26 +447,33 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     const selectedOption = paidForOptions.find((item) => item.name === option)
 
     if (selectedOption) {
-      // Update all relevant fields at once
-      setFormData((prev) => ({
-        ...prev,
+      setFormData((prevData) => ({
+        ...prevData,
         'PAID FOR': option,
-        'TOTAL AMOUNT': selectedOption.amount,
-        'DISCOUNT PERCENTAG': 0,
-        'DISCOUNT AMOUNT': 0,
-        'ADVANCE PAID': 0,
-        'AMOUNT RECEIVED': 0,
-        'AMOUNT DUE': selectedOption.amount
+        'TOTAL AMOUNT': selectedOption.amount.toString(),
+        'AMOUNT RECEIVED': selectedOption.amount.toString(),
+        'AMOUNT DUE': '0'
       }))
     } else {
-      // Just update the PAID FOR field if no matching option found
-      setFormData((prev) => ({
-        ...prev,
-        'PAID FOR': option
+      setFormData((prevData) => ({
+        ...prevData,
+        'PAID FOR': option,
+        'TOTAL AMOUNT': '',
+        'AMOUNT RECEIVED': '',
+        'AMOUNT DUE': ''
       }))
     }
 
     setShowPaidForDropdown(false)
+  }
+
+  // Handle payment mode select
+  const handlePaymentModeSelect = (option: string): void => {
+    setFormData((prevData) => ({
+      ...prevData,
+      MODE: option
+    }))
+    setShowPaymentModeDropdown(false)
   }
 
   // Handle doctor select
@@ -464,6 +509,11 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
       // Close Paid For dropdown when clicking outside
       if (paidForRef.current && !paidForRef.current.contains(event.target as Node)) {
         setTimeout(() => setShowPaidForDropdown(false), 200)
+      }
+
+      // Close Payment Mode dropdown when clicking outside
+      if (paymentModeRef.current && !paymentModeRef.current.contains(event.target as Node)) {
+        setTimeout(() => setShowPaymentModeDropdown(false), 200)
       }
 
       // Close Doctor dropdown when clicking outside
@@ -746,6 +796,52 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
               readOnly
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 text-gray-500"
             />
+          </div>
+
+          {/* PAYMENT MODE */}
+          <div ref={paymentModeRef} className="relative">
+            <label htmlFor="MODE" className="block text-sm font-medium text-gray-700">
+              Payment Mode *
+            </label>
+            <input
+              type="text"
+              name="MODE"
+              id="MODE"
+              value={(formData.MODE as string) || ''}
+              onChange={(e) => {
+                handleChange(e)
+                const value = e.target.value
+                const filtered = value
+                  ? paymentModeOptions.filter((option) => 
+                      option.toLowerCase().includes(value.toLowerCase())
+                  )
+                  : paymentModeOptions
+                setFilteredPaymentModeOptions(filtered)
+                setShowPaymentModeDropdown(true)
+              }}
+              onFocus={() => {
+                setFilteredPaymentModeOptions(paymentModeOptions)
+                setShowPaymentModeDropdown(true)
+              }}
+              required
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+            {showPaymentModeDropdown && filteredPaymentModeOptions.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto">
+                {filteredPaymentModeOptions.map((option, index) => (
+                  <div
+                    key={index}
+                    className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handlePaymentModeSelect(option)
+                    }}
+                  >
+                    {option}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

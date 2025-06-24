@@ -8,15 +8,10 @@ type Prescription = {
 
 interface PrescriptionTableProps {
   prescriptions: Prescription[]
-  onEdit: (prescription: Prescription) => void
-  onDelete: (id: string) => void
 }
 
-const PrescriptionTable: React.FC<PrescriptionTableProps> = ({
-  prescriptions,
-  onEdit,
-  onDelete
-}) => {
+const PrescriptionTable: React.FC<PrescriptionTableProps> = ({ prescriptions }) => {
+
   if (prescriptions.length === 0) {
     return (
       <div className="text-center py-8 bg-gray-50 rounded-md">
@@ -26,8 +21,32 @@ const PrescriptionTable: React.FC<PrescriptionTableProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
+    <div
+      className="overflow-x-auto"
+      style={{
+        overflowX: 'auto',
+        /* Custom scrollbar styling */
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#cbd5e0 #f9fafb'
+      }}
+    >
+      <style>
+        {`
+        /* Custom scrollbar for WebKit browsers (Chrome, Safari) */
+        div::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        div::-webkit-scrollbar-track {
+          background: #f9fafb;
+        }
+        div::-webkit-scrollbar-thumb {
+          background-color: #cbd5e0;
+          border-radius: 6px;
+        }
+        `}
+      </style>
+      <table className="min-w-full divide-y divide-gray-200 table-fixed">
         <thead className="bg-gray-50">
           <tr>
             <th
@@ -52,7 +71,31 @@ const PrescriptionTable: React.FC<PrescriptionTableProps> = ({
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
+              Patient Name
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
               Guardian Name
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              DOB
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Age
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Gender
             </th>
             <th
               scope="col"
@@ -64,7 +107,31 @@ const PrescriptionTable: React.FC<PrescriptionTableProps> = ({
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
+              Address
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
               Doctor
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Department
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Referred By
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Paid For
             </th>
             <th
               scope="col"
@@ -76,13 +143,25 @@ const PrescriptionTable: React.FC<PrescriptionTableProps> = ({
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
+              Discount
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Amount Received
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
               Amount Due
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Actions
+              Payment Mode
             </th>
           </tr>
         </thead>
@@ -99,37 +178,60 @@ const PrescriptionTable: React.FC<PrescriptionTableProps> = ({
                 {(prescription['PATIENT ID'] as React.ReactNode) || '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {(prescription['PATIENT NAME'] as React.ReactNode) || '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {(prescription['GUARDIAN NAME'] as React.ReactNode) || '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {(prescription.DOB as React.ReactNode) || '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {(prescription.AGE as React.ReactNode) || '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {(prescription.GENDER as React.ReactNode) || '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {(prescription['PHONE NUMBER'] as React.ReactNode) || '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {(prescription.ADDRESS as React.ReactNode) || '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {(prescription['DOCTOR NAME'] as React.ReactNode) || '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {typeof prescription['TOTAL AMOUNT'] === 'number'
+                {(prescription.DEPARTMENT as React.ReactNode) || '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {(prescription['REFERRED BY'] as React.ReactNode) || '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {(prescription['PAID FOR'] as React.ReactNode) || '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {prescription['TOTAL AMOUNT'] !== undefined && prescription['TOTAL AMOUNT'] !== null
                   ? `₹${prescription['TOTAL AMOUNT']}`
                   : '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {typeof prescription['AMOUNT DUE'] === 'number'
+                {prescription['DISCOUNT PERCENTAG'] !== undefined && prescription['DISCOUNT PERCENTAG'] !== null
+                  ? `${prescription['DISCOUNT PERCENTAG']}%`
+                  : '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {prescription['AMOUNT RECEIVED'] !== undefined && prescription['AMOUNT RECEIVED'] !== null
+                  ? `₹${prescription['AMOUNT RECEIVED']}`
+                  : '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {prescription['AMOUNT DUE'] !== undefined && prescription['AMOUNT DUE'] !== null
                   ? `₹${prescription['AMOUNT DUE']}`
                   : '-'}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button
-                  onClick={() => onEdit(prescription)}
-                  className="text-blue-600 hover:text-blue-900 mr-4"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => onDelete(prescription.id as string)}
-                  className="text-red-600 hover:text-red-900"
-                >
-                  Delete
-                </button>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {(prescription.MODE as React.ReactNode) || '-'}
               </td>
             </tr>
           ))}
