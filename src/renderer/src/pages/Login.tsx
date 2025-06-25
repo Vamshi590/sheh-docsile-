@@ -42,7 +42,9 @@ const Login = (): React.JSX.Element => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-100">
       <div className="w-full max-w-md p-10 bg-white rounded-xl shadow-lg border border-gray-100 space-y-8">
         <div className="flex flex-col items-center justify-center mb-10">
-          <h1 className="text-3xl font-bold text-center text-gray-800">Sri Harshini Eye Hospital</h1>
+          <h1 className="text-3xl font-bold text-center text-gray-800">
+            Sri Harshini Eye Hospital
+          </h1>
           <p className="text-gray-500 text-sm mt-3">Healthcare Management System</p>
         </div>
 

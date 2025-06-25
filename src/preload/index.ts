@@ -19,6 +19,31 @@ interface Prescription {
   [key: string]: unknown
 }
 
+interface Operation {
+  id?: string
+  patientId: string
+  patientName: string
+  date: string
+  operationType: string
+  surgeon: string
+  assistants?: string
+  anesthesia?: string
+  anesthesiologist?: string
+  preOpDiagnosis: string
+  postOpDiagnosis?: string
+  procedure: string
+  findings?: string
+  complications?: string
+  implants?: string
+  specimens?: string
+  estimatedBloodLoss?: string
+  fluids?: string
+  postOpPlan?: string
+  followUpDate?: string
+  notes?: string
+  [key: string]: unknown
+}
+
 // Custom APIs for renderer
 const api = {
   // Authentication
@@ -36,7 +61,18 @@ const api = {
   updatePrescription: (id: string, prescription: Prescription) => 
     ipcRenderer.invoke('updatePrescription', id, prescription),
   deletePrescription: (id: string) => ipcRenderer.invoke('deletePrescription', id),
-  searchPrescriptions: (searchTerm: string) => ipcRenderer.invoke('searchPrescriptions', searchTerm)
+  searchPrescriptions: (searchTerm: string) => ipcRenderer.invoke('searchPrescriptions', searchTerm),
+  
+  // Operations Management
+  getOperations: () => ipcRenderer.invoke('getOperations'),
+  getPatientOperations: (patientId: string) => ipcRenderer.invoke('getPatientOperations', patientId),
+  addOperation: (operation: Operation) => ipcRenderer.invoke('addOperation', operation),
+  updateOperation: (id: string, operation: Operation) => ipcRenderer.invoke('updateOperation', id, operation),
+  deleteOperation: (id: string) => ipcRenderer.invoke('deleteOperation', id),
+  
+  // Patient Search (used by multiple modules)
+  searchPatients: (searchTerm: string) => ipcRenderer.invoke('searchPatients', searchTerm),
+  
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

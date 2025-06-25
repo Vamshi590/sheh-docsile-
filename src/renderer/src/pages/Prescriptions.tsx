@@ -652,24 +652,6 @@ const Prescriptions: React.FC = () => {
             <p className="text-sm text-gray-500">Sri Harshini Eye Hospital</p>
           </div>
           <div className="flex items-center space-x-3">
-            {/* <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors shadow-sm flex items-center space-x-1.5"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>{showAddForm ? 'Hide Form' : 'New Entry'}</span>
-            </button> */}
             <button
               onClick={() => (window.location.hash = '/dashboard')}
               className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors shadow-sm flex items-center space-x-1.5"

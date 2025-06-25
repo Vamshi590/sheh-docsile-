@@ -3,6 +3,8 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Patients from './pages/Patients'
 import Prescriptions from './pages/Prescriptions'
+import Reports from './pages/Reports'
+import Operations from './pages/Operations'
 
 function App(): React.JSX.Element {
   const [route, setRoute] = useState<string>('/login')
@@ -34,8 +36,12 @@ function App(): React.JSX.Element {
         return <Dashboard />
       case '/patients':
         return <Patients />
+      case '/operations':
+        return <Operations />
       case '/prescriptions':
         return <Prescriptions />
+      case '/reports':
+        return <Reports />
       default:
         return <Login />
     }

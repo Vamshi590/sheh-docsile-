@@ -27,6 +27,9 @@ const patientsFilePath = join(appDataPath, 'patients.xlsx')
 // Path to the prescriptions and receipts Excel file
 const prescriptionsFilePath = join(appDataPath, 'prescriptions_and_receipts.xlsx')
 
+// Path to the operations Excel file
+const operationsFilePath = join(appDataPath, 'operations.xlsx')
+
 // Path to the settings JSON file
 const settingsFilePath = join(appDataPath, 'settings.json')
 
@@ -99,6 +102,15 @@ if (!fs.existsSync(prescriptionsFilePath)) {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Prescriptions')
   XLSX.writeFile(workbook, prescriptionsFilePath)
   hideFile(prescriptionsFilePath)
+}
+
+// Initialize operations Excel file if it doesn't exist
+if (!fs.existsSync(operationsFilePath)) {
+  const workbook = XLSX.utils.book_new()
+  const worksheet = XLSX.utils.json_to_sheet([])
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Operations')
+  XLSX.writeFile(workbook, operationsFilePath)
+  hideFile(operationsFilePath)
 }
 
 function createWindow(): void {
@@ -353,7 +365,7 @@ ipcMain.handle('addPrescription', async (_, prescription) => {
       const sno = typeof item.Sno === 'number' ? item.Sno : 0
       return sno > max ? sno : max
     }, 0)
-    
+
     // Add the new prescription with Sno
     const prescriptionWithSno = { ...prescriptionWithId, Sno: highestSno + 1 }
     prescriptions.push(prescriptionWithSno)
@@ -449,12 +461,12 @@ ipcMain.handle('searchPrescriptions', async (_, searchTerm) => {
     const workbook = XLSX.readFile(prescriptionsFilePath)
     const sheetName = workbook.SheetNames[0]
     const worksheet = workbook.Sheets[sheetName]
-    const prescriptions: Array<{ 
-      id: string; 
-      'PATIENT ID': string; 
-      'GUARDIAN NAME': string;
-      'PHONE NUMBER': string;
-      [key: string]: unknown 
+    const prescriptions: Array<{
+      id: string
+      'PATIENT ID': string
+      'GUARDIAN NAME': string
+      'PHONE NUMBER': string
+      [key: string]: unknown
     }> = XLSX.utils.sheet_to_json(worksheet)
 
     // Filter prescriptions based on search term
@@ -464,13 +476,194 @@ ipcMain.handle('searchPrescriptions', async (_, searchTerm) => {
 
     const searchTermLower = searchTerm.toLowerCase()
     return prescriptions.filter(
-      (p) => 
+      (p) =>
         (p['PATIENT ID'] && p['PATIENT ID'].toString().toLowerCase().includes(searchTermLower)) ||
-        (p['GUARDIAN NAME'] && p['GUARDIAN NAME'].toString().toLowerCase().includes(searchTermLower)) ||
+        (p['GUARDIAN NAME'] &&
+          p['GUARDIAN NAME'].toString().toLowerCase().includes(searchTermLower)) ||
         (p['PHONE NUMBER'] && p['PHONE NUMBER'].toString().toLowerCase().includes(searchTermLower))
     )
   } catch (error) {
     console.error('Error searching prescriptions:', error)
     return []
+  }
+})
+
+// Search patients by ID, name, or phone number
+ipcMain.handle('searchPatients', async (_, searchTerm) => {
+  try {
+    if (!fs.existsSync(patientsFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(patientsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const patients: Array<{
+      id: string
+      patientId: string
+      name: string
+      phone: string
+      [key: string]: unknown
+    }> = XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter patients based on search term
+    if (!searchTerm || searchTerm.trim() === '') {
+      return patients
+    }
+
+    const searchTermLower = searchTerm.toLowerCase()
+    return patients.filter(
+      (p) =>
+        (p.patientId && p.patientId.toString().toLowerCase().includes(searchTermLower)) ||
+        (p.name && p.name.toString().toLowerCase().includes(searchTermLower)) ||
+        (p.phone && p.phone.toString().toLowerCase().includes(searchTermLower))
+    )
+  } catch (error) {
+    console.error('Error searching patients:', error)
+    return []
+  }
+})
+
+// Get all operations
+ipcMain.handle('getOperations', async () => {
+  try {
+    if (!fs.existsSync(operationsFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(operationsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+
+    return XLSX.utils.sheet_to_json(worksheet)
+  } catch (error) {
+    console.error('Error getting operations:', error)
+    return []
+  }
+})
+
+// Get operations for a specific patient
+ipcMain.handle('getPatientOperations', async (_, patientId) => {
+  try {
+    if (!fs.existsSync(operationsFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(operationsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const operations = XLSX.utils.sheet_to_json(worksheet) as Array<{ patientId: string }>
+
+    // Filter operations for the specific patient
+    return operations.filter((operation) => operation.patientId === patientId)
+  } catch (error) {
+    console.error('Error getting patient operations:', error)
+    return []
+  }
+})
+
+// Add a new operation
+ipcMain.handle('addOperation', async (_, operation) => {
+  try {
+    // Generate a unique ID for the operation
+    const operationWithId = { ...operation, id: uuidv4() }
+
+    // Read existing operations
+    let operations: Array<{ id: string; [key: string]: unknown }> = []
+    if (fs.existsSync(operationsFilePath)) {
+      const workbook = XLSX.readFile(operationsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      operations = XLSX.utils.sheet_to_json(worksheet)
+    }
+
+    // Add the new operation
+    operations.push(operationWithId)
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(operations)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
+    XLSX.writeFile(newWorkbook, operationsFilePath)
+
+    return operationWithId
+  } catch (error) {
+    console.error('Error adding operation:', error)
+    throw error
+  }
+})
+
+// Update an existing operation
+ipcMain.handle('updateOperation', async (_, id, updatedOperation) => {
+  try {
+    // Read existing operations
+    if (!fs.existsSync(operationsFilePath)) {
+      throw new Error('Operations file does not exist')
+    }
+
+    const workbook = XLSX.readFile(operationsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const operations: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
+      worksheet
+    ) as Array<{ id: string; [key: string]: unknown }>
+
+    // Find and update the operation
+    const operationIndex = operations.findIndex((op) => op.id === id)
+
+    if (operationIndex === -1) {
+      throw new Error('Operation not found')
+    }
+
+    operations[operationIndex] = { ...updatedOperation, id }
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(operations)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
+    XLSX.writeFile(newWorkbook, operationsFilePath)
+
+    return operations[operationIndex]
+  } catch (error) {
+    console.error('Error updating operation:', error)
+    throw error
+  }
+})
+
+// Delete an operation
+ipcMain.handle('deleteOperation', async (_, id) => {
+  try {
+    // Read existing operations
+    if (!fs.existsSync(operationsFilePath)) {
+      throw new Error('Operations file does not exist')
+    }
+
+    const workbook = XLSX.readFile(operationsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    let operations: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
+      worksheet
+    ) as Array<{ id: string; [key: string]: unknown }>
+
+    // Find the operation to delete
+    const operationIndex = operations.findIndex((op) => op.id === id)
+
+    if (operationIndex === -1) {
+      throw new Error('Operation not found')
+    }
+
+    // Remove the operation
+    operations = operations.filter((op) => op.id !== id)
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(operations)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
+    XLSX.writeFile(newWorkbook, operationsFilePath)
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error deleting operation:', error)
+    throw error
   }
 })
