@@ -205,7 +205,7 @@ const PrescriptionTable: React.FC<PrescriptionTableProps> = ({ prescriptions }) 
                 {(prescription.DEPARTMENT as React.ReactNode) || '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {(prescription['REFERRED BY'] as React.ReactNode) || '-'}
+                {(prescription['REFFERED BY'] as React.ReactNode) || '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {(prescription['PAID FOR'] as React.ReactNode) || '-'}

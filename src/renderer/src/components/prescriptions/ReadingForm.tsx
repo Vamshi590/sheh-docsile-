@@ -961,8 +961,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Cornea</label>
               <input
                 type="text"
-                name="CF-RE-Cornea"
-                value={formData['CF-RE-Cornea']}
+                name="CF-RE-CORNEA"
+                value={formData['CF-RE-CORNEA']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -971,8 +971,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Conjunctiva</label>
               <input
                 type="text"
-                name="CF-RE-Conjunctiva"
-                value={formData['CF-RE-Conjunctiva']}
+                name="CF-RE-CONJUNCTIVA"
+                value={formData['CF-RE-CONJUCTIVA']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -981,8 +981,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Anterior Chamber</label>
               <input
                 type="text"
-                name="CF-RE-Anterior-Chamber"
-                value={formData['CF-RE-Anterior-Chamber']}
+                name="CF-RE-ANTERIOR-CHAMBER"
+                value={formData['CF-RE-A.C.']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -991,8 +991,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Iris</label>
               <input
                 type="text"
-                name="CF-RE-Iris"
-                value={formData['CF-RE-Iris']}
+                name="CF-RE-IRIS"
+                value={formData['CF-RE-IRIS']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1001,8 +1001,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Pupil</label>
               <input
                 type="text"
-                name="CF-RE-Pupil"
-                value={formData['CF-RE-Pupil']}
+                name="CF-RE-PUPIL"
+                value={formData['CF-RE-PUPIL']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1011,8 +1011,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Lens</label>
               <input
                 type="text"
-                name="CF-RE-Lens"
-                value={formData['CF-RE-Lens']}
+                name="CF-RE-LENS"
+                value={formData['CF-RE-LENS']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1021,8 +1021,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Vitreous</label>
               <input
                 type="text"
-                name="CF-RE-Vitreous"
-                value={formData['CF-RE-Vitreous']}
+                name="CF-RE-VITREOUS"
+                value={formData['CF-RE-VITREOUS']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1031,8 +1031,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Fundus</label>
               <input
                 type="text"
-                name="CF-RE-Fundus"
-                value={formData['CF-RE-Fundus']}
+                name="CF-RE-FUNDUS"
+                value={formData['CF-RE-FUNDUS']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1048,8 +1048,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Cornea</label>
               <input
                 type="text"
-                name="CF-LE-Cornea"
-                value={formData['CF-LE-Cornea']}
+                name="CF-LE-CORNEA"
+                value={formData['CF-LE-CORNEA']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1058,8 +1058,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Conjunctiva</label>
               <input
                 type="text"
-                name="CF-LE-Conjunctiva"
-                value={formData['CF-LE-Conjunctiva']}
+                name="CF-LE-CONJUNCTIVA"
+                value={formData['CF-LE-CONJUCTIVA']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1068,8 +1068,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Anterior Chamber</label>
               <input
                 type="text"
-                name="CF-LE-Anterior-Chamber"
-                value={formData['CF-LE-Anterior-Chamber']}
+                name="CF-LE-ANTERIOR-CHAMBER"
+                value={formData['CF-LE-A.C.']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1078,8 +1078,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Iris</label>
               <input
                 type="text"
-                name="CF-LE-Iris"
-                value={formData['CF-LE-Iris']}
+                name="CF-LE-IRIS"
+                value={formData['CF-LE-IRIS']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1088,8 +1088,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Pupil</label>
               <input
                 type="text"
-                name="CF-LE-Pupil"
-                value={formData['CF-LE-Pupil']}
+                name="CF-LE-PUPIL"
+                value={formData['CF-LE-PUPIL']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1098,8 +1098,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Lens</label>
               <input
                 type="text"
-                name="CF-LE-Lens"
-                value={formData['CF-LE-Lens']}
+                name="CF-LE-LENS"
+                value={formData['CF-LE-LENS']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1108,8 +1108,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Vitreous</label>
               <input
                 type="text"
-                name="CF-LE-Vitreous"
-                value={formData['CF-LE-Vitreous']}
+                name="CF-LE-VITREOUS"
+                value={formData['CF-LE-VITREOUS']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -1118,8 +1118,8 @@ const ReadingForm: React.FC<ReadingFormProps> = ({ onSubmit, onCancel, selectedP
               <label className="block text-xs font-medium text-gray-700">Fundus</label>
               <input
                 type="text"
-                name="CF-LE-Fundus"
-                value={formData['CF-LE-Fundus']}
+                name="CF-LE-FUNDUS"
+                value={formData['CF-LE-FUNDUS']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />

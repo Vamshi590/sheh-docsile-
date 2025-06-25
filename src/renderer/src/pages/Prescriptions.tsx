@@ -4,6 +4,7 @@ import PrescriptionTable from '../components/prescriptions/PrescriptionTable'
 import PrescriptionEditModal from '../components/prescriptions/PrescriptionEditModal'
 import ReceiptForm, { Patient as ReceiptFormPatient } from '../components/prescriptions/ReceiptForm'
 import ReadingForm from '../components/prescriptions/ReadingForm'
+import ToastContainer, { ToastMessage } from '../components/ui/ToastContainer'
 
 // Define the Prescription type
 type Prescription = {
@@ -51,12 +52,25 @@ const Prescriptions: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   // Track the current active receipt to link prescriptions and readings to it
   const [currentReceipt, setCurrentReceipt] = useState<Prescription | null>(null)
+  // Toast notifications state
+  const [toasts, setToasts] = useState<ToastMessage[]>([])
 
   // Load prescriptions and patients on component mount
   useEffect(() => {
     loadPrescriptions()
     loadPatients()
   }, [])
+
+  // Function to add a toast notification
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success'): void => {
+    const id = Math.random().toString(36).substring(2, 9)
+    setToasts((prevToasts) => [...prevToasts, { id, message, type }])
+  }
+
+  // Function to remove a toast notification
+  const removeToast = (id: string): void => {
+    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id))
+  }
 
   // Function to load patients from the backend
   const loadPatients = async (): Promise<void> => {
@@ -153,6 +167,12 @@ const Prescriptions: React.FC = () => {
         
         // Update the current receipt in state
         setCurrentReceipt(updatedReceipt)
+        
+        // Close form and show success message
+        await loadPrescriptions()
+        setShowAddForm(false)
+        setError('')
+        addToast('Prescription added successfully', 'success')
       } 
       // Priority 2: If we have a found patient from search but no receipt, create a new receipt
       else if (foundPatient) {
@@ -184,6 +204,12 @@ const Prescriptions: React.FC = () => {
         
         // Set this as the current receipt
         setCurrentReceipt(newReceipt)
+        
+        // Close form and show success message
+        await loadPrescriptions()
+        setShowAddForm(false)
+        setError('')
+        addToast('Prescription added successfully', 'success')
       } 
       // Priority 3: No receipt or found patient, create a new receipt with just the form data
       else {
@@ -202,11 +228,14 @@ const Prescriptions: React.FC = () => {
         
         // Set this as the current receipt
         setCurrentReceipt(newReceipt)
+        await loadPrescriptions()
+        setShowAddForm(false)
+        setError('')
+        // Show success toast
+        addToast('Prescription added successfully', 'success')
       }
       
-      await loadPrescriptions()
-      setShowAddForm(false)
-      setError('')
+      // All cases now handle their own success flow with form closing and toast notifications
     } catch (err) {
       console.error('Error adding prescription:', err)
       setError('Failed to add prescription')
@@ -312,8 +341,9 @@ const Prescriptions: React.FC = () => {
       
       // Refresh prescriptions list
       await fetchPrescriptions()
-      
       console.log('Patient visit completed, UI reset')
+      // Show success toast
+      addToast('Patient visit completed', 'info')
     } catch (error) {
       console.error('Error completing patient visit:', error)
       setError('Failed to complete patient visit')
@@ -377,6 +407,8 @@ const Prescriptions: React.FC = () => {
       
       await loadPrescriptions()
       setError('')
+      // Show success toast
+      addToast('Receipt added successfully', 'success')
     } catch (err) {
       console.error('Error adding receipt:', err)
       setError('Failed to add receipt')
@@ -491,6 +523,8 @@ const Prescriptions: React.FC = () => {
 
       await loadPrescriptions()
       setShowReadingForm(false)
+      // Show success toast
+      addToast('Eye reading added successfully', 'success')
     } catch (err) {
       console.error('Error adding reading:', err)
       setError('Failed to add reading')
@@ -509,6 +543,8 @@ const Prescriptions: React.FC = () => {
       setIsModalOpen(false)
       setEditingPrescription(null)
       setError('')
+      // Show success toast
+      addToast('Prescription updated successfully', 'success')
     } catch (err) {
       console.error('Error updating prescription:', err)
       setError('Failed to update prescription')
@@ -525,6 +561,9 @@ const Prescriptions: React.FC = () => {
   //       await window.api.deletePrescription(id)
   //       setPrescriptions(prescriptions.filter((p) => p.id !== id))
   //       setError('')
+  //       
+  //       // Show success toast
+  //       addToast('Prescription deleted successfully', 'success')
   //     } catch (err) {
   //       console.error('Error deleting prescription:', err)
   //       setError('Failed to delete prescription')
@@ -738,11 +777,11 @@ const Prescriptions: React.FC = () => {
 
         {/* Search Bar */}
         <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-          <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+            Search Patients
+          </label>
+          <div className="flex items-center gap-2">
             <div className="flex-grow">
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
-                Search Patients
-              </label>
               <input
                 type="text"
                 id="search"
@@ -758,7 +797,7 @@ const Prescriptions: React.FC = () => {
                 }}
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex">
               <button
                 onClick={(e) => handleSearch(e)}
                 type="button"
@@ -1040,24 +1079,6 @@ const Prescriptions: React.FC = () => {
               {/* Show Prescription and Reading buttons only after a receipt has been created */}
               {currentReceipt && (
                 <>
-                  <button
-                    onClick={handleCompleteVisit}
-                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors shadow-sm flex items-center space-x-1.5 mr-2"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span>Complete Patient Visit</span>
-                  </button>
                   
                   <button
                     onClick={() => {
@@ -1282,7 +1303,22 @@ const Prescriptions: React.FC = () => {
             <div className="text-sm text-gray-500">
               {!loading && prescriptions.length > 0 && (
                 <span>
-                  {prescriptions.length} {prescriptions.length === 1 ? 'record' : 'records'} found
+                  {prescriptions.filter(prescription => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const prescriptionDate = prescription.DATE ? 
+                      (typeof prescription.DATE === 'string' ? prescription.DATE.split('T')[0] : prescription.DATE) : 
+                      '';
+                    return prescriptionDate === today;
+                    }).length
+                  }{' '}
+                  today&apos;s{' '}
+                  {prescriptions.filter((prescription) => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const prescriptionDate = prescription.DATE ? 
+                      (typeof prescription.DATE === 'string' ? prescription.DATE.split('T')[0] : prescription.DATE) : 
+                      '';
+                    return prescriptionDate === today;
+                  }).length === 1 ? 'record' : 'records'} found
                 </span>
               )}
             </div>
@@ -1357,7 +1393,13 @@ const Prescriptions: React.FC = () => {
             !loading && (
               <div>
                 <PrescriptionTable
-                  prescriptions={prescriptions}
+                  prescriptions={prescriptions.filter(prescription => {
+                    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+                    const prescriptionDate = prescription.DATE ? 
+                      (typeof prescription.DATE === 'string' ? prescription.DATE.split('T')[0] : prescription.DATE) : 
+                      '';
+                    return prescriptionDate === today;
+                  })}
                 />
               </div>
             )
@@ -1377,6 +1419,8 @@ const Prescriptions: React.FC = () => {
           prescriptionCount={prescriptions.length}
         />
       )}
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   )
 }

@@ -97,12 +97,18 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   // Auto-generate Sno based on prescription count
   useEffect(() => {
     if (!initialData.Sno) {
-      setFormData((prev) => ({
-        ...prev,
-        Sno: prescriptionCount + 1
-      }))
+      setFormData((prev) => {
+        // Only update if the Sno value would actually change
+        if (prev.Sno !== prescriptionCount + 1) {
+          return {
+            ...prev,
+            Sno: prescriptionCount + 1
+          }
+        }
+        return prev
+      }) 
     }
-  }, [prescriptionCount, initialData])
+  }, [prescriptionCount, initialData.Sno])
 
   // Handle form input changes
   const handleChange = (
@@ -461,7 +467,7 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
 
       {/* Advice Section */}
       <div className="bg-gray-50 p-4 rounded-md">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Doctor's Advice</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Doctor&apos;s Advice</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Array.from({ length: visibleAdvice }).map((_, index) => (
             <div key={`advice-${index + 1}`}>
