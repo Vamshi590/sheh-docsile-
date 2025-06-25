@@ -61,18 +61,54 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
       'PREVIOUS HISTORY': '',
       OTHERS: '',
       OTHERS1: '',
-      // Initialize prescription fields
-      ...Object.fromEntries(
-        Array.from({ length: 10 }).flatMap((_, index) => [
-          [`PRESCRIPTION ${index + 1}`, ''],
-          [`DAYS ${index + 1}`, ''],
-          [`TIMING ${index + 1}`, '']
-        ])
-      ),
-      // Initialize advice fields
-      ...Object.fromEntries(
-        Array.from({ length: 10 }).map((_, index) => [`ADVICE ${index + 1}`, ''])
-      ),
+
+      // Prescription fields
+      'PRESCRIPTION 1': '',
+      'DAYS 1': '',
+      'TIMING 1': '',
+      'PRESCRIPTION 2': '',
+      'DAYS 2': '',
+      'TIMING 2': '',
+      'PRESCRIPTION 3': '',
+      'DAYS 3': '',
+      'TIMING 3': '',
+      'PRESCRIPTION 4': '',
+      'DAYS 4': '',
+      'TIMING 4': '',
+      'PRESCRIPTION 5': '',
+      'DAYS 5': '',
+      'TIMING 5': '',
+      'PRESCRIPTION 6': '',
+      'DAYS 6': '',
+      'TIMING 6': '',
+      'PRESCRIPTION 7': '',
+      'DAYS 7': '',
+      'TIMING 7': '',
+      'PRESCRIPTION 8': '',
+      'DAYS 8': '',
+      'TIMING 8': '',
+      'PRESCRIPTION 9': '',
+      'DAYS 9': '',
+      'TIMING 9': '',
+      'PRESCRIPTION 10': '',
+      'DAYS 10': '',
+      'TIMING 10': '',
+      
+      // Advice fields
+      'ADVICE 1': '',
+      'ADVICE 2': '',
+      'ADVICE 3': '',
+      'ADVICE 4': '',
+      'ADVICE 5': '',
+      'ADVICE 6': '',
+      'ADVICE 7': '',
+      'ADVICE 8': '',
+      'ADVICE 9': '',
+      'ADVICE 10': '',
+
+      'NOTES': '',
+      'FOLLOW UP DATE': '',
+      
       // Add patient information if a patient is selected
       ...(selectedPatient
         ? {
@@ -106,7 +142,7 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
           }
         }
         return prev
-      }) 
+      })
     }
   }, [prescriptionCount, initialData.Sno])
 
@@ -169,43 +205,6 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
       }
     }
   }
-
-  // Auto-calculate financial fields
-  // Extract values for dependency array to avoid ESLint warnings
-  const totalAmountValue = formData['TOTAL AMOUNT']
-  const advancePaidValue = formData['ADVANCE PAID']
-  const amountReceivedValue = formData['AMOUNT RECEIVED']
-  const discountPercentageValue = formData['DISCOUNT PERCENTAG']
-  const currentDiscountAmount = formData['DISCOUNT AMOUNT']
-  const currentAmountDue = formData['AMOUNT DUE']
-
-  useEffect(() => {
-    const totalAmount =
-      typeof totalAmountValue === 'number' ? (totalAmountValue as number) : 0
-    const advancePaid =
-      typeof advancePaidValue === 'number' ? (advancePaidValue as number) : 0
-    const amountReceived =
-      typeof amountReceivedValue === 'number' ? (amountReceivedValue as number) : 0
-    const discountPercentage =
-      typeof discountPercentageValue === 'number'
-        ? (discountPercentageValue as number)
-        : 0
-
-    // Calculate discount amount
-    const discountAmount = (totalAmount * discountPercentage) / 100
-
-    // Calculate amount due
-    const amountDue = totalAmount - advancePaid - amountReceived - discountAmount
-
-    // Only update if the calculated values are different from current values
-    if (currentDiscountAmount !== discountAmount || currentAmountDue !== amountDue) {
-      setFormData((prev) => ({
-        ...prev,
-        'DISCOUNT AMOUNT': discountAmount,
-        'AMOUNT DUE': amountDue
-      }))
-    }
-  }, [totalAmountValue, advancePaidValue, amountReceivedValue, discountPercentageValue, currentDiscountAmount, currentAmountDue])
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {

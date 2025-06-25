@@ -50,7 +50,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     Sno: '',
     DATE: new Date().toISOString().split('T')[0],
     'RECEIPT NO': `R${(patients.length + 1).toString().padStart(3, '0')}`,
-    
+
     // Patient information
     'PATIENT ID': '',
     'PATIENT NAME': '',
@@ -60,12 +60,12 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     GENDER: '',
     'PHONE NUMBER': '',
     ADDRESS: '',
-    
+
     // Doctor information
     'DOCTOR NAME': 'Dr. Srilatha ch',
     DEPARTMENT: 'Opthalmology',
     'REFFERED BY': 'Self',
-    
+
     // Payment information
     'PAID FOR': '',
     MODE: 'Cash',
@@ -75,84 +75,192 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     'DISCOUNT PERCENTAG': '0',
     'DISCOUNT AMOUNT': '0',
     'AMOUNT DUE': '',
-    
+
     // Medical information
     TEMPARATURE: '',
     'P.R.': '',
     SPO2: '',
-    'PRESENT COMPLIAN': '',
+    'PRESENT COMPLAIN': '',
     'PREVIOUS HISTORY': '',
     OTHERS: '',
-    'OTHERS 1': '',
-    
+    OTHERS1: '',
+
     // Prescription information
-    'PRESCRIPTION 1': '', 'DAYS 1': '', 'TIMMING 1': '',
-    'PRESCRIPTION 2': '', 'DAYS 2': '', 'TIMMING 2': '',
-    'PRESCRIPTION 3': '', 'DAYS 3': '', 'TIMMING 3': '',
-    'PRESCRIPTION 4': '', 'DAYS 4': '', 'TIMMING 4': '',
-    'PRESCRIPTION 5': '', 'DAYS 5': '', 'TIMMING 5': '',
-    'PRESCRIPTION 6': '', 'DAYS 6': '', 'TIMMING 6': '',
-    'PRESCRIPTION 7': '', 'DAYS 7': '', 'TIMMING 7': '',
-    'PRESCRIPTION 8': '', 'DAYS 8': '', 'TIMMING 8': '',
-    'PRESCRIPTION 9': '', 'DAYS 9': '', 'TIMMING 9': '',
-    'PRESCRIPTION 10': '', 'DAYS 10': '', 'TIMMING 10': '',
-    'PRESCRIPTION 11': '', 'DAYS 11': '', 'TIMMING 11': '',
-    'PRESCRIPTION 12': '', 'DAYS 12': '', 'TIMMING 12': '',
-    'PRESCRIPTION 13': '', 'DAYS 13': '', 'TIMMING 13': '',
-    'PRESCRIPTION 14': '', 'DAYS 14': '', 'TIMMING 14': '',
-    'PRESCRIPTION 15': '', 'DAYS 15': '', 'TIMMING 15': '',
+    'PRESCRIPTION 1': '',
+    'DAYS 1': '',
+    'TIMING 1': '',
+    'PRESCRIPTION 2': '',
+    'DAYS 2': '',
+    'TIMING 2': '',
+    'PRESCRIPTION 3': '',
+    'DAYS 3': '',
+    'TIMING 3': '',
+    'PRESCRIPTION 4': '',
+    'DAYS 4': '',
+    'TIMING 4': '',
+    'PRESCRIPTION 5': '',
+    'DAYS 5': '',
+    'TIMING 5': '',
+    'PRESCRIPTION 6': '',
+    'DAYS 6': '',
+    'TIMING 6': '',
+    'PRESCRIPTION 7': '',
+    'DAYS 7': '',
+    'TIMING 7': '',
+    'PRESCRIPTION 8': '',
+    'DAYS 8': '',
+    'TIMING 8': '',
+    'PRESCRIPTION 9': '',
+    'DAYS 9': '',
+    'TIMING 9': '',
+    'PRESCRIPTION 10': '',
+    'DAYS 10': '',
+    'TIMING 10': '',
+    'PRESCRIPTION 11': '',
+    'DAYS 11': '',
+    'TIMING 11': '',
+    'PRESCRIPTION 12': '',
+    'DAYS 12': '',
+    'TIMING 12': '',
+    'PRESCRIPTION 13': '',
+    'DAYS 13': '',
+    'TIMING 13': '',
+    'PRESCRIPTION 14': '',
+    'DAYS 14': '',
+    'TIMING 14': '',
+    'PRESCRIPTION 15': '',
+    'DAYS 15': '',
+    'TIMING 15': '',
     
+
     // Advice information
-    'ADVISE 1': '', 'ADVISE 2': '', 'ADVISE 3': '', 'ADVISE 4': '', 'ADVISE 5': '',
-    'ADVISE 6': '', 'ADVISE 7': '', 'ADVISE 8': '', 'ADVISE 9': '', 'ADVISE 10': '',
-    'ADVISE 11': '', 'ADVISE 12': '', 'ADVISE 13': '', 'ADVISE 14': '', 'ADVISE 15': '',
-    
+    'ADVICE 1': '',
+    'ADVICE 2': '',
+    'ADVICE 3': '',
+    'ADVICE 4': '',
+    'ADVICE 5': '',
+    'ADVICE 6': '',
+    'ADVICE 7': '',
+    'ADVICE 8': '',
+    'ADVICE 9': '',
+    'ADVICE 10': '',
+    'ADVICE 11': '',
+    'ADVICE 12': '',
+    'ADVICE 13': '',
+    'ADVICE 14': '',
+    'ADVICE 15': '',
+
+    'NOTES': '',
+    'FOLLOW UP DATE': '',
+
     // Glass prescription - Right Eye Distance
-    'GR-RE-D-SPH': '', 'GR-RE-D-CYL': '', 'GR-RE-D-AXIS': '', 'GR-RE-D-VISION': '',
+    'GR-RE-D-SPH': '',
+    'GR-RE-D-CYL': '',
+    'GR-RE-D-AXIS': '',
+    'GR-RE-D-VISION': '',
     // Glass prescription - Right Eye Near
-    'GR-RE-N-SPH': '', 'GR-RE-N-CYL': '', 'GR-RE-N-AXIS': '', 'GR-RE-N-VISION': '',
+    'GR-RE-N-SPH': '',
+    'GR-RE-N-CYL': '',
+    'GR-RE-N-AXIS': '',
+    'GR-RE-N-VISION': '',
     // Glass prescription - Left Eye Distance
-    'GR-LE-D-SPH': '', 'GR-LE-D-CYL': '', 'GR-LE-D-AXIS': '', 'GR-LE-D-VISION': '',
+    'GR-LE-D-SPH': '',
+    'GR-LE-D-CYL': '',
+    'GR-LE-D-AXIS': '',
+    'GR-LE-D-VISION': '',
     // Glass prescription - Left Eye Near
-    'GR-LE-N-SPH': '', 'GR-LE-N-CYL': '', 'GR-LE-N-AXIS': '', 'GR-LE-N-VISION': '',
-    
-    'ADVISED FOR': '',
-    
+    'GR-LE-N-SPH': '',
+    'GR-LE-N-CYL': '',
+    'GR-LE-N-AXIS': '',
+    'GR-LE-N-VISION': '',
+
     // Auto-refraction - Right Eye
-    'AR-RE-SPH': '', 'AR-RE-CYL': '', 'AR-RE-AXIS': '', 'AR-RE-VA': '', 'AR-RE-VAC.P.H': '',
+    'AR-RE-SPH': '',
+    'AR-RE-CYL': '',
+    'AR-RE-AXIS': '',
+    'AR-RE-VA': '',
+    'AR-RE-VAC.P.H': '',
     // Auto-refraction - Left Eye
-    'AR-LE-SPH': '', 'AR-LE-CYL': '', 'AR-LE-AXIS': '', 'AR-LE-VA': '', 'AR-LE-VAC.P.H': '',
-    
+    'AR-LE-SPH': '',
+    'AR-LE-CYL': '',
+    'AR-LE-AXIS': '',
+    'AR-LE-VA': '',
+    'AR-LE-VAC.P.H': '',
+
     // PGP - Right Eye Distance
-    'PGP-RE-D-SPH': '', 'PGP-RE-D-CYL': '', 'PGP-RE-D-AXIS': '', 'PGP-RE-D-VA': '',
+    'PGP-RE-D-SPH': '',
+    'PGP-RE-D-CYL': '',
+    'PGP-RE-D-AXIS': '',
+    'PGP-RE-D-VA': '',
     // PGP - Right Eye Near
-    'PGP-RE-N-SPH': '', 'PGP-RE-N-CYL': '', 'PGP-RE-N-AXIS': '', 'PGP-RE-N-VA': '',
+    'PGP-RE-N-SPH': '',
+    'PGP-RE-N-CYL': '',
+    'PGP-RE-N-AXIS': '',
+    'PGP-RE-N-VA': '',
     // PGP - Left Eye Distance
-    'PGP-LE-D-SPH': '', 'PGP-LE-D-CYL': '', 'PGP-LE-D-AXIS': '', 'PGP-LE-D-BCVA': '',
+    'PGP-LE-D-SPH': '',
+    'PGP-LE-D-CYL': '',
+    'PGP-LE-D-AXIS': '',
+    'PGP-LE-D-BCVA': '',
     // PGP - Left Eye Near
-    'PGP-LE-N-SPH': '', 'PGP-LE-N-CYL': '', 'PGP-LE-N-AXIS': '', 'PGP-LE-N-BCVA': '',
-    
+    'PGP-LE-N-SPH': '',
+    'PGP-LE-N-CYL': '',
+    'PGP-LE-N-AXIS': '',
+    'PGP-LE-N-BCVA': '',
+
     // SR - Right Eye Distance
-    'SR-RE-D-SPH': '', 'SR-RE-D-CYL': '', 'SR-RE-D-AXIS': '', 'SR-RE-D-VA': '',
+    'SR-RE-D-SPH': '',
+    'SR-RE-D-CYL': '',
+    'SR-RE-D-AXIS': '',
+    'SR-RE-D-VA': '',
     // SR - Right Eye Near
-    'SR-RE-N-SPH': '', 'SR-RE-N-CYL': '', 'SR-RE-N-AXIS': '', 'SR-RE-N-VA': '',
+    'SR-RE-N-SPH': '',
+    'SR-RE-N-CYL': '',
+    'SR-RE-N-AXIS': '',
+    'SR-RE-N-VA': '',
     // SR - Left Eye Distance
-    'SR-LE-D-SPH': '', 'SR-LE-D-CYL': '', 'SR-LE-D-AXIS': '', 'SR-LE-D-BCVA': '',
+    'SR-LE-D-SPH': '',
+    'SR-LE-D-CYL': '',
+    'SR-LE-D-AXIS': '',
+    'SR-LE-D-BCVA': '',
     // SR - Left Eye Near
-    'SR-LE-N-SPH': '', 'SR-LE-N-CYL': '', 'SR-LE-N-AXIS': '', 'SR-LE-N-BCVA': '',
-    
+    'SR-LE-N-SPH': '',
+    'SR-LE-N-CYL': '',
+    'SR-LE-N-AXIS': '',
+    'SR-LE-N-BCVA': '',
+
     // Clinical findings - Right Eye
-    'CF-RE-LIDS': '', 'CF-RE-CONJUCTIVA': '', 'CF-RE-CORNEA': '', 'CF-RE-A.C.': '',
-    'CF-RE-IRIS': '', 'CF-RE-PUPIL': '', 'CF-RE-LENS': '', 'CF-RE-SAC': '',
-    'CF-RE-TENSION': '', 'CF-RE-FUNDUS': '',
-    'CF-RE-RETINO 1': '', 'CF-RE-RETINO 2': '', 'CF-RE-RETINO 3': '', 'CF-RE-RETINO 4': '',
-    
+    'CF-RE-LIDS': '',
+    'CF-RE-CONJUCTIVA': '',
+    'CF-RE-CORNEA': '',
+    'CF-RE-A.C.': '',
+    'CF-RE-IRIS': '',
+    'CF-RE-PUPIL': '',
+    'CF-RE-LENS': '',
+    'CF-RE-SAC': '',
+    'CF-RE-TENSION': '',
+    'CF-RE-FUNDUS': '',
+    'CF-RE-RETINO 1': '',
+    'CF-RE-RETINO 2': '',
+    'CF-RE-RETINO 3': '',
+    'CF-RE-RETINO 4': '',
+
     // Clinical findings - Left Eye
-    'CF-LE-LIDS': '', 'CF-LE-CONJUCTIVA': '', 'CF-LE-CORNEA': '', 'CF-LE-A.C.': '',
-    'CF-LE-IRIS': '', 'CF-LE-PUPIL': '', 'CF-LE-LENS': '', 'CF-LE-SAC': '',
-    'CF-LE-TENSION': '', 'CF-LE-FUNDUS': '',
-    'CF-LE-RETINO 1': '', 'CF-LE-RETINO 2': '', 'CF-LE-RETINO 3': '', 'CF-LE-RETINO 4': '',
-    
+    'CF-LE-LIDS': '',
+    'CF-LE-CONJUCTIVA': '',
+    'CF-LE-CORNEA': '',
+    'CF-LE-A.C.': '',
+    'CF-LE-IRIS': '',
+    'CF-LE-PUPIL': '',
+    'CF-LE-LENS': '',
+    'CF-LE-SAC': '',
+    'CF-LE-TENSION': '',
+    'CF-LE-FUNDUS': '',
+    'CF-LE-RETINO 1': '',
+    'CF-LE-RETINO 2': '',
+    'CF-LE-RETINO 3': '',
+    'CF-LE-RETINO 4': '',
+
     // Admission and operation details
     'DATE OF ADMIT': '',
     'TIME OF ADMIT': '',
@@ -160,25 +268,35 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     'TIME OF OPERATION': '',
     'DATE OF DISCHARGE': '',
     'TIME OF DISCHARGE': '',
-    
+
     'OPERATION DETAILS': '',
     'OPERATION PROCEDUR': '',
     'PROVISION DIAGNOSIS': '',
-    
+
     // Particulars and amounts
-    'PART. 1': '', 'AMOUNT 1': '',
-    'PART. 2': '', 'AMOUNT 2': '',
-    'PART. 3': '', 'AMOUNT 3': '',
-    'PART. 4': '', 'AMOUNT 4': '',
-    'PART. 5': '', 'AMOUNT 5': '',
-    'PART. 6': '', 'AMOUNT 6': '',
-    'PART. 7': '', 'AMOUNT 7': '',
-    'PART. 8': '', 'AMOUNT 8': '',
-    'PART. 9': '', 'AMOUNT 9': '',
-    'PART. 10': '', 'AMOUNT 10': '',
-    
+    'PART. 1': '',
+    'AMOUNT 1': '',
+    'PART. 2': '',
+    'AMOUNT 2': '',
+    'PART. 3': '',
+    'AMOUNT 3': '',
+    'PART. 4': '',
+    'AMOUNT 4': '',
+    'PART. 5': '',
+    'AMOUNT 5': '',
+    'PART. 6': '',
+    'AMOUNT 6': '',
+    'PART. 7': '',
+    'AMOUNT 7': '',
+    'PART. 8': '',
+    'AMOUNT 8': '',
+    'PART. 9': '',
+    'AMOUNT 9': '',
+    'PART. 10': '',
+    'AMOUNT 10': '',
+
     'REVIEW ON': '',
-    
+
     // Posterior segment examination
     'PDE-RE-OPTIC DISK': '',
     'PDE-RE-OPTIC MACULA': '',
@@ -188,7 +306,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     'PDE-LE-OPTIC MACULA': '',
     'PDE-LE-OPTIC BLOOD VESSELS': '',
     'PDE-LE-PR': '',
-    
+
     // Add patient information if a patient is selected
     ...(selectedPatient
       ? {
@@ -208,10 +326,11 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
   const [showPaidForDropdown, setShowPaidForDropdown] = useState(false)
   const [filteredPaidForOptions, setFilteredPaidForOptions] = useState<string[]>([])
   const paidForRef = useRef<HTMLDivElement>(null)
-  
+
   // Payment mode autocomplete states
   const [showPaymentModeDropdown, setShowPaymentModeDropdown] = useState(false)
-  const [filteredPaymentModeOptions, setFilteredPaymentModeOptions] = useState<string[]>(paymentModeOptions)
+  const [filteredPaymentModeOptions, setFilteredPaymentModeOptions] =
+    useState<string[]>(paymentModeOptions)
   const paymentModeRef = useRef<HTMLDivElement>(null)
 
   // Doctor information autocomplete states
@@ -242,7 +361,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
         ADDRESS: selectedPatient.address,
         DOB: selectedPatient.dob || ''
       })
-      
+
       setFormData((prevData) => {
         const updatedData = {
           ...prevData,
@@ -427,7 +546,8 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     const submissionData = {
       ...formData,
       'PATIENT ID': selectedPatient?.patientId || formData['PATIENT ID'] || '',
-      'PATIENT NAME': selectedPatient?.name || selectedPatient?.guardian || formData['PATIENT NAME'] || '',
+      'PATIENT NAME':
+        selectedPatient?.name || selectedPatient?.guardian || formData['PATIENT NAME'] || '',
       'GUARDIAN NAME': selectedPatient?.guardian || formData['GUARDIAN NAME'] || '',
       'PHONE NUMBER': selectedPatient?.phone || formData['PHONE NUMBER'] || '',
       AGE: selectedPatient?.age || formData.AGE || '',
@@ -436,7 +556,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
       DOB: selectedPatient?.dob || formData.DOB || '',
       MODE: formData.MODE || 'Cash'
     }
-    
+
     console.log('Submitting form with final data:', submissionData)
     await onSubmit(submissionData)
   }
@@ -812,9 +932,9 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
                 handleChange(e)
                 const value = e.target.value
                 const filtered = value
-                  ? paymentModeOptions.filter((option) => 
+                  ? paymentModeOptions.filter((option) =>
                       option.toLowerCase().includes(value.toLowerCase())
-                  )
+                    )
                   : paymentModeOptions
                 setFilteredPaymentModeOptions(filtered)
                 setShowPaymentModeDropdown(true)

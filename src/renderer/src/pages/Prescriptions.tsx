@@ -106,23 +106,23 @@ const Prescriptions: React.FC = () => {
     try {
       setLoading(true)
       console.log('Adding prescription with form data:', formData)
-      
+
       // Initialize patient details
       let patientDetails = {}
-      
+
       // Priority 1: If we have a current receipt, use its patient details and UPDATE the receipt
       if (currentReceipt) {
         console.log('Using patient details from current receipt:', currentReceipt)
-        
+
         // Extract receipt ID and patient ID
         const receiptId = typeof currentReceipt.id === 'string' ? currentReceipt.id : ''
-        const patientId = 
+        const patientId =
           typeof currentReceipt['PATIENT ID'] === 'string'
             ? currentReceipt['PATIENT ID']
             : typeof currentReceipt.patientId === 'string'
               ? currentReceipt.patientId
               : ''
-        
+
         // Extract all patient details from the receipt
         patientDetails = {
           'PATIENT ID': patientId,
@@ -134,7 +134,7 @@ const Prescriptions: React.FC = () => {
           ADDRESS: currentReceipt.ADDRESS || '',
           DOB: currentReceipt.DOB || ''
         }
-        
+
         // Instead of creating a new record, update the existing receipt with prescription data
         const updatedReceiptData = {
           ...currentReceipt,
@@ -144,40 +144,29 @@ const Prescriptions: React.FC = () => {
           TYPE: 'RECEIPT', // Keep it as a receipt
           receiptId, // Keep the receipt ID link
           patientId, // Keep the patient ID
-          // Add prescription-specific fields
-          PRESCRIPTION: formData.PRESCRIPTION || '',
-          'RIGHT SPH': formData['RIGHT SPH'] || '',
-          'RIGHT CYL': formData['RIGHT CYL'] || '',
-          'RIGHT AXIS': formData['RIGHT AXIS'] || '',
-          'RIGHT VA': formData['RIGHT VA'] || '',
-          'LEFT SPH': formData['LEFT SPH'] || '',
-          'LEFT CYL': formData['LEFT CYL'] || '',
-          'LEFT AXIS': formData['LEFT AXIS'] || '',
-          'LEFT VA': formData['LEFT VA'] || '',
-          'NEAR ADD': formData['NEAR ADD'] || '',
-          PD: formData.PD || '',
           // Preserve the original date
           DATE: currentReceipt.DATE || new Date().toISOString().split('T')[0]
         }
-        
-        console.log('Updating receipt with prescription data:', updatedReceiptData)
+
         // Update the existing receipt instead of creating a new record
-        const updatedReceipt = await window.api.updatePrescription(receiptId, updatedReceiptData as Prescription)
-        console.log('Updated receipt with prescription data:', updatedReceipt)
-        
+        const updatedReceipt = await window.api.updatePrescription(
+          receiptId,
+          updatedReceiptData as Prescription
+        )
+
         // Update the current receipt in state
         setCurrentReceipt(updatedReceipt)
-        
+
         // Close form and show success message
         await loadPrescriptions()
         setShowAddForm(false)
         setError('')
         addToast('Prescription added successfully', 'success')
-      } 
+      }
       // Priority 2: If we have a found patient from search but no receipt, create a new receipt
       else if (foundPatient) {
         console.log('Using patient details from search:', foundPatient)
-        
+
         patientDetails = {
           'PATIENT ID': foundPatient['PATIENT ID'] || '',
           'PATIENT NAME': foundPatient.name || '',
@@ -188,7 +177,7 @@ const Prescriptions: React.FC = () => {
           ADDRESS: foundPatient.ADDRESS || '',
           DOB: foundPatient.DOB || ''
         }
-        
+
         // Create a new receipt with patient details and prescription data
         const receiptData = {
           ...formData,
@@ -197,35 +186,35 @@ const Prescriptions: React.FC = () => {
           patientId: foundPatient['PATIENT ID'] || '',
           DATE: formData.DATE || new Date().toISOString().split('T')[0]
         }
-        
+
         console.log('Creating new receipt with patient details and prescription data:', receiptData)
         const newReceipt = await window.api.addPrescription(receiptData)
         console.log('Created new receipt with patient details and prescription data:', newReceipt)
-        
+
         // Set this as the current receipt
         setCurrentReceipt(newReceipt)
-        
+
         // Close form and show success message
         await loadPrescriptions()
         setShowAddForm(false)
         setError('')
         addToast('Prescription added successfully', 'success')
-      } 
+      }
       // Priority 3: No receipt or found patient, create a new receipt with just the form data
       else {
         console.log('No receipt or found patient, creating new receipt with form data only')
-        
+
         // Create a new receipt with just the form data
         const receiptData = {
           ...formData,
           TYPE: 'RECEIPT',
           DATE: formData.DATE || new Date().toISOString().split('T')[0]
         }
-        
+
         console.log('Creating new receipt with form data only:', receiptData)
         const newReceipt = await window.api.addPrescription(receiptData)
         console.log('Created new receipt with form data only:', newReceipt)
-        
+
         // Set this as the current receipt
         setCurrentReceipt(newReceipt)
         await loadPrescriptions()
@@ -234,7 +223,7 @@ const Prescriptions: React.FC = () => {
         // Show success toast
         addToast('Prescription added successfully', 'success')
       }
-      
+
       // All cases now handle their own success flow with form closing and toast notifications
     } catch (err) {
       console.error('Error adding prescription:', err)
@@ -247,16 +236,16 @@ const Prescriptions: React.FC = () => {
   // Convert Patient type from Prescriptions.tsx to the Patient interface expected by ReceiptForm.tsx
   const convertToReceiptFormPatient = (patient: Patient): ReceiptFormPatient => {
     console.log('Converting patient to ReceiptFormPatient - Raw patient data:', patient)
-    
+
     // IMPORTANT: The patient object structure uses camelCase fields, not uppercase fields
     // Extract fields directly from the patient object based on the actual structure we see in the logs
-    
+
     // First try direct field access for the most common structure
     const patientId = String(patient.patientId || '')
     const patientName = String(patient.name || '')
     const guardianName = String(patient.guardian || '')
     const phoneNumber = String(patient.phone || '')
-    
+
     // Handle age - it could be in age field or calculated from dob
     let age = ''
     if ('age' in patient) {
@@ -272,10 +261,10 @@ const Prescriptions: React.FC = () => {
         age = ''
       }
     }
-    
+
     const gender = String(patient.gender || '')
     const address = String(patient.address || '')
-    
+
     // Log the extracted details for debugging
     console.log('Extracted patient details:', {
       patientId,
@@ -286,10 +275,10 @@ const Prescriptions: React.FC = () => {
       gender,
       address
     })
-    
+
     // Extract DOB if available
     const dob = 'dob' in patient && typeof patient.dob === 'string' ? patient.dob : ''
-    
+
     // Create the converted patient object with the correct field names
     const convertedPatient = {
       id: patientId,
@@ -303,7 +292,7 @@ const Prescriptions: React.FC = () => {
       address: address,
       dob: dob
     }
-    
+
     console.log('Converted patient object:', convertedPatient)
     return convertedPatient
   }
@@ -328,17 +317,17 @@ const Prescriptions: React.FC = () => {
     try {
       // Clear current receipt state
       setCurrentReceipt(null)
-      
+
       // Reset UI states
       setShowAddForm(false)
       setShowReceiptForm(false)
       setShowReadingForm(false)
       setIsModalOpen(false)
-      
+
       // Reset patient search if needed
       setFoundPatient(null)
       setSearchTerm('')
-      
+
       // Refresh prescriptions list
       await fetchPrescriptions()
       console.log('Patient visit completed, UI reset')
@@ -354,10 +343,10 @@ const Prescriptions: React.FC = () => {
   const handleAddReceipt = async (formData: Omit<Prescription, 'id'>): Promise<void> => {
     try {
       setLoading(true)
-      
+
       // Log the raw form data to verify what we're receiving
       console.log('Raw receipt form data received:', formData)
-      
+
       // Extract patient details from form data
       const patientId = formData['PATIENT ID'] || ''
       const patientName = formData['PATIENT NAME'] || ''
@@ -366,7 +355,7 @@ const Prescriptions: React.FC = () => {
       const age = formData.AGE || ''
       const gender = formData.GENDER || ''
       const address = formData.ADDRESS || ''
-      
+
       console.log('Extracted patient details from form:', {
         patientId,
         patientName,
@@ -376,7 +365,7 @@ const Prescriptions: React.FC = () => {
         gender,
         address
       })
-      
+
       // Create the receipt data with explicit patient fields
       const receiptData = {
         ...formData,
@@ -392,19 +381,19 @@ const Prescriptions: React.FC = () => {
         TYPE: 'RECEIPT',
         DATE: formData.DATE || new Date().toISOString().split('T')[0] // Ensure we have a date
       }
-      
+
       console.log('Final receipt data to be saved:', receiptData)
-      
+
       // Add the receipt and get the newly created receipt with its ID
-      const newReceipt = await window.api.addPrescription(receiptData) 
+      const newReceipt = await window.api.addPrescription(receiptData)
       console.log('Added receipt with patient details:', newReceipt)
-      
+
       // Set this as the current receipt we're working with
       setCurrentReceipt(newReceipt)
-      
+
       // Hide the receipt form after creating
       setShowReceiptForm(false)
-      
+
       await loadPrescriptions()
       setError('')
       // Show success toast
@@ -439,13 +428,13 @@ const Prescriptions: React.FC = () => {
       // If we have a current receipt, update it with the reading data
       if (currentReceipt) {
         const receiptId = typeof currentReceipt.id === 'string' ? currentReceipt.id : ''
-        const patientId = 
+        const patientId =
           typeof currentReceipt['PATIENT ID'] === 'string'
             ? currentReceipt['PATIENT ID']
             : typeof currentReceipt.patientId === 'string'
               ? currentReceipt.patientId
               : ''
-        
+
         // Extract all patient details from the receipt
         const receiptPatientDetails = {
           'PATIENT ID': patientId,
@@ -457,7 +446,7 @@ const Prescriptions: React.FC = () => {
           ADDRESS: currentReceipt.ADDRESS || '',
           DOB: currentReceipt.DOB || ''
         }
-        
+
         // Update the existing receipt with reading data
         const updatedReceiptData = {
           ...currentReceipt,
@@ -467,26 +456,18 @@ const Prescriptions: React.FC = () => {
           TYPE: 'RECEIPT', // Keep it as a receipt
           receiptId, // Keep the receipt ID link
           patientId, // Keep the patient ID
-          // Add reading-specific fields
-          'RIGHT SPH': reading['RIGHT SPH'] || currentReceipt['RIGHT SPH'] || '',
-          'RIGHT CYL': reading['RIGHT CYL'] || currentReceipt['RIGHT CYL'] || '',
-          'RIGHT AXIS': reading['RIGHT AXIS'] || currentReceipt['RIGHT AXIS'] || '',
-          'RIGHT VA': reading['RIGHT VA'] || currentReceipt['RIGHT VA'] || '',
-          'LEFT SPH': reading['LEFT SPH'] || currentReceipt['LEFT SPH'] || '',
-          'LEFT CYL': reading['LEFT CYL'] || currentReceipt['LEFT CYL'] || '',
-          'LEFT AXIS': reading['LEFT AXIS'] || currentReceipt['LEFT AXIS'] || '',
-          'LEFT VA': reading['LEFT VA'] || currentReceipt['LEFT VA'] || '',
-          'NEAR ADD': reading['NEAR ADD'] || currentReceipt['NEAR ADD'] || '',
-          PD: reading.PD || currentReceipt.PD || '',
           // Preserve the original date
           DATE: currentReceipt.DATE || new Date().toISOString().split('T')[0]
         }
-        
+
         console.log('Updating receipt with reading data:', updatedReceiptData)
         // Update the existing receipt instead of creating a new record
-        const updatedReceipt = await window.api.updatePrescription(receiptId, updatedReceiptData as Prescription)
+        const updatedReceipt = await window.api.updatePrescription(
+          receiptId,
+          updatedReceiptData as Prescription
+        )
         console.log('Updated receipt with reading data:', updatedReceipt)
-        
+
         // Update the current receipt in state
         setCurrentReceipt(updatedReceipt)
       } else if (foundPatient) {
@@ -498,11 +479,11 @@ const Prescriptions: React.FC = () => {
           patientId: foundPatient['PATIENT ID'] || '',
           DATE: reading.DATE || new Date().toISOString().split('T')[0]
         }
-        
+
         console.log('Creating new receipt with patient details and reading data:', receiptData)
         const newReceipt = await window.api.addPrescription(receiptData)
         console.log('Created new receipt with patient details and reading data:', newReceipt)
-        
+
         // Set this as the current receipt
         setCurrentReceipt(newReceipt)
       } else {
@@ -512,11 +493,11 @@ const Prescriptions: React.FC = () => {
           TYPE: 'RECEIPT',
           DATE: reading.DATE || new Date().toISOString().split('T')[0]
         }
-        
+
         console.log('Creating new receipt with reading data only:', receiptData)
         const newReceipt = await window.api.addPrescription(receiptData)
         console.log('Created new receipt with reading data only:', newReceipt)
-        
+
         // Set this as the current receipt
         setCurrentReceipt(newReceipt)
       }
@@ -561,7 +542,7 @@ const Prescriptions: React.FC = () => {
   //       await window.api.deletePrescription(id)
   //       setPrescriptions(prescriptions.filter((p) => p.id !== id))
   //       setError('')
-  //       
+  //
   //       // Show success toast
   //       addToast('Prescription deleted successfully', 'success')
   //     } catch (err) {
@@ -581,9 +562,7 @@ const Prescriptions: React.FC = () => {
 
   // Function to find receipts for a patient
   const findReceiptsForPatient = (patientId: string): Prescription[] => {
-    return prescriptions.filter(
-      (p) => p.patientId === patientId && p.TYPE === 'RECEIPT'
-    )
+    return prescriptions.filter((p) => p.patientId === patientId && p.TYPE === 'RECEIPT')
   }
 
   // Function to handle patient search
@@ -593,7 +572,7 @@ const Prescriptions: React.FC = () => {
       setLoading(true)
       setFoundPatient(null)
       setCurrentReceipt(null)
-      
+
       // Close any open forms first
       setShowAddForm(false)
       setShowReadingForm(false)
@@ -636,20 +615,20 @@ const Prescriptions: React.FC = () => {
       if (matchedPatient) {
         console.log('Found patient:', matchedPatient)
         setFoundPatient(matchedPatient)
-        
+
         // Always reset the current receipt when searching for a new patient
         // This ensures we don't automatically go to the prescription stage
         setCurrentReceipt(null)
-        
+
         // Check if this patient has any existing receipts
         const patientId = String(matchedPatient['PATIENT ID'] || '')
         const patientReceipts = findReceiptsForPatient(patientId)
         console.log('Existing receipts for patient:', patientReceipts)
-        
+
         // We'll show existing receipts in the UI, but won't automatically set one as current
         // This way, the user must explicitly create a new receipt or select an existing one
         console.log('Patient found, waiting for user to click Create Receipt button')
-        
+
         setError('')
       } else {
         setFoundPatient(null)
@@ -731,7 +710,7 @@ const Prescriptions: React.FC = () => {
             <span>{error}</span>
           </div>
         )}
-        
+
         {/* Current Receipt Information */}
         {currentReceipt && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-100 text-blue-700 rounded-lg">
@@ -767,7 +746,11 @@ const Prescriptions: React.FC = () => {
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 <span>Complete Visit</span>
               </button>
@@ -940,7 +923,7 @@ const Prescriptions: React.FC = () => {
                     // Make sure we have a valid patient ID
                     const patientId = typeof foundPatient.id === 'string' ? foundPatient.id : ''
                     const patientReceipts = findReceiptsForPatient(patientId)
-                    
+
                     if (patientReceipts.length > 0) {
                       return (
                         <div className="bg-white p-4 rounded-md shadow-sm mb-4">
@@ -951,10 +934,10 @@ const Prescriptions: React.FC = () => {
                             This patient has {patientReceipts.length} existing receipt(s). You can
                             continue with an existing receipt or create a new one.
                           </p>
-                          
+
                           <div className="space-y-2 mb-4">
                             {patientReceipts.map((receipt) => (
-                              <div 
+                              <div
                                 key={receipt.id}
                                 className="border border-gray-200 rounded-md p-3 hover:bg-gray-50"
                               >
@@ -967,11 +950,12 @@ const Prescriptions: React.FC = () => {
                                         : 'N/A'}
                                     </p>
                                     <p className="text-sm text-gray-500">
-                                      Date: {' '}
+                                      Date:{' '}
                                       {new Date(
                                         receipt.createdAt && typeof receipt.createdAt === 'string'
                                           ? receipt.createdAt
-                                          : receipt.createdAt && typeof receipt.createdAt === 'number'
+                                          : receipt.createdAt &&
+                                              typeof receipt.createdAt === 'number'
                                             ? receipt.createdAt
                                             : Date.now()
                                       ).toLocaleDateString()}
@@ -994,7 +978,7 @@ const Prescriptions: React.FC = () => {
                               </div>
                             ))}
                           </div>
-                          
+
                           <div className="border-t border-gray-200 pt-3 mt-2">
                             <button
                               onClick={() => {
@@ -1043,7 +1027,8 @@ const Prescriptions: React.FC = () => {
                             Patient Found - Create Receipt First
                           </h3>
                           <p className="text-sm text-gray-600 mb-4">
-                            Please create a receipt for this patient before adding prescriptions or readings.
+                            Please create a receipt for this patient before adding prescriptions or
+                            readings.
                           </p>
                           <button
                             onClick={() => {
@@ -1072,14 +1057,13 @@ const Prescriptions: React.FC = () => {
                         </div>
                       )
                     }
-                  })()} 
+                  })()}
                 </div>
               )}
-              
+
               {/* Show Prescription and Reading buttons only after a receipt has been created */}
               {currentReceipt && (
                 <>
-                  
                   <button
                     onClick={() => {
                       // Close other forms if open
@@ -1128,7 +1112,7 @@ const Prescriptions: React.FC = () => {
                   </button>
                 </>
               )}
-              
+
               {/* If there's a current receipt, show a button to finish and reset */}
               {currentReceipt && (
                 <button
@@ -1141,7 +1125,11 @@ const Prescriptions: React.FC = () => {
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   <span>Complete Patient Visit</span>
                 </button>
@@ -1197,7 +1185,7 @@ const Prescriptions: React.FC = () => {
             />
           </div>
         )}
-        
+
         {/* Receipt Form */}
         {showReceiptForm && (
           <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border border-gray-100 transition-all">
@@ -1209,7 +1197,11 @@ const Prescriptions: React.FC = () => {
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
-                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 <span>Create Receipt</span>
               </h2>
@@ -1303,22 +1295,30 @@ const Prescriptions: React.FC = () => {
             <div className="text-sm text-gray-500">
               {!loading && prescriptions.length > 0 && (
                 <span>
-                  {prescriptions.filter(prescription => {
-                    const today = new Date().toISOString().split('T')[0];
-                    const prescriptionDate = prescription.DATE ? 
-                      (typeof prescription.DATE === 'string' ? prescription.DATE.split('T')[0] : prescription.DATE) : 
-                      '';
-                    return prescriptionDate === today;
+                  {
+                    prescriptions.filter((prescription) => {
+                      const today = new Date().toISOString().split('T')[0]
+                      const prescriptionDate = prescription.DATE
+                        ? typeof prescription.DATE === 'string'
+                          ? prescription.DATE.split('T')[0]
+                          : prescription.DATE
+                        : ''
+                      return prescriptionDate === today
                     }).length
                   }{' '}
                   today&apos;s{' '}
                   {prescriptions.filter((prescription) => {
-                    const today = new Date().toISOString().split('T')[0];
-                    const prescriptionDate = prescription.DATE ? 
-                      (typeof prescription.DATE === 'string' ? prescription.DATE.split('T')[0] : prescription.DATE) : 
-                      '';
-                    return prescriptionDate === today;
-                  }).length === 1 ? 'record' : 'records'} found
+                    const today = new Date().toISOString().split('T')[0]
+                    const prescriptionDate = prescription.DATE
+                      ? typeof prescription.DATE === 'string'
+                        ? prescription.DATE.split('T')[0]
+                        : prescription.DATE
+                      : ''
+                    return prescriptionDate === today
+                  }).length === 1
+                    ? 'record'
+                    : 'records'}{' '}
+                  found
                 </span>
               )}
             </div>
@@ -1393,12 +1393,14 @@ const Prescriptions: React.FC = () => {
             !loading && (
               <div>
                 <PrescriptionTable
-                  prescriptions={prescriptions.filter(prescription => {
-                    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-                    const prescriptionDate = prescription.DATE ? 
-                      (typeof prescription.DATE === 'string' ? prescription.DATE.split('T')[0] : prescription.DATE) : 
-                      '';
-                    return prescriptionDate === today;
+                  prescriptions={prescriptions.filter((prescription) => {
+                    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+                    const prescriptionDate = prescription.DATE
+                      ? typeof prescription.DATE === 'string'
+                        ? prescription.DATE.split('T')[0]
+                        : prescription.DATE
+                      : ''
+                    return prescriptionDate === today
                   })}
                 />
               </div>

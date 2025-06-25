@@ -11,7 +11,6 @@ interface PrescriptionTableProps {
 }
 
 const PrescriptionTable: React.FC<PrescriptionTableProps> = ({ prescriptions }) => {
-
   if (prescriptions.length === 0) {
     return (
       <div className="text-center py-8 bg-gray-50 rounded-md">
@@ -216,12 +215,14 @@ const PrescriptionTable: React.FC<PrescriptionTableProps> = ({ prescriptions }) 
                   : '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {prescription['DISCOUNT PERCENTAG'] !== undefined && prescription['DISCOUNT PERCENTAG'] !== null
+                {prescription['DISCOUNT PERCENTAG'] !== undefined &&
+                prescription['DISCOUNT PERCENTAG'] !== null
                   ? `${prescription['DISCOUNT PERCENTAG']}%`
                   : '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {prescription['AMOUNT RECEIVED'] !== undefined && prescription['AMOUNT RECEIVED'] !== null
+                {prescription['AMOUNT RECEIVED'] !== undefined &&
+                prescription['AMOUNT RECEIVED'] !== null
                   ? `₹${prescription['AMOUNT RECEIVED']}`
                   : '-'}
               </td>
