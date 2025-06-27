@@ -73,7 +73,7 @@ const PatientSearch: React.FC<PatientSearchProps> = ({ onPatientSelect }) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
       <h2 className="text-lg font-medium mb-4">Search Patient</h2>
-      
+
       <form onSubmit={handleSearch} className="mb-4">
         <div className="flex gap-2">
           <input

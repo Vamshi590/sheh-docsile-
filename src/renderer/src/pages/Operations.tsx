@@ -17,26 +17,46 @@ interface Operation {
   provisionDiagnosis?: string
   part1?: string
   amount1?: string
+  days1?: number
   part2?: string
   amount2?: string
+  days2?: number
   part3?: string
   amount3?: string
+  days3?: number
   part4?: string
   amount4?: string
+  days4?: number
   part5?: string
   amount5?: string
+  days5?: number
   part6?: string
   amount6?: string
+  days6?: number
   part7?: string
   amount7?: string
+  days7?: number
   part8?: string
   amount8?: string
+  days8?: number
   part9?: string
   amount9?: string
+  days9?: number
   part10?: string
   amount10?: string
+  days10?: number
   reviewOn?: string
+  totalAmount?: number
+  modeOfPayment?: string
   pdeReOpticDisk?: string
+  pdeReOpticMacula?: string
+  pdeReOpticBloodVessels?: string
+  pdeRePr?: string
+  pdeLeOpticDisk?: string
+  pdeLeOpticMacula?: string
+  pdeLeOpticBloodVessels?: string
+  pdeLePr?: string
+  operatedBy?: string
   date?: string
   operationType?: string
   surgeon?: string
@@ -647,31 +667,73 @@ const Operations: React.FC = () => {
                       <tr>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
-                          Date
+                          Date of Admit
                         </th>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
-                          Operation Type
+                          Time of Admit
                         </th>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
-                          Surgeon
+                          Date of Operation
                         </th>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Time of Operation
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Date of Discharge
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Time of Discharge
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Operation Details
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
                           Procedure
                         </th>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Provision Diagnosis
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Operated By
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Review On
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
                           Actions
                         </th>
@@ -685,18 +747,51 @@ const Operations: React.FC = () => {
                           onClick={() => handleOperationSelect(operation)}
                         >
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {operation.date}
+                            {operation.dateOfAdmit || 'N/A'}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {operation.operationType}
+                            {operation.timeOfAdmit || 'N/A'}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {operation.surgeon}
+                            {operation.dateOfOperation || 'N/A'}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {operation.procedure && operation.procedure.length > 50
-                              ? `${operation.procedure.substring(0, 50)}...`
-                              : operation.procedure || 'N/A'}
+                            {operation.timeOfOperation || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.dateOfDischarge || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.timeOfDischarge || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.operationDetails && operation.operationDetails.length > 30
+                              ? `${operation.operationDetails.substring(0, 30)}...`
+                              : operation.operationDetails || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.operationProcedure &&
+                            operation.operationProcedure.length > 30
+                              ? `${operation.operationProcedure.substring(0, 30)}...`
+                              : operation.operationProcedure || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.provisionDiagnosis &&
+                            operation.provisionDiagnosis.length > 30
+                              ? `${operation.provisionDiagnosis.substring(0, 30)}...`
+                              : operation.provisionDiagnosis || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {typeof operation.operatedBy === 'object' &&
+                            operation.operatedBy !== null &&
+                            Object.keys(operation.operatedBy).length === 0
+                              ? 'N/A'
+                              : typeof operation.operatedBy === 'string'
+                                ? operation.operatedBy
+                                : 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.reviewOn || 'N/A'}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                             <button
@@ -721,7 +816,7 @@ const Operations: React.FC = () => {
                               onClick={(e) => {
                                 e.stopPropagation()
                                 if (confirm('Are you sure you want to delete this operation?')) {
-                                  console.log(operation.id)
+                                  handleDeleteOperation(operation.id)
                                 }
                               }}
                             >
@@ -932,96 +1027,165 @@ const Operations: React.FC = () => {
                       <tr>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
-                          Date
+                          Patient
                         </th>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
-                          Patient Name
+                          Date of Admit
                         </th>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
-                          Operation Type
+                          Time of Admit
                         </th>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
-                          Surgeon
+                          Date of Operation
                         </th>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Time of Operation
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Date of Discharge
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Time of Discharge
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Operation Details
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
                           Procedure
                         </th>
                         <th
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Provision Diagnosis
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Operated By
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        >
+                          Review On
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
                           Actions
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {allOperations
-                        .filter((operation) => {
-                          const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
-                          const operationDate = operation.date
-                            ? typeof operation.date === 'string'
-                              ? operation.date.split('T')[0]
-                              : operation.date
-                            : ''
-                          return operationDate === today
-                        })
-                        .map((operation) => (
-                          <tr
-                            key={operation.id}
-                            className="hover:bg-gray-50 cursor-pointer"
-                            onClick={() => handleOperationSelect(operation)}
-                          >
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                              {operation.date}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                              {operation.patientName}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                              {operation.operationType}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                              {operation.surgeon}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                              {operation.procedure && operation.procedure.length > 50
-                                ? `${operation.procedure.substring(0, 50)}...`
-                                : operation.procedure || 'N/A'}
-                            </td>
-                            <td className="px-4 py-2 text-right">
-                              <button
-                                className="btn btn-sm btn-primary me-2"
-                                onClick={() => handleOperationSelect(operation)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="btn btn-sm btn-danger"
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete this operation?')) {
-                                    handleDeleteOperation(operation.id)
-                                  }
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                      {allOperations.map((operation) => (
+                        <tr
+                          key={operation.id}
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => handleOperationSelect(operation)}
+                        >
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.patientName || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.dateOfAdmit || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.timeOfAdmit || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.dateOfOperation || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.timeOfOperation || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.dateOfDischarge || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.timeOfDischarge || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.operationDetails && operation.operationDetails.length > 30
+                              ? `${operation.operationDetails.substring(0, 30)}...`
+                              : operation.operationDetails || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.operationProcedure &&
+                            operation.operationProcedure.length > 30
+                              ? `${operation.operationProcedure.substring(0, 30)}...`
+                              : operation.operationProcedure || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.provisionDiagnosis &&
+                            operation.provisionDiagnosis.length > 30
+                              ? `${operation.provisionDiagnosis.substring(0, 30)}...`
+                              : operation.provisionDiagnosis || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {typeof operation.operatedBy === 'object' &&
+                            operation.operatedBy !== null &&
+                            Object.keys(operation.operatedBy).length === 0
+                              ? 'N/A'
+                              : typeof operation.operatedBy === 'string'
+                                ? operation.operatedBy
+                                : 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {operation.reviewOn || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                            <button
+                              className="text-blue-600 hover:text-blue-800 mr-3"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleOperationSelect(operation)
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="text-red-600 hover:text-red-800"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (confirm('Are you sure you want to delete this operation?')) {
+                                  handleDeleteOperation(operation.id)
+                                }
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

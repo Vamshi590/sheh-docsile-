@@ -145,3 +145,43 @@ export const adviceOptions = [
   'Follow up after 1 month',
   'Get lab tests done'
 ]
+
+// Operation related options
+export const operationDetailsOptions = [
+  'Cataract surgery',
+  'Glaucoma surgery',
+  'Retinal detachment repair',
+  'Corneal transplant',
+  'Pterygium excision',
+  'Strabismus correction',
+  'Vitrectomy',
+  'Laser eye surgery',
+  'Refractive surgery',
+  'Eyelid surgery'
+]
+
+export const operationProcedureOptions = [
+  'Phacoemulsification with IOL implantation',
+  'Trabeculectomy',
+  'Pars plana vitrectomy',
+  'Penetrating keratoplasty',
+  'Pterygium excision with conjunctival autograft',
+  'Strabismus muscle recession/resection',
+  'Intravitreal injection',
+  'LASIK',
+  'PRK',
+  'Blepharoplasty'
+]
+
+export const provisionDiagnosisOptions = [
+  'Senile cataract',
+  'Primary open-angle glaucoma',
+  'Rhegmatogenous retinal detachment',
+  'Corneal opacity',
+  'Pterygium',
+  'Esotropia/Exotropia',
+  'Vitreous hemorrhage',
+  'Myopia',
+  'Hyperopia',
+  'Dermatochalasis'
+]

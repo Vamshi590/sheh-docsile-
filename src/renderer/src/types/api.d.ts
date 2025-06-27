@@ -38,6 +38,18 @@ export interface Operation {
   postOpPlan?: string
   followUpDate?: string
   notes?: string
+  // Additional fields for the operations table
+  dateOfAdmit?: string
+  timeOfAdmit?: string
+  dateOfOperation?: string
+  timeOfOperation?: string
+  dateOfDischarge?: string
+  timeOfDischarge?: string
+  operationDetails?: string
+  operationProcedure?: string
+  provisionDiagnosis?: string
+  operatedBy?: string
+  reviewOn?: string
 }
 
 interface API {
