@@ -1,6 +1,27 @@
 import React, { useState, useMemo } from 'react'
+import ReceiptOptions from './ReceiptOptions'
+import ReceiptViewer from './ReceiptViewer'
+import '../../utils/printUtils'
 
-// Define the Prescription type since we can't import it
+// Define the Operation interface
+interface Operation {
+  id: string
+  patientId: string
+  patientName: string
+  dateOfAdmit?: string
+  timeOfAdmit?: string
+  dateOfOperation?: string
+  timeOfOperation?: string
+  dateOfDischarge?: string
+  timeOfDischarge?: string
+  operationDetails?: string
+  operationProcedure?: string
+  provisionDiagnosis?: string
+  operatedBy?: string
+  [key: string]: unknown
+}
+
+// Define the Prescription type
 type Prescription = {
   id: string
   patientId?: string
@@ -30,13 +51,25 @@ interface ReportDisplayProps {
 
 const ReportDisplay: React.FC<ReportDisplayProps> = ({ reports }) => {
   const [expandedReport, setExpandedReport] = useState<string | null>(null)
+  const [selectedReceiptType, setSelectedReceiptType] = useState<string>('')
+  const [selectedOperation, setSelectedOperation] = useState<Operation | undefined>(undefined)
+  // We'll store the active report for future dynamic receipt type detection
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setActiveReport = (_report: Prescription | null): void => {
+    // This will be used in future implementation
+    // Currently storing the report for future enhancement
+  }
 
   // Toggle report expansion
-  const toggleReport = (reportId: string): void => {
+  const toggleReport = (reportId: string, report: Prescription): void => {
     if (expandedReport === reportId) {
       setExpandedReport(null)
+      setSelectedReceiptType('')
+      setSelectedOperation(undefined)
+      setActiveReport(null)
     } else {
       setExpandedReport(reportId)
+      setActiveReport(report)
     }
   }
 
@@ -126,7 +159,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ reports }) => {
                   <div key={reportId} className="p-0">
                     {/* Report Header - Always visible */}
                     <div
-                      onClick={() => toggleReport(reportId)}
+                      onClick={() => toggleReport(reportId, report)}
                       className="flex justify-between items-center p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
                     >
                       <div className="flex flex-col">
@@ -156,161 +189,196 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ reports }) => {
                     {/* Report Details - Visible when expanded */}
                     {isExpanded && (
                       <div className="p-4 pt-0 bg-gray-50 border-t border-gray-100">
-                        <div className="max-h-96 overflow-y-auto p-4 bg-white rounded-md border border-gray-200">
-                          {/* Receipt Information */}
-                          <div className="mb-4">
-                            <h5 className="font-medium text-gray-700 mb-2">Receipt Information</h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                              <div>
-                                <span className="font-medium">Date:</span> {reportDate}
-                              </div>
-                              <div>
-                                <span className="font-medium">Receipt ID:</span>{' '}
-                                {reportId.substring(0, 8)}...
-                              </div>
-                              {report.AMOUNT && (
-                                <div>
-                                  <span className="font-medium">Amount:</span> ₹
-                                  {String(report.AMOUNT)}
-                                </div>
-                              )}
-                              {report.PAYMENT_METHOD && (
-                                <div>
-                                  <span className="font-medium">Payment Method:</span>{' '}
-                                  {String(report.PAYMENT_METHOD)}
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                        {/* Receipt Options */}
+                        <ReceiptOptions
+                          reportId={reportId}
+                          reportType={selectedReceiptType}
+                          patientName={patientName}
+                          patientPhone={phoneNumber}
+                          onSelectReceiptType={(type, operationData) => {
+                            setSelectedReceiptType(type)
+                            setSelectedOperation(operationData)
+                          }}
+                        />
 
-                          {/* Prescription Information */}
-                          {(report.PRESCRIPTION || report.MEDICINE || report.DIAGNOSIS) && (
+                        {/* Receipt Viewer */}
+                        {selectedReceiptType ? (
+                          <div className="mt-4 border border-gray-200 rounded-md overflow-hidden">
+                            <ReceiptViewer
+                              report={report}
+                              receiptType={selectedReceiptType}
+                              selectedOperation={selectedOperation}
+                            />
+                          </div>
+                        ) : (
+                          <div className="max-h-96 overflow-y-auto p-4 bg-white rounded-md border border-gray-200 mt-4">
+                            {/* Receipt Information */}
                             <div className="mb-4">
                               <h5 className="font-medium text-gray-700 mb-2">
-                                Prescription Details
+                                Receipt Information
+                              </h5>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  <span className="font-medium">Date:</span> {reportDate}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Receipt ID:</span>{' '}
+                                  {reportId.substring(0, 8)}...
+                                </div>
+                                {report.AMOUNT !== undefined && report.AMOUNT !== null && (
+                                  <div>
+                                    <span className="font-medium">Amount:</span> ₹
+                                    {String(report.AMOUNT)}
+                                  </div>
+                                )}
+                                {report.PAYMENT_METHOD !== undefined &&
+                                  report.PAYMENT_METHOD !== null && (
+                                    <div>
+                                      <span className="font-medium">Payment Method:</span>{' '}
+                                      {String(report.PAYMENT_METHOD)}
+                                    </div>
+                                  )}
+                              </div>
+                            </div>
+
+                            {/* Prescription Information */}
+                            {((report.PRESCRIPTION !== undefined && report.PRESCRIPTION !== null) ||
+                              (report.MEDICINE !== undefined && report.MEDICINE !== null) ||
+                              (report.DIAGNOSIS !== undefined && report.DIAGNOSIS !== null)) && (
+                              <div className="mb-4">
+                                <h5 className="font-medium text-gray-700 mb-2">
+                                  Prescription Details
+                                </h5>
+                                <div className="space-y-2 text-sm">
+                                  {report.DIAGNOSIS !== undefined && report.DIAGNOSIS !== null && (
+                                    <div>
+                                      <span className="font-medium">Diagnosis:</span>{' '}
+                                      {String(report.DIAGNOSIS)}
+                                    </div>
+                                  )}
+
+                                  {report.PRESCRIPTION !== undefined &&
+                                    report.PRESCRIPTION !== null && (
+                                      <div>
+                                        <span className="font-medium">Prescription:</span>
+                                        <div className="whitespace-pre-wrap pl-4 mt-1">
+                                          {String(report.PRESCRIPTION)}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                  {report.MEDICINE !== undefined && report.MEDICINE !== null && (
+                                    <div>
+                                      <span className="font-medium">Medicine:</span>
+                                      <div className="whitespace-pre-wrap pl-4 mt-1">
+                                        {String(report.MEDICINE)}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Eye Reading Information */}
+                            {((report.RIGHT_EYE !== undefined && report.RIGHT_EYE !== null) ||
+                              (report.LEFT_EYE !== undefined && report.LEFT_EYE !== null) ||
+                              (report.READING_NOTES !== undefined &&
+                                report.READING_NOTES !== null)) && (
+                              <div className="mb-4">
+                                <h5 className="font-medium text-gray-700 mb-2">Eye Reading</h5>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                  {report.RIGHT_EYE !== undefined && report.RIGHT_EYE !== null && (
+                                    <div>
+                                      <span className="font-medium">Right Eye:</span>
+                                      <div className="whitespace-pre-wrap pl-4 mt-1">
+                                        {String(report.RIGHT_EYE)}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {report.LEFT_EYE !== undefined && report.LEFT_EYE !== null && (
+                                    <div>
+                                      <span className="font-medium">Left Eye:</span>
+                                      <div className="whitespace-pre-wrap pl-4 mt-1">
+                                        {String(report.LEFT_EYE)}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                {report.READING_NOTES !== undefined &&
+                                  report.READING_NOTES !== null && (
+                                    <div className="mt-2">
+                                      <span className="font-medium">Notes:</span>
+                                      <div className="whitespace-pre-wrap pl-4 mt-1">
+                                        {String(report.READING_NOTES)}
+                                      </div>
+                                    </div>
+                                  )}
+                              </div>
+                            )}
+
+                            {/* Advice */}
+                            {report.ADVICE !== undefined && report.ADVICE !== null && (
+                              <div className="mb-4">
+                                <h5 className="font-medium text-gray-700 mb-2">Advice</h5>
+                                <div className="whitespace-pre-wrap text-sm pl-4">
+                                  {String(report.ADVICE)}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Other Fields */}
+                            <div>
+                              <h5 className="font-medium text-gray-700 mb-2">
+                                Additional Information
                               </h5>
                               <div className="space-y-2 text-sm">
-                                {report.DIAGNOSIS && (
-                                  <div>
-                                    <span className="font-medium">Diagnosis:</span>{' '}
-                                    {String(report.DIAGNOSIS)}
-                                  </div>
-                                )}
-                                {report.PRESCRIPTION && (
-                                  <div>
-                                    <span className="font-medium">Prescription:</span>
-                                    <div className="whitespace-pre-wrap pl-4 mt-1">
-                                      {String(report.PRESCRIPTION)}
+                                {Object.entries(report).map(([key, value]) => {
+                                  // Skip already displayed fields and internal fields
+                                  const skipFields = [
+                                    'id',
+                                    'PATIENT ID',
+                                    'PATIENT NAME',
+                                    'GUARDIAN NAME',
+                                    'PHONE NUMBER',
+                                    'AGE',
+                                    'GENDER',
+                                    'ADDRESS',
+                                    'DATE',
+                                    'AMOUNT',
+                                    'PAYMENT_METHOD',
+                                    'PRESCRIPTION',
+                                    'MEDICINE',
+                                    'DIAGNOSIS',
+                                    'RIGHT_EYE',
+                                    'LEFT_EYE',
+                                    'READING_NOTES',
+                                    'ADVICE',
+                                    'TYPE',
+                                    'patientId'
+                                  ]
+
+                                  if (
+                                    skipFields.includes(key) ||
+                                    value === null ||
+                                    value === undefined ||
+                                    value === ''
+                                  ) {
+                                    return null
+                                  }
+
+                                  return (
+                                    <div key={key}>
+                                      <span className="font-medium">{key.replace(/_/g, ' ')}:</span>{' '}
+                                      {typeof value === 'object'
+                                        ? JSON.stringify(value)
+                                        : String(value)}
                                     </div>
-                                  </div>
-                                )}
-                                {report.MEDICINE && (
-                                  <div>
-                                    <span className="font-medium">Medicine:</span>
-                                    <div className="whitespace-pre-wrap pl-4 mt-1">
-                                      {String(report.MEDICINE)}
-                                    </div>
-                                  </div>
-                                )}
+                                  )
+                                })}
                               </div>
-                            </div>
-                          )}
-
-                          {/* Eye Reading Information */}
-                          {(report.RIGHT_EYE || report.LEFT_EYE || report.READING_NOTES) && (
-                            <div className="mb-4">
-                              <h5 className="font-medium text-gray-700 mb-2">Eye Reading</h5>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                {report.RIGHT_EYE && (
-                                  <div>
-                                    <span className="font-medium">Right Eye:</span>
-                                    <div className="whitespace-pre-wrap pl-4 mt-1">
-                                      {String(report.RIGHT_EYE)}
-                                    </div>
-                                  </div>
-                                )}
-                                {report.LEFT_EYE && (
-                                  <div>
-                                    <span className="font-medium">Left Eye:</span>
-                                    <div className="whitespace-pre-wrap pl-4 mt-1">
-                                      {String(report.LEFT_EYE)}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              {report.READING_NOTES && (
-                                <div className="mt-2">
-                                  <span className="font-medium">Notes:</span>
-                                  <div className="whitespace-pre-wrap pl-4 mt-1">
-                                    {String(report.READING_NOTES)}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Advice */}
-                          {report.ADVICE && (
-                            <div className="mb-4">
-                              <h5 className="font-medium text-gray-700 mb-2">Advice</h5>
-                              <div className="whitespace-pre-wrap text-sm pl-4">
-                                {String(report.ADVICE)}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Other Fields */}
-                          <div>
-                            <h5 className="font-medium text-gray-700 mb-2">
-                              Additional Information
-                            </h5>
-                            <div className="space-y-2 text-sm">
-                              {Object.entries(report).map(([key, value]) => {
-                                // Skip already displayed fields and internal fields
-                                const skipFields = [
-                                  'id',
-                                  'PATIENT ID',
-                                  'PATIENT NAME',
-                                  'GUARDIAN NAME',
-                                  'PHONE NUMBER',
-                                  'AGE',
-                                  'GENDER',
-                                  'ADDRESS',
-                                  'DATE',
-                                  'AMOUNT',
-                                  'PAYMENT_METHOD',
-                                  'PRESCRIPTION',
-                                  'MEDICINE',
-                                  'DIAGNOSIS',
-                                  'RIGHT_EYE',
-                                  'LEFT_EYE',
-                                  'READING_NOTES',
-                                  'ADVICE',
-                                  'TYPE',
-                                  'patientId'
-                                ]
-
-                                if (
-                                  skipFields.includes(key) ||
-                                  value === null ||
-                                  value === undefined ||
-                                  value === ''
-                                ) {
-                                  return null
-                                }
-
-                                return (
-                                  <div key={key}>
-                                    <span className="font-medium">{key.replace(/_/g, ' ')}:</span>{' '}
-                                    {typeof value === 'object'
-                                      ? JSON.stringify(value)
-                                      : String(value)}
-                                  </div>
-                                )
-                              })}
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     )}
                   </div>

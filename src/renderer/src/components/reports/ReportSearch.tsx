@@ -33,8 +33,8 @@ const ReportSearch: React.FC<ReportSearchProps> = ({
                 searchType === 'id'
                   ? 'Enter Patient ID'
                   : searchType === 'name'
-                  ? 'Enter Patient Name'
-                  : 'Enter Patient Phone Number'
+                    ? 'Enter Patient Name'
+                    : 'Enter Patient Phone Number'
               }
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

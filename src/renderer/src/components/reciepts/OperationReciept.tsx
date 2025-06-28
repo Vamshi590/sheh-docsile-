@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-
+import eyeimage from '../../assets/eye_image.jpg'
+import nabhimage from '../../assets/nabh_accredited.jpg'
 interface BillingItem {
   particulars: string
   amount: number
@@ -60,8 +61,8 @@ export default function BillingReceipt({
         <div className="pb-2 mb-4 border-b-2 border-black">
           {/* Hospital Name Row */}
           <div className="flex justify-between items-center mb-2">
-            <div className="w-12 h-12 border-2 border-black rounded-full flex items-center justify-center">
-              <div className="w-8 h-8 bg-red-600 rounded-full"></div>
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={eyeimage} alt="" />
             </div>
             <div className="text-center flex-1 mx-2">
               <h1 className="text-lg font-bold leading-tight">SRI HARSHA EYE HOSPITAL</h1>
@@ -69,8 +70,8 @@ export default function BillingReceipt({
                 Near Mancherial Chowrasta, Ambedkarnagar, Choppadandi Road, KARIMNAGAR-505001
               </p>
             </div>
-            <div className="w-12 h-12 border-2 border-black rounded-full flex items-center justify-center">
-              <div className="w-8 h-8 bg-red-600 rounded-full"></div>
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={eyeimage} alt="" />
             </div>
           </div>
 
@@ -91,11 +92,8 @@ export default function BillingReceipt({
 
             {/* Center NABH */}
             <div className="w-[20%] flex justify-center">
-              <div className="w-14 h-14 rounded-full border-2 border-red-600 flex items-center justify-center bg-white">
-                <div className="text-center">
-                  <div className="w-6 h-6 bg-blue-600 rounded-full mx-auto mb-0.5"></div>
-                  <p className="text-[7px] font-bold text-red-600">NABH</p>
-                </div>
+              <div className="w-24 h-24  flex items-center justify-center bg-white">
+                <img src={nabhimage} alt="" />
               </div>
             </div>
 

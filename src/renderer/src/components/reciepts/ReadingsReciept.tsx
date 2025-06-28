@@ -1,34 +1,27 @@
 import React from 'react'
+import eyeimage from '../../assets/eye_image.jpg'
+import nabhimage from '../../assets/nabh_accredited.jpg'
+interface EyeData {
+  sph: string
+  cyl: string
+  axis: string
+  va: string
+  vacPh?: string
+}
 
 interface ARReadingData {
-  rightEye: {
-    sph: string
-    cyl: string
-    axis: string
-    va: string
-    vacPh: string
-  }
-  leftEye: {
-    sph: string
-    cyl: string
-    axis: string
-    va: string
-    vacPh: string
-  }
+  rightEye: EyeData
+  leftEye: EyeData
 }
 
 interface EyePrescriptionData {
-  rightEye: {
-    sph: string
-    cyl: string
-    axis: string
-    va: string
+  dist: {
+    rightEye: EyeData
+    leftEye: EyeData
   }
-  leftEye: {
-    sph: string
-    cyl: string
-    axis: string
-    va: string
+  near: {
+    rightEye: EyeData
+    leftEye: EyeData
   }
 }
 
@@ -88,8 +81,8 @@ export default function EyeReceipt({
         <div className="pb-2 mb-4 border-b-2 border-black">
           {/* Hospital Name Row */}
           <div className="flex justify-between items-center mb-2">
-            <div className="w-12 h-12 border-2 border-black rounded-full flex items-center justify-center">
-              <div className="w-8 h-8 bg-red-600 rounded-full"></div>
+            <div className="w-12 h-12  flex items-center justify-center">
+              <img src={eyeimage} alt="" />
             </div>
             <div className="text-center flex-1 mx-2">
               <h1 className="text-lg font-bold leading-tight">SRI HARSHA EYE HOSPITAL</h1>
@@ -97,8 +90,8 @@ export default function EyeReceipt({
                 Near Mancherial Chowrasta, Ambedkarnagar, Choppadandi Road, KARIMNAGAR-505001
               </p>
             </div>
-            <div className="w-12 h-12 border-2 border-black rounded-full flex items-center justify-center">
-              <div className="w-8 h-8 bg-red-600 rounded-full"></div>
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={eyeimage} alt="" />
             </div>
           </div>
 
@@ -119,11 +112,8 @@ export default function EyeReceipt({
 
             {/* Center NABH */}
             <div className="w-[20%] flex justify-center">
-              <div className="w-14 h-14 rounded-full border-2 border-red-600 flex items-center justify-center bg-white">
-                <div className="text-center">
-                  <div className="w-6 h-6 bg-blue-600 rounded-full mx-auto mb-0.5"></div>
-                  <p className="text-[7px] font-bold text-red-600">NABH</p>
-                </div>
+              <div className="w-24 h-24 flex items-center justify-center bg-white">
+               <img src={nabhimage} alt="" />
               </div>
             </div>
 
@@ -336,40 +326,56 @@ export default function EyeReceipt({
                 <tr>
                   <td className="border border-black p-2 text-center font-bold">DIST</td>
                   <td className="border border-black p-2 text-center">
-                    {previousGlassPrescription.rightEye.sph}
+                    {previousGlassPrescription.dist.rightEye.sph}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {previousGlassPrescription.rightEye.cyl}
+                    {previousGlassPrescription.dist.rightEye.cyl}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {previousGlassPrescription.rightEye.axis}
+                    {previousGlassPrescription.dist.rightEye.axis}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {previousGlassPrescription.rightEye.va}
+                    {previousGlassPrescription.dist.rightEye.va}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {previousGlassPrescription.leftEye.sph}
+                    {previousGlassPrescription.dist.leftEye.sph}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {previousGlassPrescription.leftEye.cyl}
+                    {previousGlassPrescription.dist.leftEye.cyl}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {previousGlassPrescription.leftEye.axis}
+                    {previousGlassPrescription.dist.leftEye.axis}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {previousGlassPrescription.leftEye.va}
+                    {previousGlassPrescription.dist.leftEye.va}
                   </td>
                 </tr>
                 <tr>
                   <td className="border border-black p-2 text-center font-bold">NEAR</td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
+                  <td className="border border-black p-2 text-center">
+                    {previousGlassPrescription.near.rightEye.sph}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {previousGlassPrescription.near.rightEye.cyl}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {previousGlassPrescription.near.rightEye.axis}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {previousGlassPrescription.near.rightEye.va}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {previousGlassPrescription.near.leftEye.sph}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {previousGlassPrescription.near.leftEye.cyl}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {previousGlassPrescription.near.leftEye.axis}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {previousGlassPrescription.near.leftEye.va}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -413,40 +419,56 @@ export default function EyeReceipt({
                 <tr>
                   <td className="border border-black p-2 text-center font-bold">DIST</td>
                   <td className="border border-black p-2 text-center">
-                    {subjectiveRefraction.rightEye.sph}
+                    {subjectiveRefraction.dist.rightEye.sph}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {subjectiveRefraction.rightEye.cyl}
+                    {subjectiveRefraction.dist.rightEye.cyl}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {subjectiveRefraction.rightEye.axis}
+                    {subjectiveRefraction.dist.rightEye.axis}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {subjectiveRefraction.rightEye.va}
+                    {subjectiveRefraction.dist.rightEye.va}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {subjectiveRefraction.leftEye.sph}
+                    {subjectiveRefraction.dist.leftEye.sph}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {subjectiveRefraction.leftEye.cyl}
+                    {subjectiveRefraction.dist.leftEye.cyl}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {subjectiveRefraction.leftEye.axis}
+                    {subjectiveRefraction.dist.leftEye.axis}
                   </td>
                   <td className="border border-black p-2 text-center">
-                    {subjectiveRefraction.leftEye.va}
+                    {subjectiveRefraction.dist.leftEye.va}
                   </td>
                 </tr>
                 <tr>
                   <td className="border border-black p-2 text-center font-bold">NEAR</td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
-                  <td className="border border-black p-2 text-center"></td>
+                  <td className="border border-black p-2 text-center">
+                    {subjectiveRefraction.near.rightEye.sph}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {subjectiveRefraction.near.rightEye.cyl}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {subjectiveRefraction.near.rightEye.axis}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {subjectiveRefraction.near.rightEye.va}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {subjectiveRefraction.near.leftEye.sph}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {subjectiveRefraction.near.leftEye.cyl}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {subjectiveRefraction.near.leftEye.axis}
+                  </td>
+                  <td className="border border-black p-2 text-center">
+                    {subjectiveRefraction.near.leftEye.va}
+                  </td>
                 </tr>
               </tbody>
             </table>

@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-
+import nabhimage from '../../assets/nabh_accredited.jpg'
+import eyeimage from '../../assets/eye_image.jpg'
 interface PrescriptionItem {
   medicine: string
   times: string
@@ -38,7 +39,7 @@ interface HospitalReceiptProps {
   vitalsData?: VitalsData
   medicalHistoryData?: MedicalHistoryData
   prescriptionData?: PrescriptionItem[]
-  advise?: string
+  advise?: string | string[]
   specialInstructions?: string
   reviewDate?: string
 }
@@ -49,7 +50,6 @@ export default function HospitalReceipt({
   medicalHistoryData = {},
   prescriptionData = [],
   advise = '',
-  specialInstructions = '',
   reviewDate = ''
 }: HospitalReceiptProps): React.ReactElement {
   return (
@@ -60,8 +60,8 @@ export default function HospitalReceipt({
         <div className="pb-2 mb-4 border-b-2 border-black">
           {/* Hospital Name Row */}
           <div className="flex justify-between items-center mb-2">
-            <div className="w-12 h-12 border-2 border-black rounded-full flex items-center justify-center">
-              <div className="w-8 h-8 bg-red-600 rounded-full"></div>
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={eyeimage} alt="eye image" />
             </div>
             <div className="text-center flex-1 mx-2">
               <h1 className="text-lg font-bold leading-tight">SRI HARSHA EYE HOSPITAL</h1>
@@ -69,8 +69,8 @@ export default function HospitalReceipt({
                 Near Mancherial Chowrasta, Ambedkarnagar, Choppadandi Road, KARIMNAGAR-505001
               </p>
             </div>
-            <div className="w-12 h-12 border-2 border-black rounded-full flex items-center justify-center">
-              <div className="w-8 h-8 bg-red-600 rounded-full"></div>
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={eyeimage} alt="eye image" />
             </div>
           </div>
 
@@ -91,11 +91,8 @@ export default function HospitalReceipt({
 
             {/* Center NABH */}
             <div className="w-[20%] flex justify-center">
-              <div className="w-14 h-14 rounded-full border-2 border-red-600 flex items-center justify-center bg-white">
-                <div className="text-center">
-                  <div className="w-6 h-6 bg-blue-600 rounded-full mx-auto mb-0.5"></div>
-                  <p className="text-[7px] font-bold text-red-600">NABH</p>
-                </div>
+              <div className="w-28 h-28 flex items-center justify-center bg-white">
+                <img src={nabhimage} alt="nabh image" />
               </div>
             </div>
 
@@ -206,7 +203,7 @@ export default function HospitalReceipt({
 
         {/* Prescription Section */}
         {prescriptionData.length > 0 && (
-          <div className="pb-3 mb-4 border-b border-black">
+          <div className="pb-3 mb-4">
             <h3 className="text-xs font-bold mb-3">PRESCRIPTION</h3>
             <table className="w-full border-collapse text-[11px]">
               <thead>
@@ -215,10 +212,10 @@ export default function HospitalReceipt({
                     MEDICINE
                   </th>
                   <th className="border border-black p-2 text-center font-bold w-20 bg-gray-50">
-                    #TIMES
+                    TIMES
                   </th>
                   <th className="border border-black p-2 text-center font-bold w-20 bg-gray-50">
-                    # DAYS
+                    DAYS
                   </th>
                 </tr>
               </thead>
@@ -236,36 +233,31 @@ export default function HospitalReceipt({
         )}
 
         {/* Advice Section */}
-        {advise && (
+        {(typeof advise === 'string' && advise) || (Array.isArray(advise) && advise.length > 0) ? (
           <div className="pb-3 mb-4">
             <div className="text-[11px]">
               <table className="w-full">
                 <tbody>
-                  <tr>
-                    <td className="font-bold w-20 py-1">ADVISE</td>
-                    <td className="py-1">{advise}</td>
-                  </tr>
+                  {typeof advise === 'string' ? (
+                    <tr>
+                      <td className="font-bold w-20 py-1">ADVISE :</td>
+                      <td className="py-1">{advise}</td>
+                    </tr>
+                  ) : (
+                    Array.isArray(advise) && advise.map((item, index) => (
+                      <tr key={index}>
+                        <td className="font-bold w-20 py-1">{index === 0 ? 'ADVISE : ' : ''}</td>
+                        <td className="py-1">{item}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Special Instructions Section */}
-        {specialInstructions && (
-          <div className="pb-3 mb-4">
-            <div className="text-[11px]">
-              <table className="w-full">
-                <tbody>
-                  <tr>
-                    <td className="font-bold w-48 py-1">DILATE BE WITH CYCLOPENT</td>
-                    <td className="py-1">{specialInstructions}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+  
 
         {/* Review Date Section */}
         <div className="pb-3 mb-16">
@@ -290,6 +282,7 @@ export default function HospitalReceipt({
             <div className="text-left text-[11px]"></div>
 
             <div className="text-right text-[11px] space-y-1">
+            <p className="font-bold">AUTHORISED SIGNATORY</p>
               <p className="font-bold">For SRI HARSHA EYE HOSPITAL</p>
               <p className="text-[10px]">Ph: 08728-234567, Cell: 9849639237</p>
               <p className="text-[10px]">🌐 www.sriharshaeye.com</p>
