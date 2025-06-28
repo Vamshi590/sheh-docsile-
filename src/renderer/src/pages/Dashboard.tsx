@@ -150,6 +150,31 @@ const Dashboard = (): React.JSX.Element => {
             <p className="text-gray-600 ml-16">Manage surgeries and operations</p>
           </div>
 
+          {/* Data Management Card */}
+          <div
+            onClick={() => navigateTo('/data')}
+            className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
+          >
+            <div className="flex items-center mb-4">
+              <div className="bg-indigo-100 p-3 rounded-full mr-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-8 w-8 text-indigo-600"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">Data</h3>
+            </div>
+            <p className="text-gray-600 ml-16">Search and browse all data</p>
+          </div>
+
           {/* Reports Card */}
           <div
             onClick={() => navigateTo('/reports')}
