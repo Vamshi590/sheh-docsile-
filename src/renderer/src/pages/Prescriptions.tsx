@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import PrescriptionForm from '../components/prescriptions/PrescriptionForm'
-import PrescriptionTable from '../components/prescriptions/PrescriptionTable'
+import PrescriptionTableWithReceipts from '../components/prescriptions/PrescriptionTableWithReceipts'
 import PrescriptionEditModal from '../components/prescriptions/PrescriptionEditModal'
 import ReceiptForm, { Patient as ReceiptFormPatient } from '../components/prescriptions/ReceiptForm'
 import ReadingForm from '../components/prescriptions/ReadingForm'
@@ -1374,7 +1374,7 @@ const Prescriptions: React.FC = () => {
           ) : (
             !loading && (
               <div>
-                <PrescriptionTable
+                <PrescriptionTableWithReceipts
                   prescriptions={prescriptions.filter((prescription) => {
                     const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
                     const prescriptionDate = prescription.DATE
@@ -1384,6 +1384,39 @@ const Prescriptions: React.FC = () => {
                       : ''
                     return prescriptionDate === today
                   })}
+                  onEditPrescription={(prescription) => {
+                    setEditingPrescription(prescription)
+                    setIsModalOpen(true)
+                  }}
+                  onDeletePrescription={(id) => {
+                    // Delete prescription
+                    window.api
+                      .deletePrescription(id)
+                      .then(() => {
+                        // Remove from local state
+                        setPrescriptions(prescriptions.filter((p) => p.id !== id))
+                        // Show success toast
+                        setToasts((prevToasts) => [
+                          ...prevToasts,
+                          {
+                            id: String(Date.now()),
+                            type: 'success',
+                            message: 'Prescription deleted successfully'
+                          }
+                        ])
+                      })
+                      .catch((error) => {
+                        console.error('Error deleting prescription:', error)
+                        setToasts((prevToasts) => [
+                          ...prevToasts,
+                          {
+                            id: String(Date.now()),
+                            type: 'error',
+                            message: 'Failed to delete prescription'
+                          }
+                        ])
+                      })
+                  }}
                 />
               </div>
             )

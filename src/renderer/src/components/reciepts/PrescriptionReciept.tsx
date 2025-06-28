@@ -91,7 +91,7 @@ export default function HospitalReceipt({
 
             {/* Center NABH */}
             <div className="w-[20%] flex justify-center">
-              <div className="w-28 h-28 flex items-center justify-center bg-white">
+              <div className="w-24 h-24 flex items-center justify-center bg-white">
                 <img src={nabhimage} alt="nabh image" />
               </div>
             </div>
