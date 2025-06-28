@@ -97,9 +97,9 @@ type Patient = {
 
 // Define FormPatient type to match OperationForm component's expected Patient type
 type FormPatient = {
-  id: string
+  patientId: string
   name: string
-  guardianName?: string
+  guardian?: string
   phone?: string
   age?: string | number
   gender?: string
@@ -170,14 +170,42 @@ const Operations: React.FC = () => {
 
   // Convert Patient to FormPatient for the OperationForm component
   const convertToFormPatient = (patient: Patient): FormPatient => {
+    // Ensure all fields are of the correct type
+    const patientId =
+      typeof patient['PATIENT ID'] === 'string'
+        ? patient['PATIENT ID']
+        : typeof patient.patientId === 'string'
+          ? patient.patientId
+          : ''
+
+    const name =
+      typeof patient['PATIENT NAME'] === 'string'
+        ? patient['PATIENT NAME']
+        : typeof patient.name === 'string'
+          ? patient.name
+          : ''
+
+    const guardian = typeof patient.guardian === 'string' ? patient.guardian : ''
+
+    const phone = typeof patient.phone === 'string' ? patient.phone : ''
+
+    const age =
+      typeof patient.age === 'string' || typeof patient.age === 'number' ? patient.age : ''
+
+    const gender = typeof patient.gender === 'string' ? patient.gender : ''
+
+    const address = typeof patient.address === 'string' ? patient.address : ''
+
+    console.log('Converting patient with ID:', patientId)
+
     return {
-      id: patient['PATIENT ID'] || patient.id || '',
-      name: patient['PATIENT NAME'] || patient.name || '',
-      guardianName: patient['GUARDIAN NAME'] || '',
-      phone: patient['PHONE NUMBER'] || patient.phone || '',
-      age: patient.AGE || '',
-      gender: patient.GENDER || '',
-      address: patient.ADDRESS || ''
+      patientId,
+      name,
+      guardian,
+      phone,
+      age,
+      gender,
+      address
     }
   }
 
@@ -350,7 +378,7 @@ const Operations: React.FC = () => {
 
       // First try to find an exact match by patient ID
       let matchedPatient = patients.find((patient) => {
-        const patientId = String(patient['PATIENT ID'] || patient.id || '').toLowerCase()
+        const patientId = String(patient['PATIENT ID'] || patient.patientId || '').toLowerCase()
         return patientId === searchValue
       })
 
@@ -397,7 +425,7 @@ const Operations: React.FC = () => {
         setSelectedPatient(matchedPatient)
 
         // Fetch operations for this patient
-        const patientId = String(matchedPatient['PATIENT ID'] || matchedPatient.id || '')
+        const patientId = String(matchedPatient['PATIENT ID'] || matchedPatient.patientId || '')
         if (!patientId) {
           console.error('Patient ID is missing in the matched patient')
           setError('Patient ID is missing. Cannot fetch operations.')
@@ -885,7 +913,7 @@ const Operations: React.FC = () => {
               </div>
               <OperationForm
                 patient={{
-                  id: String(selectedPatient?.['PATIENT ID'] || ''),
+                  patientId: String(selectedPatient?.['PATIENT ID'] || ''),
                   name: String(selectedPatient?.['PATIENT NAME'] || selectedPatient?.name || ''),
                   guardianName: String(selectedPatient?.['GUARDIAN NAME'] || ''),
                   phone: String(selectedPatient?.['PHONE NUMBER'] || selectedPatient?.phone || ''),

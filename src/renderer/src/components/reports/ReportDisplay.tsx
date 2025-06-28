@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import ReceiptOptions from './ReceiptOptions'
 import ReceiptViewer from './ReceiptViewer'
-import '../../utils/printUtils'
 
 // Define the Operation interface
 interface Operation {
@@ -195,6 +194,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ reports }) => {
                           reportType={selectedReceiptType}
                           patientName={patientName}
                           patientPhone={phoneNumber}
+                          patientId={patientId}
                           onSelectReceiptType={(type, operationData) => {
                             setSelectedReceiptType(type)
                             setSelectedOperation(operationData)

@@ -165,66 +165,60 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
 
   // Format operation data - prioritize selectedOperation if available
   const operationData = {
-    operationType: String(selectedOperation?.operationDetails || report.operationType || report['OPERATION_TYPE'] || ''),
+    operationType: String(
+      selectedOperation?.operationDetails || report.operationType || report['OPERATION_TYPE'] || ''
+    ),
     operationDate: String(
-      selectedOperation?.dateOfOperation ||
-      report.operationDate ||
-      report['OPERATION_DATE'] ||
-      ''
+      selectedOperation?.dateOfOperation || report.operationDate || report['OPERATION_DATE'] || ''
     ),
     anesthesia: String(report.anesthesia || report.ANESTHESIA || ''),
-    surgeon: String(
-      selectedOperation?.operatedBy ||
-      report.surgeon ||
-      report.SURGEON ||
-      ''
-    ),
+    surgeon: String(selectedOperation?.operatedBy || report.surgeon || report.SURGEON || ''),
     assistant: String(report.assistant || report.ASSISTANT || ''),
     findings: String(
-      selectedOperation?.provisionDiagnosis ||
-      report.findings ||
-      report.FINDINGS ||
-      ''
+      selectedOperation?.provisionDiagnosis || report.findings || report.FINDINGS || ''
     ),
     procedure: String(
-      selectedOperation?.operationProcedure ||
-      report.procedure ||
-      report.PROCEDURE ||
-      ''
+      selectedOperation?.operationProcedure || report.procedure || report.PROCEDURE || ''
     ),
     complications: String(report.complications || report.COMPLICATIONS || ''),
     dateOfAdmit: String(
-      selectedOperation?.dateOfAdmit ||
-      report.dateOfAdmit ||
-      report['DATE_OF_ADMIT'] ||
-      ''
+      selectedOperation?.dateOfAdmit || report.dateOfAdmit || report['DATE_OF_ADMIT'] || ''
     ),
     dateOfDischarge: String(
       selectedOperation?.dateOfDischarge ||
-      report.dateOfDischarge ||
-      report['DATE_OF_DISCHARGE'] ||
-      ''
+        report.dateOfDischarge ||
+        report['DATE_OF_DISCHARGE'] ||
+        ''
     ),
     dateOfOperation: String(
       selectedOperation?.dateOfOperation ||
-      report.dateOfOperation ||
-      report['DATE_OF_OPERATION'] ||
-      ''
+        report.dateOfOperation ||
+        report['DATE_OF_OPERATION'] ||
+        ''
     )
   }
 
   // Format billing items for operation receipt
-  const billingItems: { particulars: string; amount: number }[] = []
-  
+  const billingItems: { particulars: string; amount: number; days?: number }[] = []
+
+  // Log the report object to see what fields are available
+  console.log('Report data for billing items:', selectedOperation || report)
+
   // If we have a selected operation, use its part/amount fields
   if (selectedOperation) {
     for (let i = 1; i <= 10; i++) {
       const partKey = `part${i}`
       const amountKey = `amount${i}`
+      const daysKey = `days${i}`
+
       if (selectedOperation[partKey] && selectedOperation[amountKey]) {
+        // Check if days field exists and has a value
+        const days = selectedOperation[daysKey] ? Number(selectedOperation[daysKey]) : undefined
+
         billingItems.push({
           particulars: String(selectedOperation[partKey] || ''),
-          amount: Number(selectedOperation[amountKey] || 0)
+          amount: Number(selectedOperation[amountKey] || 0),
+          days: days && days > 0 ? days : undefined
         })
       }
     }
@@ -233,24 +227,76 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
     for (let i = 1; i <= 10; i++) {
       const particularKey = `BILLING_ITEM_${i}`
       const amountKey = `BILLING_AMOUNT_${i}`
+      const daysKey = `BILLING_DAYS_${i}`
+
       if (report[particularKey] && report[amountKey]) {
+        // Check for days field in various formats
+        const days = report[daysKey] || report[`DAYS_${i}`] || report[`days${i}`]
+
         billingItems.push({
           particulars: String(report[particularKey] || ''),
-          amount: Number(report[amountKey] || 0)
+          amount: Number(report[amountKey] || 0),
+          days: days ? Number(days) : undefined
         })
       }
     }
   }
 
+  // Log the calculated billing items
+  console.log('Calculated billing items:', billingItems)
+
   // Format billing data for operation receipt
+  // Log the report object to see what fields are available
+  console.log('Report data for billing:', report)
+
   const operationBillingData = {
-    totalAmount: Number(report.totalAmount || report['TOTAL_AMOUNT'] || 0),
-    advancePaid: Number(report.advancePaid || report['ADVANCE_PAID'] || 0),
-    discountPercent: Number(report.discountPercent || report['DISCOUNT_PERCENT'] || 0),
-    discountAmount: Number(report.discountAmount || report['DISCOUNT_AMOUNT'] || 0),
-    amountReceived: Number(report.amountReceived || report['AMOUNT_RECEIVED'] || 0),
-    balance: Number(report.balance || report['BALANCE'] || 0)
+    totalAmount: Number(
+      selectedOperation?.totalAmount ||
+        selectedOperation?.['totalAmount'] ||
+        report.totalAmount ||
+        report['totalAmount'] ||
+        report['TOTAL AMOUNT'] ||
+        0
+    ),
+    advancePaid: Number(
+      selectedOperation?.advancePaid ||
+        selectedOperation?.['ADVANCE PAID'] ||
+        report.advancePaid ||
+        report['ADVANCE PAID'] ||
+        0
+    ),
+    discountPercent: Number(
+      selectedOperation?.discountPercent ||
+        selectedOperation?.['DISCOUNT_PERCENT'] ||
+        report.discountPercent ||
+        report['DISCOUNT_PERCENT'] ||
+        0
+    ),
+    discountAmount: Number(
+      selectedOperation?.discountAmount ||
+        selectedOperation?.['DISCOUNT_AMOUNT'] ||
+        report.discountAmount ||
+        report['DISCOUNT_AMOUNT'] ||
+        0
+    ),
+    amountReceived: Number(
+      selectedOperation?.amountReceived ||
+        selectedOperation?.['AMOUNT_RECEIVED'] ||
+        report.amountReceived ||
+        report['AMOUNT_RECEIVED'] ||
+        0
+    ),
+    balance: Number(
+      selectedOperation?.balance ||
+        selectedOperation?.['BALANCE'] ||
+        report.balance ||
+        report['BALANCE'] ||
+        0
+    )
   }
+
+  // Log the calculated billing data
+  console.log('Calculated billing data:', operationBillingData)
 
   // Format clinical findings data
   const clinicalFindingsData = {
@@ -351,7 +397,7 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
         return (
           <div id={`receipt-${report.id}`}>
             <CashReceipt
-              patientData={patientData} 
+              patientData={patientData}
               paymentData={paymentData}
               authorizedSignatory={String(report.authorizedSignatory || report.doctorName || '')}
             />

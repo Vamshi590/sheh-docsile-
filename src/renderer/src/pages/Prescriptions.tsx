@@ -1272,7 +1272,7 @@ const Prescriptions: React.FC = () => {
                   clipRule="evenodd"
                 />
               </svg>
-              Prescription Records
+              Prescription Records (Today)
             </h2>
             <div className="text-sm text-gray-500">
               {!loading && prescriptions.length > 0 && (

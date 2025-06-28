@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react'
-import { printElement, shareViaWhatsApp } from '../../utils/printUtils'
+import React, { useState, useEffect, useCallback } from 'react'
 
 // Define interfaces
 interface Operation {
@@ -31,14 +30,15 @@ interface ReceiptOptionsProps {
   patientName: string
   patientPhone: string
   onSelectReceiptType: (type: string, operationData?: Operation) => void
+  patientId?: string
 }
 
 const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
-  reportId,
   reportType,
   patientName,
   patientPhone,
-  onSelectReceiptType
+  onSelectReceiptType,
+  patientId
 }) => {
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
   const [showOperationsModal, setShowOperationsModal] = useState(false)
@@ -48,26 +48,112 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Load operations when operations modal is opened
-  useEffect(() => {
-    if (showOperationsModal) {
-      fetchOperations()
-    }
-  }, [showOperationsModal])
-
   // Fetch operations from API
-  const fetchOperations = async (): Promise<void> => {
+  const fetchOperations = useCallback(async (): Promise<void> => {
     try {
       setLoading(true)
       setError('')
       const api = window.api as API
-      
+      console.log('Fetching operations with patientId:', patientId)
+
+      // Always fetch all operations first as a fallback
+      let allOperations: Operation[] = []
+
       if (api.getOperations) {
-        const allOperations = await api.getOperations()
+        allOperations = await api.getOperations()
+        console.log('All operations fetched:', allOperations.length)
+
+        // Log the first operation to see its structure
+        if (allOperations.length > 0) {
+          console.log('Sample operation:', allOperations[0])
+          console.log('Operation keys:', Object.keys(allOperations[0]))
+
+          // Check if PATIENT ID field exists
+          if (allOperations[0]['PATIENT ID']) {
+            console.log('Found PATIENT ID field with value:', allOperations[0]['PATIENT ID'])
+          }
+        }
+      }
+
+      if (patientId && api.getPatientOperations) {
+        // If patientId is available, fetch only that patient's operations
+        try {
+          const patientOperations = await api.getPatientOperations(patientId)
+          console.log('Patient operations fetched:', patientOperations.length)
+
+          if (patientOperations && patientOperations.length > 0) {
+            setOperations(patientOperations)
+          } else {
+            // If no patient-specific operations found, filter all operations by patientId
+            console.log('No patient operations found, filtering all operations')
+            console.log('Looking for patientId:', patientId)
+
+            // Try a more flexible approach to match patient IDs
+            const filteredOperations = allOperations.filter((op) => {
+              // First check specifically for the Excel format
+              if (
+                op['PATIENT ID'] &&
+                String(op['PATIENT ID']).trim() === String(patientId).trim()
+              ) {
+                console.log('Exact match found on PATIENT ID field')
+                return true
+              }
+
+              // Check all possible patient ID field names
+              const opId = String(
+                op.patientId ||
+                  op['PATIENT ID'] ||
+                  op['PATIENT_ID'] ||
+                  op['patientID'] ||
+                  op['patient_id'] ||
+                  ''
+              ).trim()
+              const targetId = String(patientId || '').trim()
+
+              // Check if either ID contains the other (for partial matches)
+              const isMatch =
+                opId === targetId || opId.includes(targetId) || targetId.includes(opId)
+
+              console.log(
+                `Comparing: op.patientId=${opId} with patientId=${targetId}, match: ${isMatch}`
+              )
+              return isMatch
+            })
+            console.log('Filtered operations by patientId:', filteredOperations.length)
+            setOperations(filteredOperations)
+          }
+        } catch (patientErr) {
+          console.error('Error fetching patient operations:', patientErr)
+          // Fall back to filtering all operations
+          const filteredOperations = allOperations.filter((op) => {
+            // First check specifically for the Excel format
+            if (op['PATIENT ID'] && String(op['PATIENT ID']).trim() === String(patientId).trim()) {
+              console.log('Exact match found on PATIENT ID field in fallback')
+              return true
+            }
+
+            // Check all possible patient ID field names
+            const opId = String(
+              op.patientId ||
+                op['PATIENT ID'] ||
+                op['PATIENT_ID'] ||
+                op['patientID'] ||
+                op['patient_id'] ||
+                ''
+            ).trim()
+            const targetId = String(patientId || '').trim()
+
+            // Check if either ID contains the other (for partial matches)
+            return opId === targetId || opId.includes(targetId) || targetId.includes(opId)
+          })
+          console.log('Fallback filtered operations:', filteredOperations.length)
+          setOperations(filteredOperations)
+        }
+      } else if (allOperations.length > 0) {
         setOperations(allOperations)
       } else {
-        console.error('getOperations method is not available')
-        setError('Failed to load operations: API method not available')
+        console.error('Operation API methods are not available')
+        setError('Failed to load operations: API methods not available')
       }
     } catch (err) {
       console.error('Error loading operations:', err)
@@ -75,7 +161,14 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [patientId])
+
+  // Load operations when operations modal is opened
+  useEffect(() => {
+    if (showOperationsModal) {
+      fetchOperations()
+    }
+  }, [showOperationsModal, fetchOperations])
 
   // Handle operation selection
   const handleOperationSelect = (operation: Operation): void => {
@@ -85,8 +178,6 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
 
   // Handle print action
   const handlePrint = (): void => {
-    const receiptElementId = `receipt-${reportId}`
-    printElement(receiptElementId)
   }
 
   // Handle WhatsApp share
@@ -95,10 +186,8 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
   }
 
   // Send WhatsApp message
-  const sendWhatsAppMessage = (): void => {
-    const receiptElementId = `receipt-${reportId}`
-    shareViaWhatsApp(phoneNumber, message, receiptElementId)
-    setShowWhatsAppModal(false)
+  const sendWhatsAppMessage = async (): Promise<void> => {
+  
   }
 
   return (
@@ -222,7 +311,7 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
 
       {/* Operations Modal */}
       {showOperationsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-10 backdrop-blur-[1px] flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-4/5 max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
             <h3 className="text-lg font-medium mb-4">Select Operation for Receipt</h3>
 
@@ -239,19 +328,34 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
                         Date
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
                         Patient
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
                         Operation Type
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
                         Surgeon
                       </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
                         Action
                       </th>
                     </tr>
@@ -263,7 +367,9 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
                           {operation.dateOfOperation || 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{operation.patientName}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {operation.patientName}
+                          </div>
                           <div className="text-sm text-gray-500">ID: {operation.patientId}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -275,7 +381,7 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
                             onClick={() => handleOperationSelect(operation)}
-                            className="text-orange-600 hover:text-orange-900 focus:outline-none"
+                            className="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-md focus:outline-none"
                           >
                             Select
                           </button>

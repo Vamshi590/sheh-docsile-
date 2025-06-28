@@ -6,6 +6,7 @@ import nabhimage from '../../assets/nabh_accredited.jpg'
 interface BillingItem {
   particulars: string
   amount: number
+  days?: number
 }
 
 interface PatientData {
@@ -181,7 +182,7 @@ export default function BillingReceipt({
                   <td className="w-32 py-1">{patientData.dateOfAdmit || ''}</td>
                   <td className="w-32"></td>
                   <td className="font-bold w-16 py-1">DATE OF DISCHARGE</td>
-                  <td className="py-1">{patientData.dateOfDischarge || ''}</td>
+                  <td className="py-1 pl-4">{patientData.dateOfDischarge || ''}</td>
                 </tr>
                 <tr>
                   <td className="font-bold w-24 py-1">DATE OF OPERATION</td>
@@ -230,7 +231,14 @@ export default function BillingReceipt({
               {/* Billing Items */}
               {billingItems.map((item, index) => (
                 <tr key={index}>
-                  <td className="border border-black p-2">{item.particulars}</td>
+                  <td className="border border-black p-2">
+                    {item.particulars}
+                    {item.days && item.days > 0 && (
+                      <span className="ml-1">
+                        ({item.days} {item.days === 1 ? 'day' : 'days'})
+                      </span>
+                    )}
+                  </td>
                   <td className="border border-black p-2 text-right">
                     {item.amount > 0 ? item.amount.toFixed(2) : ''}
                   </td>
@@ -238,7 +246,7 @@ export default function BillingReceipt({
               ))}
 
               {/* Empty rows for additional items */}
-              {Array.from({ length: Math.max(0, 8 - billingItems.length) }).map((_, index) => (
+              {Array.from({ length: Math.max(0, 5 - billingItems.length) }).map((_, index) => (
                 <tr key={`empty-${index}`}>
                   <td className="border border-black p-2 h-8"></td>
                   <td className="border border-black p-2 h-8"></td>
@@ -259,29 +267,33 @@ export default function BillingReceipt({
                   <tr>
                     <td className="border border-black p-2 text-right font-bold">ADVANCE PAID</td>
                     <td className="border border-black p-2 text-right">
-                      {billingData.advancePaid > 0 ? billingData.advancePaid.toFixed(2) : ''}
+                      {billingData.advancePaid.toFixed(2)}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="border border-black p-2 text-right font-bold">DISCOUNT %</td>
-                    <td className="border border-black p-2 text-right">
-                      {billingData.discountPercent > 0 ? `${billingData.discountPercent}%` : ''}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-black p-2 text-right font-bold">
-                      DISCOUNT AMOUNT
-                    </td>
-                    <td className="border border-black p-2 text-right">
-                      {billingData.discountAmount > 0 ? billingData.discountAmount.toFixed(2) : ''}
-                    </td>
-                  </tr>
+                  {billingData.discountPercent > 0 && (
+                    <tr>
+                      <td className="border border-black p-2 text-right font-bold">DISCOUNT %</td>
+                      <td className="border border-black p-2 text-right">
+                        {billingData.discountPercent}
+                      </td>
+                    </tr>
+                  )}
+                  {billingData.discountAmount > 0 && (
+                    <tr>
+                      <td className="border border-black p-2 text-right font-bold">
+                        DISCOUNT AMOUNT
+                      </td>
+                      <td className="border border-black p-2 text-right">
+                        {billingData.discountAmount.toFixed(2)}
+                      </td>
+                    </tr>
+                  )}
                   <tr>
                     <td className="border border-black p-2 text-right font-bold bg-gray-50">
                       AMT. RECEIVED
                     </td>
                     <td className="border border-black p-2 text-right font-bold bg-gray-50">
-                      {billingData.amountReceived.toFixed(2)}
+                      {billingData.totalAmount.toFixed(2)}
                     </td>
                   </tr>
                   <tr>

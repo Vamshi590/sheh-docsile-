@@ -26,7 +26,12 @@
     "@tailwindcss/vite": "^4.1.10",
     "bcryptjs": "^3.0.2",
     "electron-store": "^10.1.0",
+    "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.10.3",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "react-router-dom": "^7.6.2",
+    "react-to-pdf": "^2.0.1",
     "tailwindcss": "^4.1.10",
     "uuid": "^11.1.0",
     "xlsx": "^0.18.5"

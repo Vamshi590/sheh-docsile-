@@ -1,4 +1,5 @@
 import React from 'react'
+import DuesFollowUpSummary from '../components/duesFollowUp/DuesFollowUpSummary'
 
 const Dashboard = (): React.JSX.Element => {
   const navigateTo = (path: string): void => {
@@ -173,6 +174,9 @@ const Dashboard = (): React.JSX.Element => {
             </div>
             <p className="text-gray-600 ml-16">Search and view patient reports</p>
           </div>
+
+          {/* Dues/Follow-Up Card */}
+          <DuesFollowUpSummary onClick={() => navigateTo('/dues-followup')} />
         </div>
       </main>
 

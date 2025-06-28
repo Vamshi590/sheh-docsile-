@@ -183,15 +183,11 @@ export default function CashReceipt({
               </tr>
               <tr>
                 <td className="border border-black p-2 font-bold bg-gray-50">TOTAL AMOUNT</td>
-                <td className="border border-black p-2 text-right">
-                  {paymentData.totalAmount}
-                </td>
+                <td className="border border-black p-2 text-right">{paymentData.totalAmount}</td>
               </tr>
               <tr>
                 <td className="border border-black p-2 font-bold">ADVANCE PAID</td>
-                <td className="border border-black p-2 text-right">
-                  {paymentData.advancePaid}
-                </td>
+                <td className="border border-black p-2 text-right">{paymentData.advancePaid}</td>
               </tr>
               <tr>
                 <td className="border border-black p-2 font-bold">DISCOUNT %</td>
@@ -201,9 +197,7 @@ export default function CashReceipt({
               </tr>
               <tr>
                 <td className="border border-black p-2 font-bold">DISCOUNT AMOUNT</td>
-                <td className="border border-black p-2 text-right">
-                  {paymentData.discountAmount}
-                </td>
+                <td className="border border-black p-2 text-right">{paymentData.discountAmount}</td>
               </tr>
               <tr>
                 <td className="border border-black p-2 font-bold bg-gray-50">AMOUNT RECEIVED</td>

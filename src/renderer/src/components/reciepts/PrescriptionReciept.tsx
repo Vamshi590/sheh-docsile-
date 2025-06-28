@@ -244,7 +244,8 @@ export default function HospitalReceipt({
                       <td className="py-1">{advise}</td>
                     </tr>
                   ) : (
-                    Array.isArray(advise) && advise.map((item, index) => (
+                    Array.isArray(advise) &&
+                    advise.map((item, index) => (
                       <tr key={index}>
                         <td className="font-bold w-20 py-1">{index === 0 ? 'ADVISE : ' : ''}</td>
                         <td className="py-1">{item}</td>
@@ -256,8 +257,6 @@ export default function HospitalReceipt({
             </div>
           </div>
         ) : null}
-
-  
 
         {/* Review Date Section */}
         <div className="pb-3 mb-16">
@@ -282,7 +281,7 @@ export default function HospitalReceipt({
             <div className="text-left text-[11px]"></div>
 
             <div className="text-right text-[11px] space-y-1">
-            <p className="font-bold">AUTHORISED SIGNATORY</p>
+              <p className="font-bold">AUTHORISED SIGNATORY</p>
               <p className="font-bold">For SRI HARSHA EYE HOSPITAL</p>
               <p className="text-[10px]">Ph: 08728-234567, Cell: 9849639237</p>
               <p className="text-[10px]">🌐 www.sriharshaeye.com</p>

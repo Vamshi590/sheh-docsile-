@@ -113,7 +113,7 @@ export default function EyeReceipt({
             {/* Center NABH */}
             <div className="w-[20%] flex justify-center">
               <div className="w-24 h-24 flex items-center justify-center bg-white">
-               <img src={nabhimage} alt="" />
+                <img src={nabhimage} alt="" />
               </div>
             </div>
 

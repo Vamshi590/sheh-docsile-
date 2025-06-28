@@ -8,7 +8,7 @@ import {
 
 // Define the Patient type
 type Patient = {
-  id: string
+  patientId: string
   name: string
   guardianName?: string
   phone?: string
@@ -119,7 +119,7 @@ const partRates: Record<string, number> = {
 
 const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSave, onCancel }) => {
   const [formData, setFormData] = useState<Partial<Operation>>({
-    patientId: patient.id,
+    patientId: patient.patientId,
     patientName: patient.name,
     dateOfAdmit: operation?.dateOfAdmit || new Date().toISOString().split('T')[0],
     timeOfAdmit: operation?.timeOfAdmit || '',
@@ -351,7 +351,8 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
       const operationData = {
         ...formData,
         ...partsMapping, // Add individual part fields
-        patientId: patient.id,
+        // Explicitly set the patient ID from the patient prop to ensure consistency
+        patientId: patient.patientId,
         patientName: patient.name,
         createdAt: formData.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -361,6 +362,9 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
         // Ensure totalAmount is set correctly
         totalAmount: calculateTotalAmount()
       }
+      
+      // Log the patient ID being used for debugging
+      console.log('Using patient ID for operation:', patient.patientId);
 
       // Save operation using the appropriate method
       if (operation?.id) {
@@ -404,7 +408,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">ID</p>
-                <p className="text-sm text-gray-900">{patient.id}</p>
+                <p className="text-sm text-gray-900">{patient.patientId}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Age/Gender</p>
