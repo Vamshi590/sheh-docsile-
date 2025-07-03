@@ -26,21 +26,6 @@ interface Operation {
   date: string
   operationType: string
   surgeon: string
-  assistants?: string
-  anesthesia?: string
-  anesthesiologist?: string
-  preOpDiagnosis: string
-  postOpDiagnosis?: string
-  procedure: string
-  findings?: string
-  complications?: string
-  implants?: string
-  specimens?: string
-  estimatedBloodLoss?: string
-  fluids?: string
-  postOpPlan?: string
-  followUpDate?: string
-  notes?: string
   [key: string]: unknown
 }
 
@@ -149,7 +134,19 @@ const api = {
     ipcRenderer.invoke('getOpticalDispenseRecordsByOptical', opticalId),
 
   dispenseOptical: (id: string, quantity: number, patientName: string, patientId?: string) =>
-    ipcRenderer.invoke('dispenseOptical', id, quantity, patientName, patientId)
+    ipcRenderer.invoke('dispenseOptical', id, quantity, patientName, patientId),
+
+  // Analytics Management
+  getAnalyticsData: (startDate: string, endDate: string) =>
+    ipcRenderer.invoke('getAnalyticsData', startDate, endDate),
+
+  exportAnalyticsData: (
+    section: string,
+    startDate: string,
+    endDate: string,
+    timeFilter: string,
+    format: string
+  ) => ipcRenderer.invoke('exportAnalyticsData', section, startDate, endDate, timeFilter, format)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
