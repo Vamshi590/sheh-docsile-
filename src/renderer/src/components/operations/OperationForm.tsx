@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import { 
-  doctorOptions, 
-  operationDetailsOptions, 
-  operationProcedureOptions, 
-  provisionDiagnosisOptions 
+import {
+  doctorOptions,
+  operationDetailsOptions,
+  operationProcedureOptions,
+  provisionDiagnosisOptions
 } from '../../utils/dropdownOptions'
 
 // Define the Patient type
@@ -317,21 +317,21 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
 
     try {
       // Validate required fields
-      if (
-        !formData.dateOfAdmit ||
-        !formData.dateOfOperation ||
-        !formData.operationDetails ||
-        !formData.operationProcedure ||
-        !formData.provisionDiagnosis ||
-        !formData.operatedBy
-      ) {
-        setSubmitMessage({
-          type: 'error',
-          message: 'Please fill in all required fields marked with *'
-        })
-        setIsSubmitting(false)
-        return
-      }
+      // if (
+      //   !formData.dateOfAdmit ||
+      //   !formData.dateOfOperation ||
+      //   !formData.operationDetails ||
+      //   formData.operationProcedure ||
+      //   formData.provisionDiagnosis ||
+      //   formData.operatedBy
+      // ) {
+      //   setSubmitMessage({
+      //     type: 'error',
+      //     message: 'Please fill in all required fields marked with *'
+      //   })
+      //   setIsSubmitting(false)
+      //   return
+      // }
 
       // Filter out empty parts (where part name is empty)
       const filteredParts = parts.filter((part) => part.part.trim() !== '')
@@ -362,9 +362,9 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
         // Ensure totalAmount is set correctly
         totalAmount: calculateTotalAmount()
       }
-      
+
       // Log the patient ID being used for debugging
-      console.log('Using patient ID for operation:', patient.patientId);
+      console.log('Using patient ID for operation:', patient.patientId)
 
       // Save operation using the appropriate method
       if (operation?.id) {

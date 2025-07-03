@@ -52,7 +52,9 @@ const Patients: React.FC = () => {
       // Use type assertion for API calls with more specific types
       const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
       const newPatient = await api.addPatient(patient)
+
       setPatients([...patients, newPatient as Patient])
+      setShowAddForm(false)
       setError('')
     } catch (err) {
       console.error('Error adding patient:', err)
@@ -112,7 +114,7 @@ const Patients: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 py-4 sm:px-8 lg:px-10 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-medium text-gray-800">Patient Management</h1>
-            <p className="text-sm text-gray-500">Sri Harshini Eye Hospital</p>
+            <p className="text-sm text-gray-500">Sri Harsha Eye Hospital</p>
           </div>
           <div className="flex items-center space-x-3">
             <button

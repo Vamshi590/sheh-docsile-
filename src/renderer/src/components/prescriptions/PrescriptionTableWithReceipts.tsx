@@ -1,4 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
+import { jsPDF } from 'jspdf'
+import html2canvas from 'html2canvas'
 import ReceiptViewer from '../reports/ReceiptViewer'
 
 // Define the Prescription type to match with other components
@@ -66,97 +68,351 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
     }
   }
 
-  // Handle print button click
-  const handlePrint = (): void => {
-    window.print()
-    // if (!selectedPrescription || !selectedReceiptType) return
+  // Create a ref for the receipt content
+  const receiptRef = useRef<HTMLDivElement>(null)
 
-    // const receiptElement = document.getElementById('receipt-content')
-    // if (receiptElement) {
-    //   const printWindow = window.open('', '_blank', 'width=800,height=600')
-    //   if (printWindow) {
-    //     // Create a complete HTML document with all necessary styles embedded
-    //     const printContent = `
-    //       <!DOCTYPE html>
-    //       <html>
-    //       <head>
-    //         <title>Print Receipt</title>
-    //         <meta charset="UTF-8">
-    //         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    //         <style>
-    //           @page { size: auto; margin: 10mm; }
-    //           body { margin: 0; font-family: Arial, sans-serif; }
-    //           .receipt-container { padding: 10px; }
-    //           table { width: 100%; border-collapse: collapse; }
-    //           table, th, td { border: 1px solid #ddd; }
-    //           th, td { padding: 8px; text-align: left; }
-    //           .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-    //           .text-center { text-align: center; }
-    //           .text-right { text-align: right; }
-    //           .font-bold { font-weight: bold; }
-    //           .mt-2 { margin-top: 8px; }
-    //           .mb-2 { margin-bottom: 8px; }
-    //           .p-4 { padding: 16px; }
-    //         </style>
-    //       </head>
-    //       <body>
-    //         <div class="receipt-container">
-    //           ${receiptElement.innerHTML}
-    //         </div>
-    //       </body>
-    //       </html>
-    //     `
+  // Handle print button click with proper preview
+  const handlePrint = async (): Promise<void> => {
+    if (!selectedPrescription) {
+      alert('Please select a prescription first')
+      return
+    }
+    try {
+      if (!receiptRef.current) {
+        alert('Receipt content not found')
+        return
+      }
 
-    //     printWindow.document.open()
-    //     printWindow.document.write(printContent)
-    //     printWindow.document.close()
+      // Apply a temporary style to replace OKLCH colors with RGB
+      const tempStyle = document.createElement('style')
+      tempStyle.setAttribute('data-temp-style', 'true')
+      tempStyle.innerHTML = `
+        * {
+          color: black !important;
+          background-color: white !important;
+          border-color: black !important;
+        }
+        .receipt-viewer {
+          color: black !important;
+          background-color: white !important;
+        }
+      `
+      document.head.appendChild(tempStyle)
 
-    //     // Wait for content to load before printing
-    //     printWindow.onload = function() {
-    //       printWindow.focus()
-    //       setTimeout(() => {
-    //         printWindow.print()
-    //       }, 500)
-    //     }
-    //   }
-    // }
+      // Add debug log to check receipt element dimensions
+      console.log('Print receipt element dimensions:', {
+        width: receiptRef.current.offsetWidth,
+        height: receiptRef.current.offsetHeight
+      })
+
+      // Create a canvas from the receipt element
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 3, // Higher scale for better quality
+        logging: true,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        width: receiptRef.current.offsetWidth,
+        height: receiptRef.current.offsetHeight,
+        ignoreElements: (element) => {
+          // Skip elements with complex CSS that might use OKLCH
+          return element.classList.contains('ignore-in-pdf') || false
+        }
+      })
+
+      // Log canvas dimensions for debugging
+      console.log('Print canvas dimensions:', {
+        width: canvas.width,
+        height: canvas.height
+      })
+      // Create PDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+
+      // Add image to PDF with proper margins and scaling
+      const imgData = canvas.toDataURL('image/png')
+      const pageWidth = 210 // A4 width in mm
+      const pageHeight = 297 // A4 height in mm
+      const margin = 5 // margin in mm
+
+      // Calculate dimensions for both width-based and height-based scaling
+      // to determine which one utilizes more of the page
+      const availableWidth = pageWidth - margin
+      const availableHeight = pageHeight - margin
+
+      // Width-based scaling (fit to page width)
+      const widthBasedImgWidth = availableWidth
+      const widthBasedImgHeight = (canvas.height * widthBasedImgWidth) / canvas.width
+      const widthBasedArea = widthBasedImgWidth * widthBasedImgHeight
+
+      // Height-based scaling (fit to page height)
+      const heightBasedImgHeight = availableHeight
+      const heightBasedImgWidth = (canvas.width * heightBasedImgHeight) / canvas.height
+      const heightBasedArea = heightBasedImgWidth * heightBasedImgHeight
+
+      // Log calculated dimensions for both approaches
+      console.log('Print PDF dimensions calculation:', {
+        pageWidth,
+        pageHeight,
+        widthBased: {
+          width: widthBasedImgWidth,
+          height: widthBasedImgHeight,
+          area: widthBasedArea
+        },
+        heightBased: {
+          width: heightBasedImgWidth,
+          height: heightBasedImgHeight,
+          area: heightBasedArea
+        },
+        aspectRatio: canvas.width / canvas.height
+      })
+
+      // Always use the approach that maximizes the area used on the page
+      const useHeightBased = heightBasedArea > widthBasedArea
+
+      // Set minimal margins
+      const yPosition = margin / 2
+
+      if (useHeightBased) {
+        // Use height-based scaling to maximize page usage
+        const xPos = (pageWidth - heightBasedImgWidth) / 2
+        pdf.addImage(imgData, 'PNG', xPos, yPosition, heightBasedImgWidth, heightBasedImgHeight)
+      } else {
+        // Use width-based scaling
+        const xPosition = margin / 2
+        pdf.addImage(imgData, 'PNG', xPosition, yPosition, widthBasedImgWidth, widthBasedImgHeight)
+      }
+      // Open PDF in a new window for printing
+      const pdfBlob = pdf.output('blob')
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+      const printWindow = window.open(pdfUrl)
+      if (printWindow) {
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print()
+          }, 500)
+        }
+      } else {
+        // If popup blocked, offer direct download
+        const downloadLink = document.createElement('a')
+        downloadLink.href = pdfUrl
+        downloadLink.download = `receipt-${selectedPrescription.id}.pdf`
+        document.body.appendChild(downloadLink)
+        downloadLink.click()
+        document.body.removeChild(downloadLink)
+        alert('Print popup was blocked. PDF has been downloaded instead.')
+      }
+    } catch (error) {
+      console.error('Error printing:', error)
+      alert('Failed to print. Please try again.')
+    } finally {
+      // Remove the temporary style
+      const tempStyle = document.querySelector('style[data-temp-style="true"]')
+      if (tempStyle) {
+        document.head.removeChild(tempStyle)
+      }
+    }
   }
 
   // Handle WhatsApp share
-  const handleWhatsAppShare = (): void => {
+  const handleWhatsAppShare = async (): Promise<void> => {
     if (!selectedPrescription) return
-
-    const phoneNumber = selectedPrescription['PHONE NUMBER']?.toString() || ''
+    const phoneNumber = selectedPrescription?.['PHONE NUMBER']?.toString() || ''
     if (!phoneNumber) {
       alert('No phone number available for this patient')
       return
     }
-
-    // Format the message
-    let message = `Dear ${selectedPrescription['PATIENT NAME']?.toString() || 'Patient'},\n\n`
-    message += `Thank you for visiting Sri Harshini Eye Hospital.\n\n`
-
-    if (selectedReceiptType === 'cash') {
-      message += `Your payment of ₹${selectedPrescription['AMOUNT RECEIVED']?.toString() || '0'} has been received.\n`
-      message += `Total Amount: ₹${selectedPrescription['TOTAL AMOUNT']?.toString() || '0'}\n`
-      if (Number(selectedPrescription['AMOUNT DUE'] || 0) > 0) {
-        message += `Balance Due: ₹${selectedPrescription['AMOUNT DUE']?.toString() || '0'}\n`
+    try {
+      // Get the receipt content element using our ref
+      const receiptElement = receiptRef.current
+      if (!receiptElement) {
+        alert('Receipt content not found')
+        return
       }
-    } else if (selectedReceiptType === 'prescription') {
-      message += `Your prescription details are ready.\n`
-      if (selectedPrescription['FOLLOW UP DATE']) {
-        message += `Follow-up Date: ${selectedPrescription['FOLLOW UP DATE']?.toString() || ''}\n`
+
+      // Apply a temporary style to replace OKLCH colors with RGB
+      const tempStyle = document.createElement('style')
+      tempStyle.setAttribute('data-temp-style', 'true')
+      tempStyle.innerHTML = `
+        * {
+          color: black !important;
+          background-color: white !important;
+          border-color: black !important;
+        }
+        .receipt-viewer {
+          color: black !important;
+          background-color: white !important;
+        }
+      `
+      document.head.appendChild(tempStyle)
+
+      // Add debug log to check receipt element dimensions
+      console.log('Receipt element dimensions:', {
+        width: receiptElement.offsetWidth,
+        height: receiptElement.offsetHeight
+      })
+
+      // Create a canvas from the receipt element
+      const canvas = await html2canvas(receiptElement, {
+        scale: 3, // Higher scale for better quality
+        logging: true,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        width: receiptElement.offsetWidth,
+        height: receiptElement.offsetHeight,
+        ignoreElements: (element) => {
+          // Skip elements with complex CSS that might use OKLCH
+          return element.classList.contains('ignore-in-pdf') || false
+        }
+      })
+
+      // Log canvas dimensions for debugging
+      console.log('Canvas dimensions:', {
+        width: canvas.width,
+        height: canvas.height
+      })
+
+      // Create PDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+
+      // Add image to PDF with proper margins and scaling
+      const imgData = canvas.toDataURL('image/png')
+      const pageWidth = 210 // A4 width in mm
+      const pageHeight = 297 // A4 height in mm
+      const margin = 5 // margin in mm
+
+      // Calculate dimensions for both width-based and height-based scaling
+      // to determine which one utilizes more of the page
+      const availableWidth = pageWidth - margin
+      const availableHeight = pageHeight - margin
+
+      // Width-based scaling (fit to page width)
+      const widthBasedImgWidth = availableWidth
+      const widthBasedImgHeight = (canvas.height * widthBasedImgWidth) / canvas.width
+      const widthBasedArea = widthBasedImgWidth * widthBasedImgHeight
+
+      // Height-based scaling (fit to page height)
+      const heightBasedImgHeight = availableHeight
+      const heightBasedImgWidth = (canvas.width * heightBasedImgHeight) / canvas.height
+      const heightBasedArea = heightBasedImgWidth * heightBasedImgHeight
+
+      // Log calculated dimensions for both approaches
+      console.log('PDF dimensions calculation:', {
+        pageWidth,
+        pageHeight,
+        widthBased: {
+          width: widthBasedImgWidth,
+          height: widthBasedImgHeight,
+          area: widthBasedArea
+        },
+        heightBased: {
+          width: heightBasedImgWidth,
+          height: heightBasedImgHeight,
+          area: heightBasedArea
+        },
+        aspectRatio: canvas.width / canvas.height
+      })
+
+      // Always use the approach that maximizes the area used on the page
+      const useHeightBased = heightBasedArea > widthBasedArea
+
+      // Set minimal margins
+      const yPosition = margin / 2
+
+      if (useHeightBased) {
+        // Use height-based scaling to maximize page usage
+        const xPos = (pageWidth - heightBasedImgWidth) / 2
+        console.log('Using height-based scaling for maximum area:', {
+          width: heightBasedImgWidth,
+          height: heightBasedImgHeight,
+          xPos,
+          yPosition
+        })
+        pdf.addImage(imgData, 'PNG', xPos, yPosition, heightBasedImgWidth, heightBasedImgHeight)
+      } else {
+        // Use width-based scaling
+        const xPosition = margin / 2
+        console.log('Using width-based scaling for maximum area:', {
+          width: widthBasedImgWidth,
+          height: widthBasedImgHeight,
+          xPosition,
+          yPosition
+        })
+        pdf.addImage(imgData, 'PNG', xPosition, yPosition, widthBasedImgWidth, widthBasedImgHeight)
+      }
+
+      // Save PDF to a blob
+      const pdfBlob = pdf.output('blob')
+
+      // Format the message
+      let message = `Dear ${selectedPrescription.patientName?.toString() || 'Patient'},\n\n`
+      message += `Thank you for visiting Sri Harsha Eye Hospital.\n\n`
+
+      if (selectedReceiptType === 'cash') {
+        message += `Your payment details are attached.\n`
+      } else if (selectedReceiptType === 'prescription') {
+        message += `Your prescription details are attached.\n`
+        if (selectedPrescription.followUpDate) {
+          message += `Follow-up Date: ${selectedPrescription.followUpDate?.toString() || ''}\n`
+        }
+      }
+
+      message += `\nBest regards,\nSri Harsha Eye Hospital Team`
+
+      // Create a temporary file URL for the PDF
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+
+      // Create a File object from the blob for sharing
+      const pdfFile = new File([pdfBlob], `receipt-${selectedPrescription.id}.pdf`, {
+        type: 'application/pdf'
+      })
+
+      // Encode the message for WhatsApp URL
+      const encodedMessage = encodeURIComponent(message)
+
+      // Try to use the Web Share API if available (modern browsers)
+      if (navigator.share && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          await navigator.share({
+            files: [pdfFile],
+            title: 'Receipt from Sri Harsha Eye Hospital',
+            text: message
+          })
+          console.log('PDF shared successfully')
+          return
+        } catch (err) {
+          console.error('Error sharing PDF:', err)
+          // Fall back to WhatsApp URL if sharing fails
+        }
+      }
+
+      // Fallback: Open WhatsApp with message and download PDF separately
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`
+      console.log(whatsappUrl)
+
+      // Also download the PDF since we can't directly share it
+      const downloadLink = document.createElement('a')
+      downloadLink.href = pdfUrl
+      downloadLink.download = `receipt-${selectedPrescription.id}.pdf`
+      document.body.appendChild(downloadLink)
+      downloadLink.click()
+      document.body.removeChild(downloadLink)
+    } catch (error) {
+      console.error('Error creating PDF:', error)
+      alert('Failed to create PDF. Please try again.')
+    } finally {
+      // Remove the temporary style
+      const tempStyle = document.querySelector('style[data-temp-style="true"]')
+      if (tempStyle) {
+        document.head.removeChild(tempStyle)
       }
     }
-
-    message += `\nBest regards,\nSri Harshini Eye Hospital Team`
-
-    // Encode the message for WhatsApp URL
-    const encodedMessage = encodeURIComponent(message)
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`
-
-    // Open WhatsApp in a new window
-    window.open(whatsappUrl, '_blank')
   }
 
   if (prescriptions.length === 0) {
@@ -289,11 +545,13 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
                 </div>
               </div>
               <div id="receipt-content">
-                <ReceiptViewer
-                  report={selectedPrescription}
-                  receiptType={selectedReceiptType}
-                  selectedOperation={selectedOperation || undefined}
-                />
+                <div ref={receiptRef}>
+                  <ReceiptViewer
+                    report={selectedPrescription}
+                    receiptType={selectedReceiptType}
+                    selectedOperation={selectedOperation || undefined}
+                  />
+                </div>
               </div>
 
               {/* Print and WhatsApp buttons */}

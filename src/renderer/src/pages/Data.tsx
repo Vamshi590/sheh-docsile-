@@ -4,9 +4,10 @@ import PatientsTab from '../components/data/PatientsTab'
 import PrescriptionsTab from '../components/data/PrescriptionsTab'
 import OperationsTab from '../components/data/OperationsTab'
 import OptionsTab from '../components/data/OptionsTab'
+import ReadingsTab from '../components/data/ReadingsTab'
 
 // Define tab types
-type TabType = 'patients' | 'prescriptions' | 'operations' | 'options'
+type TabType = 'patients' | 'prescriptions' | 'operations' | 'options' | 'readings'
 
 const Data: React.FC = () => {
   // State for active tab
@@ -61,6 +62,7 @@ const Data: React.FC = () => {
             {activeTab === 'prescriptions' && <PrescriptionsTab />}
             {activeTab === 'operations' && <OperationsTab />}
             {activeTab === 'options' && <OptionsTab />}
+            {activeTab === 'readings' && <ReadingsTab />}
           </div>
         </div>
       </main>

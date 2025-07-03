@@ -478,6 +478,265 @@ const PrescriptionsTab: React.FC = () => {
               >
                 LE-Tension {renderSortIndicator('cfLeTension')}
               </th>
+              {/* Patient Information */}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('guardianName')}
+              >
+                Guardian {renderSortIndicator('guardianName')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('phoneNumber')}
+              >
+                Phone {renderSortIndicator('phoneNumber')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('age')}
+              >
+                Age {renderSortIndicator('age')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('gender')}
+              >
+                Gender {renderSortIndicator('gender')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('address')}
+              >
+                Address {renderSortIndicator('address')}
+              </th>
+              {/* Doctor Information */}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('department')}
+              >
+                Department {renderSortIndicator('department')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('referredBy')}
+              >
+                Referred By {renderSortIndicator('referredBy')}
+              </th>
+              {/* Additional Financial Data */}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('receiptNumber')}
+              >
+                Receipt# {renderSortIndicator('receiptNumber')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('discountPercentage')}
+              >
+                Discount% {renderSortIndicator('discountPercentage')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('advancePaid')}
+              >
+                Advance {renderSortIndicator('advancePaid')}
+              </th>
+              {/* Additional Medical Information */}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('previousHistory')}
+              >
+                History {renderSortIndicator('previousHistory')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('notes')}
+              >
+                Notes {renderSortIndicator('notes')}
+              </th>
+              {/* Additional Prescription Medication Fields */}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('days1')}
+              >
+                Days1 {renderSortIndicator('days1')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('timing1')}
+              >
+                Timing1 {renderSortIndicator('timing1')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('prescription2')}
+              >
+                Med2 {renderSortIndicator('prescription2')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('days2')}
+              >
+                Days2 {renderSortIndicator('days2')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('timing2')}
+              >
+                Timing2 {renderSortIndicator('timing2')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('prescription3')}
+              >
+                Med3 {renderSortIndicator('prescription3')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('days3')}
+              >
+                Days3 {renderSortIndicator('days3')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('timing3')}
+              >
+                Timing3 {renderSortIndicator('timing3')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('prescription4')}
+              >
+                Med4 {renderSortIndicator('prescription4')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('days4')}
+              >
+                Days4 {renderSortIndicator('days4')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('timing4')}
+              >
+                Timing4 {renderSortIndicator('timing4')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('prescription5')}
+              >
+                Med5 {renderSortIndicator('prescription5')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('days5')}
+              >
+                Days5 {renderSortIndicator('days5')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('timing5')}
+              >
+                Timing5 {renderSortIndicator('timing5')}
+              </th>
+              {/* Advice Fields */}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('advice1')}
+              >
+                Advice1 {renderSortIndicator('advice1')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('advice2')}
+              >
+                Advice2 {renderSortIndicator('advice2')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('advice3')}
+              >
+                Advice3 {renderSortIndicator('advice3')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('advice4')}
+              >
+                Advice4 {renderSortIndicator('advice4')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('advice5')}
+              >
+                Advice5 {renderSortIndicator('advice5')}
+              </th>
+              {/* Additional Basic Readings */}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('pulseRate')}
+              >
+                Pulse {renderSortIndicator('pulseRate')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('weight')}
+              >
+                Weight {renderSortIndicator('weight')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('height')}
+              >
+                Height {renderSortIndicator('height')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('bmi')}
+              >
+                BMI {renderSortIndicator('bmi')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('bloodSugar')}
+              >
+                Blood Sugar {renderSortIndicator('bloodSugar')}
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -564,6 +823,121 @@ const PrescriptionsTab: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {prescription.cfLeTension || '-'}
+                  </td>
+                  {/* Patient Information */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.guardianName || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.phoneNumber || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.age || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.gender || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.address || '-'}
+                  </td>
+                  {/* Doctor Information */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.department || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.referredBy || '-'}
+                  </td>
+                  {/* Additional Financial Data */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.receiptNumber || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.discountPercentage || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.advancePaid ? formatCurrency(prescription.advancePaid) : '-'}
+                  </td>
+                  {/* Additional Medical Information */}
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {prescription.previousHistory || '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {prescription.notes || '-'}
+                  </td>
+                  {/* Additional Prescription Medication Fields */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.days1 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.timing1 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.prescription2 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.days2 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.timing2 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.prescription3 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.days3 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.timing3 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.prescription4 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.days4 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.timing4 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.prescription5 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.days5 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.timing5 || '-'}
+                  </td>
+                  {/* Advice Fields */}
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {prescription.advice1 || '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {prescription.advice2 || '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {prescription.advice3 || '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {prescription.advice4 || '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {prescription.advice5 || '-'}
+                  </td>
+                  {/* Additional Basic Readings */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.pulseRate || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.weight || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.height || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.bmi || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {prescription.bloodSugar || '-'}
                   </td>
                 </tr>
               ))

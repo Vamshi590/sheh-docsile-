@@ -45,7 +45,7 @@ const DuesSection: React.FC<DuesSectionProps> = ({ prescriptions, loading, onUpd
 
     // Calculate due amount
     const totalAmount = Number(
-      prescription.totalAmount || prescription.AMOUNT || prescription.amount || 0
+      prescription['TOTAL AMOUNT'] || prescription.AMOUNT || prescription.amount || 0
     )
     const amountReceived = Number(
       prescription.amountReceived || prescription['AMOUNT RECEIVED'] || 0
@@ -163,7 +163,7 @@ const DuesSection: React.FC<DuesSectionProps> = ({ prescriptions, loading, onUpd
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredPrescriptions.map((prescription) => {
                   const totalAmount = Number(
-                    prescription.totalAmount || prescription.AMOUNT || prescription.amount || 0
+                    prescription['TOTAL AMOUNT'] || prescription.AMOUNT || prescription.amount || 0
                   )
                   const amountReceived = Number(
                     prescription.amountReceived || prescription['AMOUNT RECEIVED'] || 0

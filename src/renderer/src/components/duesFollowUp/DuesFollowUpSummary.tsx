@@ -47,14 +47,13 @@ const DuesFollowUpSummary: React.FC<DuesFollowUpSummaryProps> = ({ onClick }) =>
 
         // Count prescriptions with due amounts
         const prescriptionsWithDues = prescriptions.filter((prescription) => {
-          const totalAmount = Number(prescription.totalAmount || prescription.AMOUNT || 0)
+          const totalAmount = Number(prescription['TOTAL AMOUNT'] || prescription.AMOUNT || 0)
           const amountReceived = Number(
             prescription.amountReceived || prescription['AMOUNT RECEIVED'] || 0
           )
           const amountDue = totalAmount - amountReceived
           return amountDue > 0
         })
-
         setDuesCount(prescriptionsWithDues.length)
       }
 

@@ -18,7 +18,7 @@ const Dashboard = (): React.JSX.Element => {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-indigo-700">Sri Harshini Eye Hospital</h1>
+              <h1 className="text-2xl font-bold text-indigo-700">Sri Harsha Eye Hospital</h1>
               <p className="text-sm text-gray-500">Healthcare Management System</p>
             </div>
             <button
@@ -102,28 +102,6 @@ const Dashboard = (): React.JSX.Element => {
             <p className="text-gray-600 ml-16">Manage prescriptions and receipts</p>
           </div>
 
-          {/* Appointments Card - Disabled */}
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 opacity-70 cursor-not-allowed">
-            <div className="flex items-center mb-4">
-              <div className="bg-gray-100 p-3 rounded-full mr-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-8 w-8 text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">Appointments</h3>
-            </div>
-            <p className="text-gray-600 ml-16">Schedule and manage appointments (Coming soon)</p>
-          </div>
-
           {/* Operations Card */}
           <div
             onClick={() => navigateTo('/operations')}
@@ -148,31 +126,6 @@ const Dashboard = (): React.JSX.Element => {
               <h3 className="text-xl font-semibold text-gray-900">Operations</h3>
             </div>
             <p className="text-gray-600 ml-16">Manage surgeries and operations</p>
-          </div>
-
-          {/* Data Management Card */}
-          <div
-            onClick={() => navigateTo('/data')}
-            className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
-          >
-            <div className="flex items-center mb-4">
-              <div className="bg-indigo-100 p-3 rounded-full mr-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-8 w-8 text-indigo-600"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">Data</h3>
-            </div>
-            <p className="text-gray-600 ml-16">Search and browse all data</p>
           </div>
 
           {/* Reports Card */}
@@ -202,6 +155,53 @@ const Dashboard = (): React.JSX.Element => {
 
           {/* Dues/Follow-Up Card */}
           <DuesFollowUpSummary onClick={() => navigateTo('/dues-followup')} />
+
+          {/* Data Management Card */}
+          <div
+            onClick={() => navigateTo('/data')}
+            className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
+          >
+            <div className="flex items-center mb-4">
+              <div className="bg-indigo-100 p-3 rounded-full mr-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-8 w-8 text-indigo-600"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">Data</h3>
+            </div>
+            <p className="text-gray-600 ml-16">Search and browse all data</p>
+          </div>
+
+          {/* Appointments Card - Disabled */}
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 opacity-70 cursor-not-allowed">
+            <div className="flex items-center mb-4">
+              <div className="bg-gray-100 p-3 rounded-full mr-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-8 w-8 text-gray-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">Appointments</h3>
+            </div>
+            <p className="text-gray-600 ml-16">Schedule and manage appointments (Coming soon)</p>
+          </div>
         </div>
       </main>
 

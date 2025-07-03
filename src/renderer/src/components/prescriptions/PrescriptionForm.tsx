@@ -93,7 +93,7 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
       'PRESCRIPTION 10': '',
       'DAYS 10': '',
       'TIMING 10': '',
-      
+
       // Advice fields
       'ADVICE 1': '',
       'ADVICE 2': '',
@@ -106,9 +106,9 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
       'ADVICE 9': '',
       'ADVICE 10': '',
 
-      'NOTES': '',
+      NOTES: '',
       'FOLLOW UP DATE': '',
-      
+
       // Add patient information if a patient is selected
       ...(selectedPatient
         ? {

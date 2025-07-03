@@ -131,7 +131,6 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     'PRESCRIPTION 15': '',
     'DAYS 15': '',
     'TIMING 15': '',
-    
 
     // Advice information
     'ADVICE 1': '',
@@ -150,7 +149,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     'ADVICE 14': '',
     'ADVICE 15': '',
 
-    'NOTES': '',
+    NOTES: '',
     'FOLLOW UP DATE': '',
 
     // Glass prescription - Right Eye Distance

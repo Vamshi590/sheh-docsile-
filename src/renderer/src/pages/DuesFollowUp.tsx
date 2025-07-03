@@ -80,7 +80,7 @@ const DuesFollowUp: React.FC = () => {
 
       // Filter prescriptions with due amounts
       const prescriptionsWithDues = data.filter((prescription) => {
-        const totalAmount = Number(prescription.totalAmount || prescription.AMOUNT || 0)
+        const totalAmount = Number(prescription['TOTAL AMOUNT'] || prescription.AMOUNT || 0)
         const amountReceived = Number(
           prescription.amountReceived || prescription['AMOUNT RECEIVED'] || 0
         )
@@ -139,10 +139,24 @@ const DuesFollowUp: React.FC = () => {
         throw new Error('Prescription not found')
       }
 
-      // Update the amountDue field
+      // Calculate total amount from the prescription
+      const totalAmount = Number(
+        prescription['TOTAL AMOUNT'] || prescription.AMOUNT || prescription.amount || 0
+      )
+
+      // If marking as paid (updatedAmount = 0), set amountReceived to totalAmount
+      const amountReceived =
+        updatedAmount === 0
+          ? totalAmount
+          : Number(prescription.amountReceived || prescription['AMOUNT RECEIVED'] || 0)
+
+      // Update both amountDue and amountReceived fields
       const updatedPrescription = {
         ...prescription,
-        amountDue: updatedAmount
+        amountDue: updatedAmount,
+        'AMOUNT DUE': updatedAmount,
+        amountReceived: amountReceived,
+        'AMOUNT RECEIVED': amountReceived // Update both formats for compatibility
       }
 
       // Call the API to update the prescription
@@ -151,7 +165,9 @@ const DuesFollowUp: React.FC = () => {
       // Refresh the prescriptions list
       await loadPrescriptions()
 
-      addToast('Due amount updated successfully', 'success')
+      const message =
+        updatedAmount === 0 ? 'Payment marked as complete' : 'Due amount updated successfully'
+      addToast(message, 'success')
     } catch (err) {
       console.error('Error updating due amount:', err)
       addToast('Failed to update due amount', 'error')
