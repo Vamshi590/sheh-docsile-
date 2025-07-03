@@ -17,7 +17,7 @@ interface MedicineDispenseModalProps {
   onDispense: (
     id: string,
     quantity: number,
-    patientName: string,
+    patientName?: string,
     patientId?: string
   ) => Promise<void>
 }
@@ -69,10 +69,7 @@ const MedicineDispenseModal: React.FC<MedicineDispenseModalProps> = ({
       return
     }
 
-    if (!patientName.trim()) {
-      setError('Patient name is required')
-      return
-    }
+    // Patient name is now optional
 
     try {
       setIsSubmitting(true)
@@ -154,7 +151,7 @@ const MedicineDispenseModal: React.FC<MedicineDispenseModalProps> = ({
                         htmlFor="patientName"
                         className="block text-sm font-medium text-gray-700"
                       >
-                        Patient Name
+                        Patient Name (Optional)
                       </label>
                       <input
                         type="text"
@@ -163,7 +160,6 @@ const MedicineDispenseModal: React.FC<MedicineDispenseModalProps> = ({
                         value={patientName}
                         onChange={(e) => setPatientName(e.target.value)}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        required
                       />
                     </div>
 

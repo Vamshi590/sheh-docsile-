@@ -33,9 +33,9 @@ const Medicines: React.FC = () => {
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [statusFilter, setStatusFilter] = useState<
-    'all' | 'available' | 'completed' | 'out_of_stock'
-  >('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'out_of_stock'>(
+    'available'
+  )
   const [searchTerm, setSearchTerm] = useState('')
 
   // Dispensing related state
@@ -46,6 +46,8 @@ const Medicines: React.FC = () => {
   const [loadingRecords, setLoadingRecords] = useState(false)
   const [recordsError, setRecordsError] = useState('')
 
+  // Remove this duplicate definition as filteredMedicines is defined below
+
   // Load medicines on component mount
   useEffect(() => {
     const fetchMedicines = async (): Promise<void> => {
@@ -53,7 +55,8 @@ const Medicines: React.FC = () => {
         setLoading(true)
         // Use type assertion for API calls with more specific types
         const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
-        const data = await api.getMedicines()
+        // Load only available medicines by default
+        const data = await api.getMedicinesByStatus('available')
         setMedicines(data as Medicine[])
         setError('')
       } catch (err) {
@@ -173,7 +176,7 @@ const Medicines: React.FC = () => {
 
   // Function to filter medicines by status
   const handleFilterByStatus = async (
-    status: 'all' | 'available' | 'completed' | 'out_of_stock'
+    status: 'all' | 'available' | 'out_of_stock'
   ): Promise<void> => {
     try {
       setLoading(true)
@@ -214,7 +217,7 @@ const Medicines: React.FC = () => {
   const handleDispenseMedicine = async (
     id: string,
     quantity: number,
-    patientName: string,
+    patientName?: string,
     patientId?: string
   ): Promise<void> => {
     try {
@@ -260,17 +263,26 @@ const Medicines: React.FC = () => {
     }
   }
 
-  // Filter medicines based on search term
-  const filteredMedicines = searchTerm
-    ? medicines.filter(
-        (medicine) =>
-          medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          medicine.batchNumber.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter medicines based on search term and status filter
+  const filteredMedicines = medicines.filter((medicine) => {
+    // First apply status filter
+    if (statusFilter !== 'all' && medicine.status !== statusFilter) {
+      return false
+    }
+
+    // Then apply search term filter if present
+    if (searchTerm) {
+      return (
+        medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        medicine.batchNumber.toLowerCase().includes(searchTerm.toLowerCase())
       )
-    : medicines
+    }
+
+    return true
+  })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 sm:px-8 lg:px-10 flex justify-between items-center">
           <div>
@@ -334,7 +346,7 @@ const Medicines: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 sm:px-8 lg:px-10">
+      <main className="max-w-7xl mx-auto px-6 py-8 sm:px-8 lg:px-10 flex-grow w-full">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-700 rounded-lg flex items-center">
             <svg
@@ -447,16 +459,6 @@ const Medicines: React.FC = () => {
                     }`}
                   >
                     Available
-                  </button>
-                  <button
-                    onClick={() => handleFilterByStatus('completed')}
-                    className={`px-3 py-1 text-sm rounded-md ${
-                      statusFilter === 'completed'
-                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                        : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
-                    }`}
-                  >
-                    Completed
                   </button>
                   <button
                     onClick={() => handleFilterByStatus('out_of_stock')}

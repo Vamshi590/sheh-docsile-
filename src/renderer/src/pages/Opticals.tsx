@@ -37,12 +37,10 @@ const Opticals: React.FC = () => {
   const [editingOptical, setEditingOptical] = useState<Optical | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [statusFilter, setStatusFilter] = useState<
-    'all' | 'available' | 'completed' | 'out_of_stock'
-  >('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'out_of_stock'>('available')
   const [typeFilter, setTypeFilter] = useState<'all' | 'frame' | 'lens'>('all')
   const [searchTerm, setSearchTerm] = useState('')
-  
+
   // Dispensing related state
   const [dispensingOptical, setDispensingOptical] = useState<Optical | null>(null)
   const [isDispenseModalOpen, setIsDispenseModalOpen] = useState(false)
@@ -58,7 +56,8 @@ const Opticals: React.FC = () => {
         setLoading(true)
         // Use type assertion for API calls with more specific types
         const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
-        const opticalData = await api.getOpticalItems()
+        // Load only available opticals by default
+        const opticalData = await api.getOpticalItemsByStatus('available')
         setOpticals(opticalData as Optical[])
         setError('')
       } catch (err) {
@@ -71,7 +70,7 @@ const Opticals: React.FC = () => {
 
     fetchData()
   }, [])
-  
+
   // Load dispensing records when activeTab changes to dispensing-history
   useEffect(() => {
     if (activeTab === 'dispensing-history') {
@@ -185,7 +184,7 @@ const Opticals: React.FC = () => {
 
   // Function to filter opticals by status
   const handleFilterByStatus = async (
-    status: 'all' | 'available' | 'completed' | 'out_of_stock'
+    status: 'all' | 'available' | 'out_of_stock'
   ): Promise<void> => {
     try {
       setLoading(true)
@@ -263,17 +262,26 @@ const Opticals: React.FC = () => {
     setIsDispenseModalOpen(true)
   }
 
-  // Filter opticals based on search term
-  const filteredOpticals = searchTerm
-    ? opticals.filter(
-        (optical) =>
-          optical.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          optical.model.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter opticals based on search term and status filter
+  const filteredOpticals = opticals.filter((optical) => {
+    // First apply status filter if not 'all'
+    if (statusFilter !== 'all' && optical.status !== statusFilter) {
+      return false
+    }
+    
+    // Then apply search term filter if present
+    if (searchTerm) {
+      return (
+        optical.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        optical.model.toLowerCase().includes(searchTerm.toLowerCase())
       )
-    : opticals
+    }
+    
+    return true
+  })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 sm:px-8 lg:px-10 flex justify-between items-center">
           <div>
@@ -337,7 +345,7 @@ const Opticals: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 sm:px-8 lg:px-10">
+      <main className="max-w-7xl mx-auto px-6 py-8 sm:px-8 lg:px-10 flex-grow w-full">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-700 rounded-lg flex items-center">
             <svg
@@ -459,16 +467,7 @@ const Opticals: React.FC = () => {
                     >
                       Available
                     </button>
-                    <button
-                      onClick={() => handleFilterByStatus('completed')}
-                      className={`px-3 py-1 text-sm rounded-md ml-1 ${
-                        statusFilter === 'completed'
-                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                          : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
-                      }`}
-                    >
-                      Completed
-                    </button>
+
                     <button
                       onClick={() => handleFilterByStatus('out_of_stock')}
                       className={`px-3 py-1 text-sm rounded-md ml-1 ${
