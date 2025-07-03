@@ -44,6 +44,30 @@ interface Operation {
   [key: string]: unknown
 }
 
+interface Medicine {
+  id?: string
+  name: string
+  quantity: number
+  expiryDate: string
+  batchNumber: string
+  price: number
+  status: 'available' | 'completed' | 'out_of_stock'
+  [key: string]: unknown
+}
+
+interface OpticalItem {
+  id?: string
+  type: 'frame' | 'lens'
+  brand: string
+  model?: string
+  size?: string
+  power?: string
+  quantity: number
+  price: number
+  status: 'available' | 'completed' | 'out_of_stock'
+  [key: string]: unknown
+}
+
 // Custom APIs for renderer
 const api = {
   // Authentication
@@ -57,22 +81,75 @@ const api = {
 
   // Prescriptions & Receipts Management
   getPrescriptions: () => ipcRenderer.invoke('getPrescriptions'),
-  addPrescription: (prescription: Prescription) => ipcRenderer.invoke('addPrescription', prescription),
-  updatePrescription: (id: string, prescription: Prescription) => 
+  addPrescription: (prescription: Prescription) =>
+    ipcRenderer.invoke('addPrescription', prescription),
+  updatePrescription: (id: string, prescription: Prescription) =>
     ipcRenderer.invoke('updatePrescription', id, prescription),
   deletePrescription: (id: string) => ipcRenderer.invoke('deletePrescription', id),
-  searchPrescriptions: (searchTerm: string) => ipcRenderer.invoke('searchPrescriptions', searchTerm),
-  
+  searchPrescriptions: (searchTerm: string) =>
+    ipcRenderer.invoke('searchPrescriptions', searchTerm),
+
   // Operations Management
   getOperations: () => ipcRenderer.invoke('getOperations'),
-  getPatientOperations: (patientId: string) => ipcRenderer.invoke('getPatientOperations', patientId),
+  getPatientOperations: (patientId: string) =>
+    ipcRenderer.invoke('getPatientOperations', patientId),
   addOperation: (operation: Operation) => ipcRenderer.invoke('addOperation', operation),
-  updateOperation: (id: string, operation: Operation) => ipcRenderer.invoke('updateOperation', id, operation),
+  updateOperation: (id: string, operation: Operation) =>
+    ipcRenderer.invoke('updateOperation', id, operation),
   deleteOperation: (id: string) => ipcRenderer.invoke('deleteOperation', id),
-  
+
   // Patient Search (used by multiple modules)
   searchPatients: (searchTerm: string) => ipcRenderer.invoke('searchPatients', searchTerm),
-  
+
+  // Medicines Management
+  getMedicines: () => ipcRenderer.invoke('getMedicines'),
+  searchMedicines: (searchTerm: string) => ipcRenderer.invoke('searchMedicines', searchTerm),
+  addMedicine: (medicine: Medicine) => ipcRenderer.invoke('addMedicine', medicine),
+  updateMedicine: (id: string, medicine: Medicine) =>
+    ipcRenderer.invoke('updateMedicine', id, medicine),
+  deleteMedicine: (id: string) => ipcRenderer.invoke('deleteMedicine', id),
+  updateMedicineStatus: (id: string, status: 'available' | 'completed' | 'out_of_stock') =>
+    ipcRenderer.invoke('updateMedicineStatus', id, status),
+  getMedicinesByStatus: (status: 'available' | 'completed' | 'out_of_stock') =>
+    ipcRenderer.invoke('getMedicinesByStatus', status),
+
+  // Medicine Dispense Management
+  getMedicineDispenseRecords: () => ipcRenderer.invoke('getMedicineDispenseRecords'),
+  getMedicineDispenseRecordsByPatient: (patientId: string) =>
+    ipcRenderer.invoke('getMedicineDispenseRecordsByPatient', patientId),
+  getMedicineDispenseRecordsByMedicine: (medicineId: string) =>
+    ipcRenderer.invoke('getMedicineDispenseRecordsByMedicine', medicineId),
+  dispenseMedicine: (id: string, quantity: number, patientName: string, patientId?: string) =>
+    ipcRenderer.invoke('dispenseMedicine', id, quantity, patientName, patientId),
+
+  // Opticals Management
+  getOpticalItems: () => ipcRenderer.invoke('getOpticalItems'),
+  searchOpticalItems: (searchTerm: string, type?: 'frame' | 'lens') =>
+    ipcRenderer.invoke('searchOpticalItems', searchTerm, type),
+  addOpticalItem: (item: OpticalItem) => ipcRenderer.invoke('addOpticalItem', item),
+  updateOpticalItem: (id: string, item: OpticalItem) =>
+    ipcRenderer.invoke('updateOpticalItem', id, item),
+  deleteOpticalItem: (id: string) => ipcRenderer.invoke('deleteOpticalItem', id),
+  updateOpticalItemStatus: (id: string, status: 'available' | 'completed' | 'out_of_stock') =>
+    ipcRenderer.invoke('updateOpticalItemStatus', id, status),
+  getOpticalItemsByStatus: (
+    status: 'available' | 'completed' | 'out_of_stock',
+    type?: 'frame' | 'lens'
+  ) => ipcRenderer.invoke('getOpticalItemsByStatus', status, type),
+  getOpticalItemsByType: (type: 'frame' | 'lens') =>
+    ipcRenderer.invoke('getOpticalItemsByType', type),
+
+  // Optical Dispense Management
+  getOpticalDispenseRecords: () => ipcRenderer.invoke('getOpticalDispenseRecords'),
+
+  getOpticalDispenseRecordsByPatient: (patientId: string) =>
+    ipcRenderer.invoke('getOpticalDispenseRecordsByPatient', patientId),
+
+  getOpticalDispenseRecordsByOptical: (opticalId: string) =>
+    ipcRenderer.invoke('getOpticalDispenseRecordsByOptical', opticalId),
+
+  dispenseOptical: (id: string, quantity: number, patientName: string, patientId?: string) =>
+    ipcRenderer.invoke('dispenseOptical', id, quantity, patientName, patientId)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

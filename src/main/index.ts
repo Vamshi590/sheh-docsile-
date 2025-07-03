@@ -30,6 +30,14 @@ const prescriptionsFilePath = join(appDataPath, 'prescriptions_and_receipts.xlsx
 // Path to the operations Excel file
 const operationsFilePath = join(appDataPath, 'operations.xlsx')
 
+// Path to the medicines Excel file
+const medicinesFilePath = join(appDataPath, 'medicines.xlsx')
+
+// Path to the opticals Excel file
+const opticalsFilePath = join(appDataPath, 'opticals.xlsx')
+
+// Note: opticalDispenseFilePath is defined later in the file
+
 // Path to the settings JSON file
 const settingsFilePath = join(appDataPath, 'settings.json')
 
@@ -111,6 +119,24 @@ if (!fs.existsSync(operationsFilePath)) {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Operations')
   XLSX.writeFile(workbook, operationsFilePath)
   hideFile(operationsFilePath)
+}
+
+// Initialize medicines Excel file if it doesn't exist
+if (!fs.existsSync(medicinesFilePath)) {
+  const workbook = XLSX.utils.book_new()
+  const worksheet = XLSX.utils.json_to_sheet([])
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Medicines')
+  XLSX.writeFile(workbook, medicinesFilePath)
+  hideFile(medicinesFilePath)
+}
+
+// Initialize opticals Excel file if it doesn't exist
+if (!fs.existsSync(opticalsFilePath)) {
+  const workbook = XLSX.utils.book_new()
+  const worksheet = XLSX.utils.json_to_sheet([])
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Opticals')
+  XLSX.writeFile(workbook, opticalsFilePath)
+  hideFile(opticalsFilePath)
 }
 
 function createWindow(): void {
@@ -665,5 +691,803 @@ ipcMain.handle('deleteOperation', async (_, id) => {
   } catch (error) {
     console.error('Error deleting operation:', error)
     throw error
+  }
+})
+
+// ==================== MEDICINES MANAGEMENT ====================
+
+// Get all medicines
+ipcMain.handle('getMedicines', async () => {
+  try {
+    if (!fs.existsSync(medicinesFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(medicinesFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+
+    return XLSX.utils.sheet_to_json(worksheet)
+  } catch (error) {
+    console.error('Error getting medicines:', error)
+    return []
+  }
+})
+
+// Search medicines by name
+ipcMain.handle('searchMedicines', async (_, searchTerm) => {
+  try {
+    if (!fs.existsSync(medicinesFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(medicinesFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const medicines: Array<{ id: string; name: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter medicines based on search term
+    if (!searchTerm || searchTerm.trim() === '') {
+      return medicines
+    }
+
+    const searchTermLower = searchTerm.toLowerCase()
+    return medicines.filter(
+      (m) => m.name && m.name.toString().toLowerCase().includes(searchTermLower)
+    )
+  } catch (error) {
+    console.error('Error searching medicines:', error)
+    return []
+  }
+})
+
+// Add a new medicine
+ipcMain.handle('addMedicine', async (_, medicine) => {
+  try {
+    // Generate a unique ID for the medicine
+    const medicineWithId = { ...medicine, id: uuidv4() }
+
+    // Read existing medicines
+    let medicines: Array<{ id: string; [key: string]: unknown }> = []
+    if (fs.existsSync(medicinesFilePath)) {
+      const workbook = XLSX.readFile(medicinesFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      medicines = XLSX.utils.sheet_to_json(worksheet)
+    }
+
+    // Add the new medicine
+    medicines.push(medicineWithId)
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(medicines)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
+    XLSX.writeFile(newWorkbook, medicinesFilePath)
+
+    return medicineWithId
+  } catch (error) {
+    console.error('Error adding medicine:', error)
+    throw error
+  }
+})
+
+// Update an existing medicine
+ipcMain.handle('updateMedicine', async (_, id, updatedMedicine) => {
+  try {
+    // Read existing medicines
+    if (!fs.existsSync(medicinesFilePath)) {
+      throw new Error('Medicines file does not exist')
+    }
+
+    const workbook = XLSX.readFile(medicinesFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const medicines: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
+      worksheet
+    ) as Array<{ id: string; [key: string]: unknown }>
+
+    // Find and update the medicine
+    const medicineIndex = medicines.findIndex((m) => m.id === id)
+
+    if (medicineIndex === -1) {
+      throw new Error('Medicine not found')
+    }
+
+    medicines[medicineIndex] = { ...updatedMedicine, id }
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(medicines)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
+    XLSX.writeFile(newWorkbook, medicinesFilePath)
+
+    return medicines[medicineIndex]
+  } catch (error) {
+    console.error('Error updating medicine:', error)
+    throw error
+  }
+})
+
+// Delete a medicine
+ipcMain.handle('deleteMedicine', async (_, id) => {
+  try {
+    // Read existing medicines
+    if (!fs.existsSync(medicinesFilePath)) {
+      throw new Error('Medicines file does not exist')
+    }
+
+    const workbook = XLSX.readFile(medicinesFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const medicines: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
+      worksheet
+    ) as Array<{ id: string; [key: string]: unknown }>
+
+    // Filter out the medicine to delete
+    const updatedMedicines = medicines.filter((m) => m.id !== id)
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(updatedMedicines)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
+    XLSX.writeFile(newWorkbook, medicinesFilePath)
+
+    return true
+  } catch (error) {
+    console.error('Error deleting medicine:', error)
+    return false
+  }
+})
+
+// Update medicine status
+ipcMain.handle('updateMedicineStatus', async (_, id, status) => {
+  try {
+    // Read existing medicines
+    if (!fs.existsSync(medicinesFilePath)) {
+      throw new Error('Medicines file does not exist')
+    }
+
+    const workbook = XLSX.readFile(medicinesFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const medicines: Array<{ id: string; status: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Find and update the medicine status
+    const medicineIndex = medicines.findIndex((m) => m.id === id)
+
+    if (medicineIndex === -1) {
+      throw new Error('Medicine not found')
+    }
+
+    medicines[medicineIndex].status = status
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(medicines)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
+    XLSX.writeFile(newWorkbook, medicinesFilePath)
+
+    return medicines[medicineIndex]
+  } catch (error) {
+    console.error('Error updating medicine status:', error)
+    throw error
+  }
+})
+
+// Get medicines by status
+ipcMain.handle('getMedicinesByStatus', async (_, status) => {
+  try {
+    if (!fs.existsSync(medicinesFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(medicinesFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const medicines: Array<{ status: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter medicines by status
+    return medicines.filter((m) => m.status === status)
+  } catch (error) {
+    console.error('Error getting medicines by status:', error)
+    return []
+  }
+})
+
+// ==================== OPTICALS MANAGEMENT ====================
+
+// Get all optical items
+ipcMain.handle('getOpticalItems', async () => {
+  try {
+    if (!fs.existsSync(opticalsFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(opticalsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+
+    return XLSX.utils.sheet_to_json(worksheet)
+  } catch (error) {
+    console.error('Error getting optical items:', error)
+    return []
+  }
+})
+
+// Search optical items
+ipcMain.handle('searchOpticalItems', async (_, searchTerm, type) => {
+  try {
+    if (!fs.existsSync(opticalsFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(opticalsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const opticalItems: Array<{
+      id: string
+      type: string
+      brand: string
+      model?: string
+      [key: string]: unknown
+    }> = XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter by type if provided
+    let filteredItems = opticalItems
+    if (type) {
+      filteredItems = opticalItems.filter((item) => item.type === type)
+    }
+
+    // Filter by search term if provided
+    if (!searchTerm || searchTerm.trim() === '') {
+      return filteredItems
+    }
+
+    const searchTermLower = searchTerm.toLowerCase()
+    return filteredItems.filter(
+      (item) =>
+        (item.brand && item.brand.toString().toLowerCase().includes(searchTermLower)) ||
+        (item.model && item.model.toString().toLowerCase().includes(searchTermLower))
+    )
+  } catch (error) {
+    console.error('Error searching optical items:', error)
+    return []
+  }
+})
+
+// Add a new optical item
+ipcMain.handle('addOpticalItem', async (_, item) => {
+  try {
+    // Generate a unique ID for the optical item
+    const itemWithId = { ...item, id: uuidv4() }
+
+    // Read existing optical items
+    let opticalItems: Array<{ id: string; [key: string]: unknown }> = []
+    if (fs.existsSync(opticalsFilePath)) {
+      const workbook = XLSX.readFile(opticalsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      opticalItems = XLSX.utils.sheet_to_json(worksheet)
+    }
+
+    // Add the new optical item
+    opticalItems.push(itemWithId)
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(opticalItems)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Opticals')
+    XLSX.writeFile(newWorkbook, opticalsFilePath)
+
+    return itemWithId
+  } catch (error) {
+    console.error('Error adding optical item:', error)
+    throw error
+  }
+})
+
+// Update an existing optical item
+ipcMain.handle('updateOpticalItem', async (_, id, updatedItem) => {
+  try {
+    // Read existing optical items
+    if (!fs.existsSync(opticalsFilePath)) {
+      throw new Error('Opticals file does not exist')
+    }
+
+    const workbook = XLSX.readFile(opticalsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const opticalItems: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
+      worksheet
+    ) as Array<{ id: string; [key: string]: unknown }>
+
+    // Find and update the optical item
+    const itemIndex = opticalItems.findIndex((item) => item.id === id)
+
+    if (itemIndex === -1) {
+      throw new Error('Optical item not found')
+    }
+
+    opticalItems[itemIndex] = { ...updatedItem, id }
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(opticalItems)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Opticals')
+    XLSX.writeFile(newWorkbook, opticalsFilePath)
+
+    return opticalItems[itemIndex]
+  } catch (error) {
+    console.error('Error updating optical item:', error)
+    throw error
+  }
+})
+
+// Delete an optical item
+ipcMain.handle('deleteOpticalItem', async (_, id) => {
+  try {
+    // Read existing optical items
+    if (!fs.existsSync(opticalsFilePath)) {
+      throw new Error('Opticals file does not exist')
+    }
+
+    const workbook = XLSX.readFile(opticalsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const opticalItems: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
+      worksheet
+    ) as Array<{ id: string; [key: string]: unknown }>
+
+    // Filter out the optical item to delete
+    const updatedItems = opticalItems.filter((item) => item.id !== id)
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(updatedItems)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Opticals')
+    XLSX.writeFile(newWorkbook, opticalsFilePath)
+
+    return true
+  } catch (error) {
+    console.error('Error deleting optical item:', error)
+    return false
+  }
+})
+
+// Update optical item status
+ipcMain.handle('updateOpticalItemStatus', async (_, id, status) => {
+  try {
+    // Read existing optical items
+    if (!fs.existsSync(opticalsFilePath)) {
+      throw new Error('Opticals file does not exist')
+    }
+
+    const workbook = XLSX.readFile(opticalsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const opticalItems: Array<{ id: string; status: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Find and update the optical item status
+    const itemIndex = opticalItems.findIndex((item) => item.id === id)
+
+    if (itemIndex === -1) {
+      throw new Error('Optical item not found')
+    }
+
+    opticalItems[itemIndex].status = status
+
+    // Write back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(opticalItems)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Opticals')
+    XLSX.writeFile(newWorkbook, opticalsFilePath)
+
+    return opticalItems[itemIndex]
+  } catch (error) {
+    console.error('Error updating optical item status:', error)
+    throw error
+  }
+})
+
+// Get optical items by status
+ipcMain.handle('getOpticalItemsByStatus', async (_, status, type) => {
+  try {
+    if (!fs.existsSync(opticalsFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(opticalsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const opticalItems: Array<{ status: string; type?: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter by status
+    let filteredItems = opticalItems.filter((item) => item.status === status)
+
+    // Further filter by type if provided
+    if (type) {
+      filteredItems = filteredItems.filter((item) => item.type === type)
+    }
+
+    return filteredItems
+  } catch (error) {
+    console.error('Error getting optical items by status:', error)
+    return []
+  }
+})
+
+// Get optical items by type
+ipcMain.handle('getOpticalItemsByType', async (_, type) => {
+  try {
+    if (!fs.existsSync(opticalsFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(opticalsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const opticalItems: Array<{ type: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter by type
+    return opticalItems.filter((item) => item.type === type)
+  } catch (error) {
+    console.error('Error getting optical items by type:', error)
+    return []
+  }
+})
+
+// ==================== MEDICINE DISPENSING ====================
+
+// Path to the medicine dispensing records Excel file
+const medicineDispenseFilePath = join(appDataPath, 'medicine_dispense_records.xlsx')
+
+// Initialize medicine dispensing records Excel file if it doesn't exist
+if (!fs.existsSync(medicineDispenseFilePath)) {
+  const workbook = XLSX.utils.book_new()
+  const worksheet = XLSX.utils.json_to_sheet([])
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'MedicineDispenseRecords')
+  XLSX.writeFile(workbook, medicineDispenseFilePath)
+  hideFile(medicineDispenseFilePath)
+}
+
+// Dispense medicine
+ipcMain.handle('dispenseMedicine', async (_, id, quantity, patientName, patientId) => {
+  try {
+    // Read existing medicines
+    if (!fs.existsSync(medicinesFilePath)) {
+      throw new Error('Medicines file does not exist')
+    }
+
+    const workbook = XLSX.readFile(medicinesFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const medicines: Array<{
+      id: string
+      name: string
+      quantity: number
+      batchNumber: string
+      [key: string]: unknown
+    }> = XLSX.utils.sheet_to_json(worksheet)
+
+    // Find the medicine to dispense
+    const medicineIndex = medicines.findIndex((m) => m.id === id)
+
+    if (medicineIndex === -1) {
+      throw new Error('Medicine not found')
+    }
+
+    const medicine = medicines[medicineIndex]
+
+    // Check if there's enough quantity
+    if (medicine.quantity < quantity) {
+      throw new Error('Not enough medicine in stock')
+    }
+
+    // Update the medicine quantity
+    medicines[medicineIndex].quantity = medicine.quantity - quantity
+
+    // Update medicine status if needed
+    if (medicines[medicineIndex].quantity === 0) {
+      medicines[medicineIndex].status = 'out_of_stock'
+    }
+
+    // Write updated medicines back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(medicines)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
+    XLSX.writeFile(newWorkbook, medicinesFilePath)
+
+    // Create a dispense record
+    const dispenseRecord = {
+      id: uuidv4(),
+      medicineId: id,
+      medicineName: medicine.name,
+      batchNumber: medicine.batchNumber,
+      quantity: quantity,
+      dispensedDate: new Date().toISOString(),
+      patientName: patientName,
+      patientId: patientId || ''
+    }
+
+    // Read existing dispense records
+    let dispenseRecords: Array<{ id: string; [key: string]: unknown }> = []
+    if (fs.existsSync(medicineDispenseFilePath)) {
+      const dispenseWorkbook = XLSX.readFile(medicineDispenseFilePath)
+      const dispenseSheetName = dispenseWorkbook.SheetNames[0]
+      const dispenseWorksheet = dispenseWorkbook.Sheets[dispenseSheetName]
+      dispenseRecords = XLSX.utils.sheet_to_json(dispenseWorksheet)
+    }
+
+    // Add the new dispense record
+    dispenseRecords.push(dispenseRecord)
+
+    // Write back to Excel file
+    const dispenseWorkbook = XLSX.utils.book_new()
+    const dispenseWorksheet = XLSX.utils.json_to_sheet(dispenseRecords)
+    XLSX.utils.book_append_sheet(dispenseWorkbook, dispenseWorksheet, 'MedicineDispenseRecords')
+    XLSX.writeFile(dispenseWorkbook, medicineDispenseFilePath)
+
+    return medicines[medicineIndex]
+  } catch (error) {
+    console.error('Error dispensing medicine:', error)
+    throw error
+  }
+})
+
+// Get medicine dispense records
+ipcMain.handle('getMedicineDispenseRecords', async () => {
+  try {
+    if (!fs.existsSync(medicineDispenseFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(medicineDispenseFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+
+    return XLSX.utils.sheet_to_json(worksheet)
+  } catch (error) {
+    console.error('Error getting medicine dispense records:', error)
+    return []
+  }
+})
+
+// Get medicine dispense records by patient ID
+ipcMain.handle('getMedicineDispenseRecordsByPatient', async (_, patientId) => {
+  try {
+    if (!fs.existsSync(medicineDispenseFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(medicineDispenseFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const records: Array<{ patientId: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter records by patient ID
+    return records.filter((record) => record.patientId === patientId)
+  } catch (error) {
+    console.error('Error getting medicine dispense records by patient:', error)
+    return []
+  }
+})
+
+// Get medicine dispense records by medicine ID
+ipcMain.handle('getMedicineDispenseRecordsByMedicine', async (_, medicineId) => {
+  try {
+    if (!fs.existsSync(medicineDispenseFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(medicineDispenseFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const records: Array<{ medicineId: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter records by medicine ID
+    return records.filter((record) => record.medicineId === medicineId)
+  } catch (error) {
+    console.error('Error getting medicine dispense records by medicine:', error)
+    return []
+  }
+})
+
+// ==================== OPTICAL DISPENSING ====================
+
+// Path to the optical dispensing records Excel file
+const opticalDispenseFilePath = join(appDataPath, 'optical_dispense_records.xlsx')
+
+// Initialize optical dispensing records Excel file if it doesn't exist
+if (!fs.existsSync(opticalDispenseFilePath)) {
+  const workbook = XLSX.utils.book_new()
+  const worksheet = XLSX.utils.json_to_sheet([])
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'OpticalDispenseRecords')
+  XLSX.writeFile(workbook, opticalDispenseFilePath)
+  hideFile(opticalDispenseFilePath)
+}
+
+// Dispense optical item
+ipcMain.handle('dispenseOptical', async (_, id, quantity, patientName, patientId) => {
+  try {
+    // Read existing optical items
+    if (!fs.existsSync(opticalsFilePath)) {
+      throw new Error('Opticals file does not exist')
+    }
+
+    const workbook = XLSX.readFile(opticalsFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const opticalItems: Array<{
+      id: string
+      type: string
+      brand: string
+      model?: string
+      size?: string
+      power?: string
+      quantity: number
+      price: number
+      status: string
+      [key: string]: unknown
+    }> = XLSX.utils.sheet_to_json(worksheet)
+
+    // Find the optical item to dispense
+    const itemIndex = opticalItems.findIndex((item) => item.id === id)
+
+    if (itemIndex === -1) {
+      throw new Error('Optical item not found')
+    }
+
+    const opticalItem = opticalItems[itemIndex]
+
+    // Check if the item is available
+    if (opticalItem.status !== 'available') {
+      throw new Error('Optical item is not available')
+    }
+
+    // Check if there's enough quantity
+    if ((opticalItem.quantity as number) < quantity) {
+      throw new Error(`Only ${opticalItem.quantity} units available`)
+    }
+
+    // Update the optical item quantity and status
+    opticalItems[itemIndex].quantity = (opticalItems[itemIndex].quantity as number) - quantity
+
+    // If quantity becomes 0, mark as out of stock
+    if ((opticalItems[itemIndex].quantity as number) <= 0) {
+      opticalItems[itemIndex].status = 'out_of_stock'
+    }
+
+    // Write updated optical items back to Excel file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(opticalItems)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Opticals')
+    XLSX.writeFile(newWorkbook, opticalsFilePath)
+
+    // Create a dispense record
+    const dispenseRecord = {
+      id: uuidv4(),
+      opticalId: id,
+      opticalType: opticalItem.type,
+      brand: opticalItem.brand,
+      model: opticalItem.model || '',
+      quantity: quantity,
+      price: opticalItem.price || 0,
+      patientName: patientName,
+      patientId: patientId || '',
+      dispensedAt: new Date().toISOString()
+    }
+
+    // Read existing dispense records
+    let dispenseRecords: Array<{ id: string; [key: string]: unknown }> = []
+    if (fs.existsSync(opticalDispenseFilePath)) {
+      const dispenseWorkbook = XLSX.readFile(opticalDispenseFilePath)
+      const dispenseSheetName = dispenseWorkbook.SheetNames[0]
+      const dispenseWorksheet = dispenseWorkbook.Sheets[dispenseSheetName]
+      dispenseRecords = XLSX.utils.sheet_to_json(dispenseWorksheet)
+    }
+
+    // Add the new dispense record
+    dispenseRecords.push(dispenseRecord)
+
+    // Write back to Excel file
+    const dispenseWorkbook = XLSX.utils.book_new()
+    const dispenseWorksheet = XLSX.utils.json_to_sheet(dispenseRecords)
+    XLSX.utils.book_append_sheet(dispenseWorkbook, dispenseWorksheet, 'OpticalDispenseRecords')
+    XLSX.writeFile(dispenseWorkbook, opticalDispenseFilePath)
+
+    return opticalItems[itemIndex]
+  } catch (error) {
+    console.error('Error dispensing optical item:', error)
+    throw error
+  }
+})
+
+// Get optical dispense records
+ipcMain.handle('getOpticalDispenseRecords', async () => {
+  try {
+    if (!fs.existsSync(opticalDispenseFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(opticalDispenseFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+
+    return XLSX.utils.sheet_to_json(worksheet)
+  } catch (error) {
+    console.error('Error getting optical dispense records:', error)
+    return []
+  }
+})
+
+// Get optical dispense records by patient ID
+ipcMain.handle('getOpticalDispenseRecordsByPatient', async (_, patientId) => {
+  try {
+    if (!fs.existsSync(opticalDispenseFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(opticalDispenseFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const records: Array<{ patientId: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter records by patient ID
+    return records.filter((record) => record.patientId === patientId)
+  } catch (error) {
+    console.error('Error getting optical dispense records by patient:', error)
+    return []
+  }
+})
+
+// Get optical dispense records by type
+ipcMain.handle('getOpticalDispenseRecordsByType', async (_, type) => {
+  try {
+    if (!fs.existsSync(opticalDispenseFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(opticalDispenseFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const records: Array<{ opticalType: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter records by optical type
+    return records.filter((record) => record.opticalType === type)
+  } catch (error) {
+    console.error('Error getting optical dispense records by type:', error)
+    return []
+  }
+})
+
+// Get optical dispense records by optical ID
+ipcMain.handle('getOpticalDispenseRecordsByOptical', async (_, opticalId) => {
+  try {
+    if (!fs.existsSync(opticalDispenseFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(opticalDispenseFilePath)
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const records: Array<{ opticalId: string; [key: string]: unknown }> =
+      XLSX.utils.sheet_to_json(worksheet)
+
+    // Filter records by optical ID
+    return records.filter((record) => record.opticalId === opticalId)
+  } catch (error) {
+    console.error('Error getting optical dispense records by optical ID:', error)
+    return []
   }
 })
