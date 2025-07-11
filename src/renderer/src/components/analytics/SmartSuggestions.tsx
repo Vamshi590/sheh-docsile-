@@ -440,9 +440,6 @@ const SmartSuggestions: React.FC<SmartSuggestionsProps> = ({ data }) => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-medium text-gray-800">Smart Suggestions</h3>
-          <div className="text-center text-gray-500 mt-4">
-            Don&apos;t forget to follow up with patients who haven&apos;t paid their dues
-          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6">

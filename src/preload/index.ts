@@ -1,6 +1,32 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
+interface StaffUser {
+  id: string
+  username: string
+  fullName: string
+  position: string
+  salary: number
+  phone?: string
+  email?: string
+  permissions: {
+    patients: boolean
+    prescriptions: boolean
+    medicines: boolean
+    opticals: boolean
+    receipts: boolean
+    analytics: boolean
+    staff: boolean
+    operations: boolean
+    reports: boolean
+    duesFollowUp: boolean
+    data: boolean
+  }
+  isAdmin: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 interface Patient {
   id: string
   date: string
@@ -57,6 +83,15 @@ interface OpticalItem {
 const api = {
   // Authentication
   login: (username: string, password: string) => ipcRenderer.invoke('login', username, password),
+  
+  // Staff Management
+  getStaffList: () => ipcRenderer.invoke('getStaffList'),
+  addStaff: (staff: StaffUser & { passwordHash?: string }) => ipcRenderer.invoke('addStaff', staff),
+  updateStaff: (id: string, staff: Partial<StaffUser> & { passwordHash?: string }) => 
+    ipcRenderer.invoke('updateStaff', id, staff),
+  deleteStaff: (id: string) => ipcRenderer.invoke('deleteStaff', id),
+  resetStaffPassword: (id: string) => ipcRenderer.invoke('resetStaffPassword', id),
+  checkPermission: (userId: string, module: string) => ipcRenderer.invoke('checkPermission', userId, module),
 
   // Patient Management
   getPatients: () => ipcRenderer.invoke('getPatients'),

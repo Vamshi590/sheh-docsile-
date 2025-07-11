@@ -53,6 +53,12 @@ interface MedicineStats {
     revenue: number
     percentage: number
   }[]
+  topMedicines?: {
+    name: string
+    count: number
+    revenue: number
+    percentage: number
+  }[]
 }
 
 interface OpticalStats {
@@ -63,6 +69,13 @@ interface OpticalStats {
     revenue: number
     percentage: number
     type: string
+  }[]
+  topBrands: {
+    name: string
+    count: number
+    revenue?: number
+    percentage?: number
+    type?: string
   }[]
 }
 
@@ -141,7 +154,7 @@ const DetailedGraphs: React.FC<DetailedGraphsProps> = ({ data }) => {
           datasets: [
             {
               label: 'New Patients',
-              data: timeSeriesData.newPatients ?? [],
+              data: timeSeriesData.patients ?? [],
               borderColor: 'rgb(59, 130, 246)',
               backgroundColor: 'rgba(59, 130, 246, 0.5)',
               tension: 0.4
@@ -164,31 +177,18 @@ const DetailedGraphs: React.FC<DetailedGraphsProps> = ({ data }) => {
               data: timeSeriesData.revenue,
               borderColor: 'rgb(139, 92, 246)',
               backgroundColor: 'rgba(139, 92, 246, 0.5)',
-              tension: 0.4
-            },
-            {
-              label: 'Medicine Revenue',
-              data: timeSeriesData.medicineRevenue ?? [],
-              borderColor: 'rgb(244, 63, 94)',
-              backgroundColor: 'rgba(244, 63, 94, 0.5)',
-              tension: 0.4
-            },
-            {
-              label: 'Optical Revenue',
-              data: timeSeriesData.opticalRevenue ?? [],
-              borderColor: 'rgb(249, 115, 22)',
-              backgroundColor: 'rgba(249, 115, 22, 0.5)',
-              tension: 0.4
+              tension: 0.3
             }
           ]
         }
       case 'medicines':
         return {
-          labels: medicineStats.topItems.map((item) => item.name),
+          labels: medicineStats?.topMedicines?.map((item) => item.name) ?? [],
           datasets: [
             {
               label: 'Units Dispensed',
-              data: medicineStats.topItems.map((item) => item.quantity),
+              data: medicineStats?.topMedicines?.map((item) => item.count) ?? [],
+              borderColor: 'rgb(59, 130, 246)',
               backgroundColor: [
                 'rgba(59, 130, 246, 0.7)',
                 'rgba(16, 185, 129, 0.7)',
@@ -205,11 +205,12 @@ const DetailedGraphs: React.FC<DetailedGraphsProps> = ({ data }) => {
         }
       case 'opticals':
         return {
-          labels: opticalStats.topItems.map((item) => item.name),
+          labels: opticalStats?.topBrands?.map((item) => item.name) ?? [],
           datasets: [
             {
               label: 'Units Sold',
-              data: opticalStats.topItems.map((item) => item.quantity),
+              data: opticalStats?.topBrands?.map((item) => item.count) ?? [],
+              borderColor: 'rgb(59, 130, 246)',
               backgroundColor: [
                 'rgba(59, 130, 246, 0.7)',
                 'rgba(16, 185, 129, 0.7)',
@@ -580,13 +581,14 @@ const DetailedGraphs: React.FC<DetailedGraphsProps> = ({ data }) => {
                   <tr key={index}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{date}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {timeSeriesData?.newPatients?.[index]}
+                      {timeSeriesData?.patients?.[index]}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {timeSeriesData?.followUpVisits?.[index]}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {(timeSeriesData?.newPatients?.[index] || 0) + (timeSeriesData?.followUpVisits?.[index] || 0)}
+                      {(timeSeriesData?.patients?.[index] || 0) +
+                        (timeSeriesData?.followUpVisits?.[index] || 0)}
                     </td>
                   </tr>
                 ))}
@@ -606,24 +608,22 @@ const DetailedGraphs: React.FC<DetailedGraphsProps> = ({ data }) => {
                   </tr>
                 ))}
               {activeCategory === 'medicines' &&
-                medicineStats.topItems.map(
-                  (item: MedicineStats['topItems'][number], index: number) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item?.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item?.quantity}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatCurrency(item?.revenue)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item?.percentage.toFixed(2)}%
-                      </td>
-                    </tr>
-                  )
-                )}
+                (medicineStats?.topMedicines || []).map((item, index: number) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item?.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item?.count}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatCurrency(item?.revenue)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item?.percentage?.toFixed(2) || '0.00'}%
+                    </td>
+                  </tr>
+                ))}
               {activeCategory === 'opticals' &&
                 opticalStats.topItems.map(
                   (item: OpticalStats['topItems'][number], index: number) => (

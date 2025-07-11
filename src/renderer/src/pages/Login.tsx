@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { LoginResponse } from '../types/staff'
 
 const Login = (): React.JSX.Element => {
   const [username, setUsername] = useState('')
@@ -13,22 +14,18 @@ const Login = (): React.JSX.Element => {
     setIsLoading(true)
 
     try {
-      // Check for hardcoded credentials
-      if (username === 'srilathach' && password === '9573076861') {
-        // Hardcoded login successful, navigate to dashboard
-        window.location.hash = '/dashboard'
-        return
-      }
-
       // Use type assertion to fix TypeScript error
       const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
-      const success = (await api.login(username, password)) as boolean
+      const response = (await api.login(username, password)) as LoginResponse
 
-      if (success) {
+      if (response.success) {
+        // Store user data in localStorage for session management
+        localStorage.setItem('currentUser', JSON.stringify(response.user))
+
         // Login successful, navigate to dashboard
         window.location.hash = '/dashboard'
       } else {
-        setError('Invalid username or password')
+        setError(response.error || 'Invalid username or password')
       }
     } catch (err) {
       setError('An error occurred during login')

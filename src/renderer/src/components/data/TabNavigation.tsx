@@ -14,7 +14,7 @@ const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange })
         <button
           onClick={() => onTabChange('patients')}
           className={`
-            whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm
+            whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm cursor-pointer
             ${
               activeTab === 'patients'
                 ? 'border-indigo-500 text-indigo-600'
@@ -42,7 +42,7 @@ const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange })
         <button
           onClick={() => onTabChange('prescriptions')}
           className={`
-            whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm
+            whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm cursor-pointer
             ${
               activeTab === 'prescriptions'
                 ? 'border-indigo-500 text-indigo-600'
@@ -71,7 +71,7 @@ const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange })
         <button
           onClick={() => onTabChange('readings')}
           className={`
-            whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm
+            whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm cursor-pointer
             ${
               activeTab === 'readings'
                 ? 'border-indigo-500 text-indigo-600'
@@ -101,7 +101,7 @@ const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange })
         <button
           onClick={() => onTabChange('operations')}
           className={`
-            whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm
+            whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm cursor-pointer
             ${
               activeTab === 'operations'
                 ? 'border-indigo-500 text-indigo-600'
@@ -130,7 +130,7 @@ const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange })
         <button
           onClick={() => onTabChange('options')}
           className={`
-            whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm
+            whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm cursor-pointer
             ${
               activeTab === 'options'
                 ? 'border-indigo-500 text-indigo-600'

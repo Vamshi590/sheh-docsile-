@@ -10,6 +10,7 @@ import Data from './pages/Data'
 import Opticals from './pages/Opticals'
 import Medicines from './pages/Medicines'
 import Analytics from './pages/Analytics'
+import Staff from './pages/Staff'
 
 function App(): React.JSX.Element {
   const [route, setRoute] = useState<string>('/login')
@@ -57,6 +58,8 @@ function App(): React.JSX.Element {
         return <Medicines />
       case '/analytics':
         return <Analytics />
+      case '/staff':
+        return <Staff />
       default:
         return <Login />
     }

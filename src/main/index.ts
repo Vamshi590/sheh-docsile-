@@ -9,6 +9,22 @@ import bcrypt from 'bcryptjs'
 // No longer using electron-store
 import XLSX from 'xlsx'
 import { v4 as uuidv4 } from 'uuid'
+import crypto from 'crypto'
+
+// Define interfaces for better type safety
+interface StaffMember {
+  id: string
+  username: string
+  passwordHash?: string
+  fullName?: string
+  position?: string
+  salary?: number
+  permissions?: Record<string, boolean>
+  isAdmin?: boolean
+  createdAt: string
+  updatedAt: string
+  [key: string]: unknown
+}
 
 // Get the AppData path for storing user data
 const appDataPath = join(app.getPath('appData'), 'ShehData')
@@ -18,8 +34,8 @@ if (!fs.existsSync(appDataPath)) {
   fs.mkdirSync(appDataPath, { recursive: true })
 }
 
-// Path to the users.dat file
-const usersFilePath = join(appDataPath, 'users.dat')
+// Path to the staff users file
+const staffFilePath = join(appDataPath, 'staff.xlsx')
 
 // Path to the patients Excel file
 const patientsFilePath = join(appDataPath, 'patients.xlsx')
@@ -82,16 +98,40 @@ const hideFile = async (path: string): Promise<void> => {
   }
 }
 
-// Initialize users file if it doesn't exist
-if (!fs.existsSync(usersFilePath)) {
+// Initialize staff file if it doesn't exist
+if (!fs.existsSync(staffFilePath)) {
+  const workbook = XLSX.utils.book_new()
+
+  // Create default admin user
   const defaultAdmin = {
-    username: 'admin',
-    // Default password: admin123
-    passwordHash: bcrypt.hashSync('admin123', 10)
+    id: uuidv4(),
+    username: 'srilathach',
+    passwordHash: bcrypt.hashSync('9573076861', 10),
+    fullName: 'Srilatha Ch',
+    position: 'Admin',
+    salary: 0,
+    permissions: {
+      patients: true,
+      prescriptions: true,
+      medicines: true,
+      opticals: true,
+      receipts: true,
+      analytics: true,
+      staff: true,
+      operations: true,
+      reports: true,
+      duesFollowUp: true,
+      data: true
+    },
+    isAdmin: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 
-  fs.writeFileSync(usersFilePath, JSON.stringify([defaultAdmin]), 'utf-8')
-  hideFile(usersFilePath)
+  const worksheet = XLSX.utils.json_to_sheet([defaultAdmin])
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff')
+  XLSX.writeFile(workbook, staffFilePath)
+  hideFile(staffFilePath)
 }
 
 // Initialize patients Excel file if it doesn't exist
@@ -171,6 +211,266 @@ function createWindow(): void {
   }
 }
 
+// Authentication and Staff Management
+
+// Login handler
+ipcMain.handle('login', async (_, username: string, password: string) => {
+  try {
+    // Check if staff file exists
+    if (!fs.existsSync(staffFilePath)) {
+      return { success: false, error: 'Staff database not found' }
+    }
+
+    // Read staff file
+    const workbook = XLSX.readFile(staffFilePath)
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+
+    // Find user by username
+    const user = staff.find((s) => s.username === username)
+
+    if (!user) {
+      return { success: false, error: 'Invalid username or password' }
+    }
+
+    // Verify password
+    const isPasswordValid = bcrypt.compareSync(password, user.passwordHash || '')
+
+    if (!isPasswordValid) {
+      return { success: false, error: 'Invalid username or password' }
+    }
+
+    // Return user without password hash (exclude passwordHash from the returned object)
+    const { passwordHash, ...userWithoutPassword } = user // eslint-disable-line @typescript-eslint/no-unused-vars
+    // Store the logged-in user information
+    setSetting('currentUser', { username: user.username, id: user.id })
+    return { success: true, user: userWithoutPassword }
+  } catch (error) {
+    console.error('Login error:', error)
+    return { success: false, error: 'An error occurred during login' }
+  }
+})
+
+// Get staff list
+ipcMain.handle('getStaffList', async () => {
+  try {
+    if (!fs.existsSync(staffFilePath)) {
+      return []
+    }
+
+    const workbook = XLSX.readFile(staffFilePath)
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+
+    // Return staff list without password hashes
+    return staff.map((user) => {
+      const { passwordHash, ...userWithoutPassword } = user // eslint-disable-line @typescript-eslint/no-unused-vars
+      return userWithoutPassword
+    })
+  } catch (error) {
+    console.error('Error getting staff list:', error)
+    throw error
+  }
+})
+
+// Add new staff member
+ipcMain.handle('addStaff', async (_, staffData: Partial<StaffMember>) => {
+  try {
+    // Generate ID if not provided
+    const staffWithId: StaffMember = {
+      ...(staffData as object),
+      id: staffData.id || uuidv4(),
+      username: staffData.username || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    // Hash the password if provided
+    if (staffWithId.passwordHash) {
+      staffWithId.passwordHash = bcrypt.hashSync(staffWithId.passwordHash, 10)
+    }
+
+    // Read existing staff
+    let staff: StaffMember[] = []
+    if (fs.existsSync(staffFilePath)) {
+      const workbook = XLSX.readFile(staffFilePath)
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+    }
+
+    // Add new staff member
+    staff.push(staffWithId)
+
+    // Write back to file
+    const workbook = XLSX.utils.book_new()
+    const worksheet = XLSX.utils.json_to_sheet(staff)
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff')
+    XLSX.writeFile(workbook, staffFilePath)
+
+    // Return the new staff member without password hash
+    const { passwordHash, ...staffWithoutPassword } = staffWithId // eslint-disable-line @typescript-eslint/no-unused-vars
+    return staffWithoutPassword
+  } catch (error) {
+    console.error('Error adding staff:', error)
+    throw error
+  }
+})
+
+// Update staff member
+ipcMain.handle('updateStaff', async (_, id: string, staffData: Partial<StaffMember>) => {
+  try {
+    if (!fs.existsSync(staffFilePath)) {
+      throw new Error('Staff file does not exist')
+    }
+
+    // Read existing staff
+    const workbook = XLSX.readFile(staffFilePath)
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+
+    // Find the staff member to update
+    const staffIndex = staff.findIndex((s) => s.id === id)
+
+    if (staffIndex === -1) {
+      throw new Error('Staff member not found')
+    }
+
+    // Update the staff member
+    const updatedStaff = {
+      ...(staff[staffIndex] as object),
+      ...(staffData as object),
+      updatedAt: new Date().toISOString()
+    } as StaffMember
+
+    // Hash the password if it was updated
+    if (staffData.passwordHash) {
+      updatedStaff.passwordHash = bcrypt.hashSync(staffData.passwordHash, 10)
+    }
+
+    // Replace the staff member in the array
+    staff[staffIndex] = updatedStaff
+
+    // Write back to file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(staff)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
+    XLSX.writeFile(newWorkbook, staffFilePath)
+
+    // Return the updated staff member without password hash
+    const { passwordHash, ...staffWithoutPassword } = updatedStaff // eslint-disable-line @typescript-eslint/no-unused-vars
+    return staffWithoutPassword
+  } catch (error) {
+    console.error('Error updating staff:', error)
+    throw error
+  }
+})
+
+// Delete staff member
+ipcMain.handle('deleteStaff', async (_, id: string) => {
+  try {
+    if (!fs.existsSync(staffFilePath)) {
+      throw new Error('Staff file does not exist')
+    }
+
+    // Read existing staff
+    const workbook = XLSX.readFile(staffFilePath)
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+
+    // Filter out the staff member to delete
+    const updatedStaff = staff.filter((s) => s.id !== id)
+
+    // Make sure we're not deleting the last admin
+    const remainingAdmins = updatedStaff.filter((s) => s.isAdmin)
+    if (remainingAdmins.length === 0) {
+      throw new Error('Cannot delete the last administrator')
+    }
+
+    // Write back to file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(updatedStaff)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
+    XLSX.writeFile(newWorkbook, staffFilePath)
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error deleting staff:', error)
+    throw error
+  }
+})
+
+// Reset staff password
+ipcMain.handle('resetStaffPassword', async (_, id: string) => {
+  try {
+    if (!fs.existsSync(staffFilePath)) {
+      throw new Error('Staff file does not exist')
+    }
+
+    // Read existing staff
+    const workbook = XLSX.readFile(staffFilePath)
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+
+    // Find the staff member
+    const staffIndex = staff.findIndex((s) => s.id === id)
+
+    if (staffIndex === -1) {
+      throw new Error('Staff member not found')
+    }
+
+    // Generate a random password
+    const newPassword = crypto.randomBytes(4).toString('hex')
+
+    // Update the staff member's password
+    staff[staffIndex] = {
+      ...staff[staffIndex],
+      passwordHash: bcrypt.hashSync(newPassword, 10),
+      updatedAt: new Date().toISOString()
+    }
+
+    // Write back to file
+    const newWorkbook = XLSX.utils.book_new()
+    const newWorksheet = XLSX.utils.json_to_sheet(staff)
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
+    XLSX.writeFile(newWorkbook, staffFilePath)
+
+    // Return the new password
+    return newPassword
+  } catch (error) {
+    console.error('Error resetting password:', error)
+    throw error
+  }
+})
+
+// Check if user has permission for a module
+ipcMain.handle('checkPermission', async (_, userId: string, module: string) => {
+  try {
+    if (!fs.existsSync(staffFilePath)) {
+      return { hasAccess: false, module }
+    }
+
+    // Read staff file
+    const workbook = XLSX.readFile(staffFilePath)
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+
+    // Find user by ID
+    const user = staff.find((s) => s.id === userId)
+
+    if (!user) {
+      return { hasAccess: false, module }
+    }
+
+    // Check if user is admin or has specific permission
+    const hasAccess = user.isAdmin || (user.permissions && user.permissions[module])
+
+    return { hasAccess, module }
+  } catch (error) {
+    console.error('Permission check error:', error)
+    return { hasAccess: false, module }
+  }
+})
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -208,32 +508,7 @@ app.on('window-all-closed', () => {
 
 // IPC handlers for authentication and patient management
 
-// Authentication handler
-ipcMain.handle('login', async (_, username: string, password: string) => {
-  try {
-    const usersData = JSON.parse(fs.readFileSync(usersFilePath, 'utf-8'))
-    const user = usersData.find(
-      (u: { username: string; passwordHash: string }) => u.username === username
-    )
-
-    if (!user) {
-      return false
-    }
-
-    const isPasswordValid = bcrypt.compareSync(password, user.passwordHash)
-
-    if (isPasswordValid) {
-      // Store the logged-in user information
-      setSetting('currentUser', { username: user.username })
-      return true
-    }
-
-    return false
-  } catch (error) {
-    console.error('Login error:', error)
-    return false
-  }
-})
+// Authentication handler is already defined above
 
 // Get all patients
 ipcMain.handle('getPatients', async () => {
@@ -1584,7 +1859,7 @@ async function generateAnalyticsData(
         new: 0,
         returning: 0,
         gender: { male: 0, female: 0, other: 0 },
-        ageGroups: { under18: 0, '18to30': 0, '31to45': 0, '46to60': 0, above60: 0 },
+        ageGroups: { 'under 18': 0, '18 to 30': 0, '31 to 45': 0, '46 to 60': 0, 'above 60': 0 },
         conditions: [] as ConditionStat[],
         // Required by OverviewDashboard
         followUp: 0,
@@ -1738,11 +2013,11 @@ async function generateAnalyticsData(
           const birthDate = new Date(patient.dob)
           const age = new Date().getFullYear() - birthDate.getFullYear()
 
-          if (age < 18) analyticsData.patientStats.ageGroups.under18++
-          else if (age <= 30) analyticsData.patientStats.ageGroups['18to30']++
-          else if (age <= 45) analyticsData.patientStats.ageGroups['31to45']++
-          else if (age <= 60) analyticsData.patientStats.ageGroups['46to60']++
-          else analyticsData.patientStats.ageGroups.above60++
+          if (age < 18) analyticsData.patientStats.ageGroups['under 18']++
+          else if (age <= 30) analyticsData.patientStats.ageGroups['18 to 30']++
+          else if (age <= 45) analyticsData.patientStats.ageGroups['31 to 45']++
+          else if (age <= 60) analyticsData.patientStats.ageGroups['46 to 60']++
+          else analyticsData.patientStats.ageGroups['above 60']++
         }
       })
     }
@@ -1772,6 +2047,19 @@ async function generateAnalyticsData(
         const prescriptionDate = new Date(prescription.DATE.toString())
         return prescriptionDate >= start && prescriptionDate <= end
       })
+
+      analyticsData.receiptStats.total = filteredPrescriptions.length
+      analyticsData.receiptStats.completed = filteredPrescriptions.filter((prescription) => {
+        const dueamount = Number(prescription['AMOUNT DUE']) || 0
+        return dueamount === 0
+      }).length
+      analyticsData.receiptStats.pending = filteredPrescriptions.filter((prescription) => {
+        const dueamount = Number(prescription['AMOUNT DUE']) || 0
+        return dueamount > 0
+      }).length
+      analyticsData.receiptStats.prescriptions = filteredPrescriptions.length
+      analyticsData.receiptStats.change =
+        analyticsData.receiptStats.completed - analyticsData.receiptStats.pending
 
       // Calculate revenue statistics
       filteredPrescriptions.forEach((prescription) => {
@@ -1846,7 +2134,7 @@ async function generateAnalyticsData(
       // Format dates to DD/MM/YYYY
       const formattedRecords = dispenseRecords.map((record) => ({
         ...record,
-        dispensedDate: new Date(record.dispensedDate).toLocaleDateString('en-IN') // For format: DD/MM/YYYY
+        dispensedDate: new Date(record.dispensedDate).toISOString().split('T')[0] // For format: DD/MM/YYYY
       }))
 
       // Filter records by date range
@@ -1951,7 +2239,7 @@ async function generateAnalyticsData(
       //formated records
       const formattedRecords = dispenseRecords.map((record) => ({
         ...record,
-        dispensedAt: new Date(record.dispensedAt).toLocaleDateString('en-IN')
+        dispensedAt: new Date(record.dispensedAt).toISOString().split('T')[0]
       }))
 
       // Filter records by date range
@@ -1965,6 +2253,7 @@ async function generateAnalyticsData(
         (total, record) => total + (Number(record.quantity) || 0),
         0
       )
+      analyticsData.opticalStats.sold = analyticsData.opticalStats.totalDispensed
 
       // Count frames vs lenses
       filteredRecords.forEach((record) => {
@@ -2066,7 +2355,7 @@ async function generateAnalyticsData(
       analyticsData.eyeConditionStats.treatmentSuccess = Math.round(90 + Math.random() * 10) // 90-100%
     }
 
-    // Generate time series data (simplified for now)
+    // Generate time series data from actual records
     const timeSeriesData: TimeSeriesData = {
       labels: [],
       patients: [],
@@ -2083,20 +2372,174 @@ async function generateAnalyticsData(
       currentDate.setDate(currentDate.getDate() + 1)
     }
 
-    // Generate time series data points
+    // Prepare data maps for each date
+    const patientCountByDate = new Map<string, number>()
+    const revenueByDate = new Map<string, number>()
+    const medicineDispenseByDate = new Map<string, number>()
+    const opticalSalesByDate = new Map<string, number>()
+
+    // Initialize maps with zero values for all dates
+    dateArray.forEach((date) => {
+      const dateString = date.toISOString().split('T')[0]
+      patientCountByDate.set(dateString, 0)
+      revenueByDate.set(dateString, 0)
+      medicineDispenseByDate.set(dateString, 0)
+      opticalSalesByDate.set(dateString, 0)
+    })
+
+    // Calculate patient counts by date
+    if (fs.existsSync(patientsFilePath)) {
+      const workbook = XLSX.readFile(patientsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const patients: Array<{
+        id: string
+        date: string
+        [key: string]: unknown
+      }> = XLSX.utils.sheet_to_json(worksheet)
+
+      patients.forEach((patient) => {
+        if (patient.date) {
+          const patientDate = new Date(patient.date)
+          if (patientDate >= start && patientDate <= end) {
+            const dateString = patientDate.toISOString().split('T')[0]
+            const currentCount = patientCountByDate.get(dateString) || 0
+            patientCountByDate.set(dateString, currentCount + 1)
+          }
+        }
+      })
+    }
+
+    // Calculate revenue by date from prescriptions
+    if (fs.existsSync(prescriptionsFilePath)) {
+      const workbook = XLSX.readFile(prescriptionsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const prescriptions: Array<{
+        DATE: string
+        'AMOUNT RECEIVED': number
+        [key: string]: unknown
+      }> = XLSX.utils.sheet_to_json(worksheet)
+
+      prescriptions.forEach((prescription) => {
+        if (prescription.DATE) {
+          const prescriptionDate = new Date(prescription.DATE.toString())
+          if (prescriptionDate >= start && prescriptionDate <= end) {
+            const dateString = prescriptionDate.toISOString().split('T')[0]
+            const amount = Number(prescription['AMOUNT RECEIVED']) || 0
+            const currentRevenue = revenueByDate.get(dateString) || 0
+            revenueByDate.set(dateString, currentRevenue + amount)
+          }
+        }
+      })
+    }
+
+    // Calculate medicine dispense by date
+    if (fs.existsSync(medicineDispenseFilePath)) {
+      const workbook = XLSX.readFile(medicineDispenseFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const dispenseRecords: Array<{
+        dispensedDate: string
+        quantity: number
+        [key: string]: unknown
+      }> = XLSX.utils.sheet_to_json(worksheet)
+
+      // Get medicine prices
+      const medicineWorkbook = XLSX.readFile(medicinesFilePath)
+      const medicineSheetName = medicineWorkbook.SheetNames[0]
+      const medicineWorksheet = medicineWorkbook.Sheets[medicineSheetName]
+      const medicines: Array<{
+        name: string
+        price: number
+        [key: string]: unknown
+      }> = XLSX.utils.sheet_to_json(medicineWorksheet)
+
+      dispenseRecords.forEach((record) => {
+        if (record.dispensedDate) {
+          const recordDate = new Date(record.dispensedDate)
+          if (recordDate >= start && recordDate <= end) {
+            const dateString = recordDate.toISOString().split('T')[0]
+            // Update medicine dispense count
+            const quantity = Number(record.quantity) || 0
+            const currentDispense = medicineDispenseByDate.get(dateString) || 0
+            medicineDispenseByDate.set(dateString, currentDispense + quantity)
+            // Update revenue from medicine sales
+            const medicineName = record.medicineName?.toString()
+            const medicine = medicineName ? medicines.find((m) => m.name === medicineName) : null
+            if (medicine) {
+              const medicineRevenue = (medicine.price || 0) * quantity
+              const currentRevenue = revenueByDate.get(dateString) || 0
+              revenueByDate.set(dateString, currentRevenue + medicineRevenue)
+            }
+          }
+        }
+      })
+    }
+
+    // Calculate optical sales by date
+    if (fs.existsSync(opticalDispenseFilePath)) {
+      const workbook = XLSX.readFile(opticalDispenseFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const dispenseRecords: Array<{
+        dispensedAt: string
+        quantity: number
+        price: number
+        [key: string]: unknown
+      }> = XLSX.utils.sheet_to_json(worksheet)
+
+      dispenseRecords.forEach((record) => {
+        if (record.dispensedAt) {
+          const recordDate = new Date(record.dispensedAt)
+          if (recordDate >= start && recordDate <= end) {
+            const dateString = recordDate.toISOString().split('T')[0]
+            // Update optical sales count
+            const quantity = Number(record.quantity) || 0
+            const currentSales = opticalSalesByDate.get(dateString) || 0
+            opticalSalesByDate.set(dateString, currentSales + quantity)
+            // Update revenue from optical sales
+            const price = Number(record.price) || 0
+            const opticalRevenue = price * quantity
+            const currentRevenue = revenueByDate.get(dateString) || 0
+            revenueByDate.set(dateString, currentRevenue + opticalRevenue)
+          }
+        }
+      })
+    }
+
+    // Add operations revenue to the revenue by date
+    if (fs.existsSync(operationsFilePath)) {
+      const workbook = XLSX.readFile(operationsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const operations: Array<{
+        dateOfAdmit: string
+        totalAmount: number
+        [key: string]: unknown
+      }> = XLSX.utils.sheet_to_json(worksheet)
+
+      operations.forEach((operation) => {
+        if (operation.dateOfAdmit) {
+          const operationDate = new Date(operation.dateOfAdmit.toString())
+          if (operationDate >= start && operationDate <= end) {
+            const dateString = operationDate.toISOString().split('T')[0]
+            const amount = Number(operation.totalAmount) || 0
+            const currentRevenue = revenueByDate.get(dateString) || 0
+            revenueByDate.set(dateString, currentRevenue + amount)
+          }
+        }
+      })
+    }
+
+    // Populate time series data from the maps
     dateArray.forEach((date) => {
       const dateString = date.toISOString().split('T')[0]
       timeSeriesData.labels.push(dateString)
-
-      // Generate random but somewhat realistic data
-      const basePatients = Math.floor(Math.random() * 10) + 5
-      timeSeriesData.patients.push(basePatients)
-
-      const baseRevenue = basePatients * (Math.floor(Math.random() * 1000) + 500)
-      timeSeriesData.revenue.push(baseRevenue)
-
-      timeSeriesData.medicines.push(Math.floor(baseRevenue * 0.25))
-      timeSeriesData.opticals.push(Math.floor(baseRevenue * 0.3))
+      timeSeriesData.patients.push(patientCountByDate.get(dateString) || 0)
+      timeSeriesData.revenue.push(revenueByDate.get(dateString) || 0)
+      timeSeriesData.medicines.push(medicineDispenseByDate.get(dateString) || 0)
+      timeSeriesData.opticals.push(opticalSalesByDate.get(dateString) || 0)
     })
 
     // Assign time series data to analytics data

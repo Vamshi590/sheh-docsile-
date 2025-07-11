@@ -12,7 +12,7 @@ import {
   Legend,
   Filler
 } from 'chart.js'
-import { Line, Bar, Pie } from 'react-chartjs-2'
+import { Bar, Pie } from 'react-chartjs-2'
 
 // Register ChartJS components
 ChartJS.register(
@@ -36,6 +36,7 @@ interface PatientStats {
   average: number
   change: number
   averageChange: number
+  ageGroups: { [key: string]: number }
 }
 
 interface ReceiptStats {
@@ -47,6 +48,10 @@ interface ReceiptStats {
 interface RevenueStats {
   total: number
   change: number
+  consultations: number
+  medicines: number
+  opticals: number
+  operations: number
 }
 
 interface MedicineStats {
@@ -56,6 +61,11 @@ interface MedicineStats {
     quantity: number
     revenue: number
     percentage: number
+  }[]
+  topMedicines: {
+    name: string
+    count: number
+    percentage?: number
   }[]
 }
 
@@ -67,6 +77,11 @@ interface OpticalStats {
     revenue: number
     percentage: number
     type: string
+  }[]
+  topBrands: {
+    name: string
+    count: number
+    percentage?: number
   }[]
 }
 
@@ -82,6 +97,7 @@ interface PatientTreatmentStats {
   inflow: number[]
   treatments: number[]
   operations: number
+  completedTreatments: number
 }
 
 interface AnalyticsData {
@@ -210,51 +226,37 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ data, timeFilter 
     }).format(amount)
   }
 
-  // Patient inflow vs treatment data for line chart
-  const patientInflowData = {
-    labels: patientTreatmentStats.labels,
+  // Age group data for bar chart
+  const ageGroupData = {
     datasets: [
       {
-        label: 'Patient Inflow',
-        data: patientTreatmentStats.inflow,
+        label: 'Patients by Age Group',
+        data: patientStats?.ageGroups || [], // Sample data - replace with actual data from API
+        backgroundColor: 'rgba(59, 130, 246, 0.7)',
         borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.4
-      },
-      {
-        label: 'Treatments Given',
-        data: patientTreatmentStats.treatments,
-        borderColor: 'rgb(16, 185, 129)',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        fill: true,
-        tension: 0.4
+        borderWidth: 1,
+        borderRadius: 4,
+        barThickness: 40
       }
     ]
   }
 
-  // Top medicines data for bar chart
-  const topMedicinesData = {
-    labels: medicineStats?.topItems?.map((item) => item.name),
+  const revenueData = {
+    labels: ['Consultations', 'Medicines', 'Opticals', 'Operations'],
     datasets: [
       {
-        label: 'Units Dispensed',
-        data: medicineStats?.topItems?.map((item) => item.quantity),
-        backgroundColor: 'rgba(99, 102, 241, 0.7)',
-        borderRadius: 4
-      }
-    ]
-  }
-
-  // Top optical items data for bar chart
-  const topOpticalsData = {
-    labels: opticalStats?.topItems?.map((item) => item.name),
-    datasets: [
-      {
-        label: 'Units Sold',
-        data: opticalStats?.topItems?.map((item) => item.quantity),
-        backgroundColor: 'rgba(244, 63, 94, 0.7)',
-        borderRadius: 4
+        label: 'Revenue by Category',
+        data: [
+          revenueStats?.consultations,
+          revenueStats?.medicines,
+          revenueStats?.opticals,
+          revenueStats?.operations
+        ],
+        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+        borderColor: 'rgb(59, 130, 246)',
+        borderWidth: 1,
+        borderRadius: 4,
+        barThickness: 40
       }
     ]
   }
@@ -278,16 +280,47 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ data, timeFilter 
     ]
   }
 
-  // Chart options
-  const lineChartOptions = {
+  const topOpticalsPieChartData = {
+    labels: opticalStats?.topBrands?.map((item) => item.name) || [],
+    datasets: [
+      {
+        data: opticalStats?.topBrands?.map((item) => item.count) || [],
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.7)',
+          'rgba(16, 185, 129, 0.7)',
+          'rgba(244, 63, 94, 0.7)',
+          'rgba(249, 115, 22, 0.7)',
+          'rgba(139, 92, 246, 0.7)',
+          'rgba(236, 72, 153, 0.7)'
+        ],
+        borderWidth: 1
+      }
+    ]
+  }
+
+  const topMedicinesPieChartData = {
+    labels: medicineStats?.topMedicines?.map((item) => item.name) || [],
+    datasets: [
+      {
+        data: medicineStats?.topMedicines?.map((item) => item.count) || [],
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.7)',
+          'rgba(16, 185, 129, 0.7)',
+          'rgba(244, 63, 94, 0.7)',
+          'rgba(249, 115, 22, 0.7)',
+          'rgba(139, 92, 246, 0.7)',
+          'rgba(236, 72, 153, 0.7)'
+        ],
+        borderWidth: 1
+      }
+    ]
+  }
+
+  const ageGroupChartOptions = {
     responsive: true,
     plugins: {
       legend: {
-        position: 'top' as const
-      },
-      title: {
-        display: true,
-        text: 'Patient Inflow vs Treatment Given'
+        display: false
       }
     },
     scales: {
@@ -297,11 +330,11 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ data, timeFilter 
     }
   }
 
-  const barChartOptions = {
+  const revenueChartOptions = {
     responsive: true,
     plugins: {
       legend: {
-        position: 'top' as const
+        display: false
       }
     },
     scales: {
@@ -320,6 +353,32 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ data, timeFilter 
       title: {
         display: true,
         text: 'Common Eye Conditions'
+      }
+    }
+  }
+
+  const topOpticalsPieChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'right' as const
+      },
+      title: {
+        display: true,
+        text: 'Top Optical Items'
+      }
+    }
+  }
+
+  const topMedicinesPieChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'right' as const
+      },
+      title: {
+        display: true,
+        text: 'Top Medicines'
       }
     }
   }
@@ -418,13 +477,22 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ data, timeFilter 
         />
       </div>
 
-      {/* Patient Inflow vs Treatment Chart */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-        <h3 className="text-lg font-medium text-gray-800 mb-4">
-          Patient Inflow vs Treatment Given
-        </h3>
-        <div className="h-80">
-          <Line options={lineChartOptions} data={patientInflowData} />
+      {/* Age Group and Revenue Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Age Group Chart */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-8">Patients by Age Group</h3>
+          <div className="h-80">
+            <Bar options={ageGroupChartOptions} data={ageGroupData} />
+          </div>
+        </div>
+
+        {/* Revenue Chart */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-8">Revenue Trend</h3>
+          <div className="h-80">
+            <Bar options={revenueChartOptions} data={revenueData} />
+          </div>
         </div>
       </div>
 
@@ -434,7 +502,7 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ data, timeFilter 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h3 className="text-lg font-medium text-gray-800 mb-4">Top Medicines</h3>
           <div className="h-64">
-            <Bar options={barChartOptions} data={topMedicinesData} />
+            <Pie options={topMedicinesPieChartOptions} data={topMedicinesPieChartData} />
           </div>
         </div>
 
@@ -442,7 +510,7 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ data, timeFilter 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h3 className="text-lg font-medium text-gray-800 mb-4">Top Optical Items</h3>
           <div className="h-64">
-            <Bar options={barChartOptions} data={topOpticalsData} />
+            <Pie options={topOpticalsPieChartOptions} data={topOpticalsPieChartData} />
           </div>
         </div>
 
@@ -490,7 +558,7 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ data, timeFilter 
           </div>
           <div className="border-l-4 border-indigo-500 pl-4 py-2">
             <p className="text-sm text-gray-500">Operations Performed</p>
-            <p className="text-xl font-semibold">{patientTreatmentStats?.operations}</p>
+            <p className="text-xl font-semibold">{patientTreatmentStats?.completedTreatments}</p>
           </div>
         </div>
       </div>

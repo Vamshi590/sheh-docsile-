@@ -14,10 +14,40 @@ interface Operation {
   operationDetails?: string
   operationProcedure?: string
   provisionDiagnosis?: string
+  operatedBy?: string
   totalAmount?: number
   modeOfPayment?: string
   reviewOn?: string
-  // Additional fields can be added as needed
+  part1?: string
+  amount1?: number
+  days1?: number
+  part2?: string
+  amount2?: number
+  days2?: number
+  part3?: string
+  amount3?: number
+  days3?: number
+  part4?: string
+  amount4?: number
+  days4?: number
+  part5?: string
+  amount5?: number
+  days5?: number
+  part6?: string
+  amount6?: number
+  days6?: number
+  part7?: string
+  amount7?: number
+  days7?: number
+  part8?: string
+  amount8?: number
+  days8?: number
+  part9?: string
+  amount9?: number
+  days9?: number
+  part10?: string
+  amount10?: number
+  days10?: number
 }
 
 const OperationsTab: React.FC = () => {
@@ -198,7 +228,7 @@ const OperationsTab: React.FC = () => {
       </div>
 
       {/* Operations Table */}
-      <div className="overflow-x-auto shadow-md sm:rounded-lg">
+      <div className="overflow-x-auto  sm:rounded-lg">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -219,9 +249,44 @@ const OperationsTab: React.FC = () => {
               <th
                 scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('dateOfAdmit')}
+              >
+                Date of Admission{renderSortIndicator('dateOfAdmit')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('timeOfAdmit')}
+              >
+                Time of Admission{renderSortIndicator('timeOfAdmit')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('dateOfDischarge')}
+              >
+                Date of Discharge{renderSortIndicator('dateOfDischarge')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('timeOfDischarge')}
+              >
+                Time of Discharge{renderSortIndicator('timeOfDischarge')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                 onClick={() => handleSort('dateOfOperation')}
               >
                 Operation Date{renderSortIndicator('dateOfOperation')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('timeOfOperation')}
+              >
+                Time of Operation{renderSortIndicator('timeOfOperation')}
               </th>
               <th
                 scope="col"
@@ -240,9 +305,240 @@ const OperationsTab: React.FC = () => {
               <th
                 scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Provisional Diagnosis{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Operated By{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Part 1{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Days 1{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Amount 1{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Part 2{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Days 2{renderSortIndicator('operationDetails')}
+              </th>{' '}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Amount 2{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Part 3{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Days 3{renderSortIndicator('operationDetails')}
+              </th>{' '}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Amount 3{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Part 4{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Days 4{renderSortIndicator('operationDetails')}
+              </th>{' '}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Amount 4{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Part 5{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Days 5{renderSortIndicator('operationDetails')}
+              </th>{' '}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Amount 5{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Part 6{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Days 6{renderSortIndicator('operationDetails')}
+              </th>{' '}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Amount 6{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Part 7{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Days 7{renderSortIndicator('operationDetails')}
+              </th>{' '}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Amount 7{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Part 8{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Days 8{renderSortIndicator('operationDetails')}
+              </th>{' '}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Amount 8{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Part 9{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Days 9{renderSortIndicator('operationDetails')}
+              </th>{' '}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Amount 9{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Part 10{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Days 10{renderSortIndicator('operationDetails')}
+              </th>{' '}
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('operationDetails')}
+              >
+                Amount 10{renderSortIndicator('operationDetails')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                 onClick={() => handleSort('totalAmount')}
               >
-                Amount{renderSortIndicator('totalAmount')}
+                Total Amount{renderSortIndicator('totalAmount')}
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                onClick={() => handleSort('modeOfPayment')}
+              >
+                Mode of Payment{renderSortIndicator('modeOfPayment')}
               </th>
               <th
                 scope="col"
@@ -262,22 +558,136 @@ const OperationsTab: React.FC = () => {
                   className="hover:bg-gray-50"
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {operation.patientId}
+                    {operation.patientId || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {operation.patientName}
+                    {operation.patientName || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(operation.dateOfAdmit)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.timeOfAdmit || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(operation.dateOfDischarge)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.timeOfDischarge || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(operation.dateOfOperation)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                    {operation.operationProcedure}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.timeOfOperation || '-'}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                    {operation.operationDetails}
+                    {operation.operationProcedure || '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {operation.operationDetails || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.provisionDiagnosis || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.operatedBy || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.part1 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.days1 || '-'}
+                  </td>{' '}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.amount1 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.part2 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.days2 || '-'}
+                  </td>{' '}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.amount2 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.part3 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.days3 || '-'}
+                  </td>{' '}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.amount3 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.part4 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.days4 || '-'}
+                  </td>{' '}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.amount4 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.part5 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.days5 || '-'}
+                  </td>{' '}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.amount5 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.part6 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.days6 || '-'}
+                  </td>{' '}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.amount6 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.part7 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.days7 || '-'}
+                  </td>{' '}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.amount7 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.part8 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.days8 || '-'}
+                  </td>{' '}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.amount8 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.part9 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.days9 || '-'}
+                  </td>{' '}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.amount9 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.part10 || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.days10 || '-'}
+                  </td>{' '}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.amount10 || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(operation.totalAmount)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {operation.modeOfPayment || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(operation.reviewOn)}

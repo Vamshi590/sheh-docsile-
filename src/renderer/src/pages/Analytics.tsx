@@ -58,6 +58,7 @@ const Analytics: React.FC = () => {
 
         // Fetch analytics data from API
         const data = (await api.getAnalyticsData(startDate, endDate)) as AnalyticsData
+        console.log(data)
         setAnalyticsData(data)
       } catch (err) {
         console.error('Error loading analytics data:', err)

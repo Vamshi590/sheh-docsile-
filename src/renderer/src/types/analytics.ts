@@ -4,7 +4,8 @@
 export interface ConditionStat {
   name: string
   count: number
-  percentage?: number
+  revenue: number
+  percentage: number
 }
 
 export interface PeakHourStat {
