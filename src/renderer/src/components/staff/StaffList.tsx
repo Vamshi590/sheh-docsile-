@@ -20,6 +20,9 @@ const StaffList: React.FC<StaffListProps> = ({
 }) => {
   // Helper function to format permissions for display
   const formatPermissions = (staff: StaffUser): string => {
+    if (!staff.permissions) {
+      return '—'
+    }
     const enabledPermissions = Object.entries(staff.permissions)
       .filter(([, enabled]) => enabled)
       .map(([key]) => {

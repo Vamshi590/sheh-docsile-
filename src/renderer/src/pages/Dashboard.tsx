@@ -3,7 +3,6 @@ import DuesFollowUpSummary from '../components/duesFollowUp/DuesFollowUpSummary'
 import { StaffUser } from '../types/staff'
 
 const Dashboard = (): React.JSX.Element => {
-  const [modulePermissions, setModulePermissions] = useState<Record<string, boolean>>({})
   const [user, setUser] = useState<StaffUser | null>(null)
 
   useEffect(() => {
@@ -13,7 +12,6 @@ const Dashboard = (): React.JSX.Element => {
       try {
         const userData = JSON.parse(userDataString) as StaffUser
         console.log(userData)
-        setModulePermissions(userData.permissions || {})
         setUser(userData)
       } catch (error) {
         console.error('Error parsing user data:', error)
@@ -75,7 +73,7 @@ const Dashboard = (): React.JSX.Element => {
 
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {/* Patients Card */}
-          {(modulePermissions.patients || user?.isAdmin) && (
+          {(user?.patients || user?.isAdmin) && (
             <div
               onClick={() => navigateTo('/patients')}
               className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
@@ -102,7 +100,7 @@ const Dashboard = (): React.JSX.Element => {
           )}
 
           {/* Prescriptions Card */}
-          {(modulePermissions.prescriptions || user?.isAdmin) && (
+          {(user?.prescriptions || user?.isAdmin) && (
             <div
               onClick={() => navigateTo('/prescriptions')}
               className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
@@ -130,7 +128,7 @@ const Dashboard = (): React.JSX.Element => {
           )}
 
           {/* Operations Card */}
-          {(modulePermissions.operations || user?.isAdmin) && (
+          {(user?.operations || user?.isAdmin) && (
             <div
               onClick={() => navigateTo('/operations')}
               className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
@@ -158,7 +156,7 @@ const Dashboard = (): React.JSX.Element => {
           )}
 
           {/* Medicines Card */}
-          {(modulePermissions.medicines || user?.isAdmin) && (
+          {(user?.medicines || user?.isAdmin) && (
             <div
               onClick={() => navigateTo('/medicines')}
               className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
@@ -185,7 +183,7 @@ const Dashboard = (): React.JSX.Element => {
           )}
 
           {/* Opticals Card */}
-          {(modulePermissions.opticals || user?.isAdmin) && (
+          {(user?.opticals || user?.isAdmin) && (
             <div
               onClick={() => navigateTo('/opticals')}
               className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
@@ -213,7 +211,7 @@ const Dashboard = (): React.JSX.Element => {
           )}
 
           {/* Reports Card */}
-          {(modulePermissions.reports || user?.isAdmin) && (
+          {(user?.reports || user?.isAdmin) && (
             <div
               onClick={() => navigateTo('/reports')}
               className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
@@ -240,12 +238,12 @@ const Dashboard = (): React.JSX.Element => {
           )}
 
           {/* Dues/Follow-Up Card */}
-          {(modulePermissions.duesFollowUp || user?.isAdmin) && (
+          {(user?.duesFollowUp || user?.isAdmin) && (
             <DuesFollowUpSummary onClick={() => navigateTo('/dues-followup')} />
           )}
 
           {/* Data Management Card */}
-          {(modulePermissions.data || user?.isAdmin) && (
+          {(user?.data || user?.isAdmin) && (
             <div
               onClick={() => navigateTo('/data')}
               className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
@@ -272,7 +270,7 @@ const Dashboard = (): React.JSX.Element => {
           )}
 
           {/* Analytics Card */}
-          {(modulePermissions.analytics || user?.isAdmin) && (
+          {(user?.analytics || user?.isAdmin) && (
             <div
               onClick={() => navigateTo('/analytics')}
               className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
@@ -299,7 +297,7 @@ const Dashboard = (): React.JSX.Element => {
           )}
 
           {/* Staff Management Card */}
-          {(modulePermissions.staff || user?.isAdmin) && (
+          {(user?.staff || user?.isAdmin) && (
             <div
               onClick={() => navigateTo('/staff')}
               className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"

@@ -15,9 +15,10 @@ const Login = (): React.JSX.Element => {
 
     try {
       // Use type assertion to fix TypeScript error
+      console.log(username, password)
       const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
       const response = (await api.login(username, password)) as LoginResponse
-
+      console.log(response)
       if (response.success) {
         // Store user data in localStorage for session management
         localStorage.setItem('currentUser', JSON.stringify(response.user))

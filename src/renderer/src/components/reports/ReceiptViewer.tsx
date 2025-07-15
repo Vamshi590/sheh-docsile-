@@ -47,7 +47,7 @@ interface Operation {
 }
 
 interface ReceiptViewerProps {
-  report: Prescription
+  report: Prescription | Operation
   receiptType: string
   selectedOperation?: Operation
 }
@@ -58,6 +58,7 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
   selectedOperation
 }) => {
   // Format the patient data for the receipts
+  console.log('report', report)
   const patientData = {
     billNumber: String(report.receiptId || report.id || '').substring(0, 8),
     patientId: String(report.patientId || report['PATIENT ID'] || ''),
@@ -242,13 +243,6 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
     }
   }
 
-  // Log the calculated billing items
-  console.log('Calculated billing items:', billingItems)
-
-  // Format billing data for operation receipt
-  // Log the report object to see what fields are available
-  console.log('Report data for billing:', report)
-
   const operationBillingData = {
     totalAmount: Number(
       selectedOperation?.totalAmount ||
@@ -294,9 +288,6 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
         0
     )
   }
-
-  // Log the calculated billing data
-  console.log('Calculated billing data:', operationBillingData)
 
   // Format clinical findings data
   const clinicalFindingsData = {

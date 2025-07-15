@@ -3,7 +3,8 @@ import {
   doctorOptions,
   operationDetailsOptions,
   operationProcedureOptions,
-  provisionDiagnosisOptions
+  provisionDiagnosisOptions,
+  partOptions
 } from '../../utils/dropdownOptions'
 
 // Define the Patient type
@@ -70,14 +71,7 @@ type Operation = {
   totalAmount?: number
   modeOfPayment?: string
   reviewOn?: string
-  pdeReOpticDisk?: string
-  pdeReOpticMacula?: string
-  pdeReOpticBloodVessels?: string
-  pdeRePr?: string
-  pdeLeOpticDisk?: string
-  pdeLeOpticMacula?: string
-  pdeLeOpticBloodVessels?: string
-  pdeLePr?: string
+  discount?: string
   operatedBy?: string
   [key: string]: unknown
 }
@@ -88,20 +82,6 @@ interface OperationFormProps {
   onSave: (operation: Operation | Omit<Operation, 'id'>) => Promise<void>
   onCancel: () => void
 }
-
-// Define part options and rates
-const partOptions = [
-  'Bed',
-  'General Ward',
-  'Delux Room',
-  'ICU',
-  'Operation Theatre',
-  'Consultation',
-  'Medicine',
-  'Lab Tests',
-  'Imaging',
-  'Procedure'
-]
 
 // Define part rates (amount per day)
 const partRates: Record<string, number> = {
@@ -163,16 +143,9 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
     days10: operation?.days10 || 0,
     totalAmount: operation?.totalAmount || 0,
     modeOfPayment: operation?.modeOfPayment || '',
+    discount: operation?.discount || '',
     reviewOn: operation?.reviewOn || '',
-    pdeReOpticDisk: operation?.pdeReOpticDisk || '',
-    pdeReOpticMacula: operation?.pdeReOpticMacula || '',
-    pdeReOpticBloodVessels: operation?.pdeReOpticBloodVessels || '',
-    pdeRePr: operation?.pdeRePr || '',
-    pdeLeOpticDisk: operation?.pdeLeOpticDisk || '',
-    pdeLeOpticMacula: operation?.pdeLeOpticMacula || '',
-    pdeLeOpticBloodVessels: operation?.pdeLeOpticBloodVessels || '',
-    pdeLePr: operation?.pdeLePr || '',
-    operatedBy: operation?.operatedBy || '',
+    operatedBy: operation?.operatedBy || 'Dr Srilatha ch',
     id: operation?.id
   })
 
@@ -499,7 +472,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
           </div>
 
           {/* Operation Details and Procedure */}
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Operation Details *
             </label>
@@ -522,7 +495,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
             </div>
           </div>
 
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Operation Procedure *
             </label>
@@ -578,7 +551,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                   key={index}
                   className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-3 bg-gray-50 rounded-md"
                 >
-                  <div>
+                  <div className="col-span-2">
                     <label
                       htmlFor={`part-${index}`}
                       className="block text-sm font-medium text-gray-700"
@@ -654,196 +627,115 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
               ))}
 
               {/* Add More Parts Button */}
-              {visibleParts < 10 && (
-                <button
-                  type="button"
-                  onClick={addPartEntry}
-                  className="mt-2 flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-2"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Add More Part/Service
-                </button>
-              )}
-
-              <div className="flex justify-between items-center mt-4">
-                <div className="text-right">
-                  <span className="text-sm font-medium text-gray-700">Total Amount: </span>
-                  <span className="text-lg font-bold">{calculateTotalAmount()}</span>
+              <div className="col-span-2 flex flex-row w-full justify-between items-center">
+                <div className="flex justify-between items-center mt-4">
+                  <div className="text-right">
+                    <span className="text-sm font-medium text-gray-700">Total Amount: </span>
+                    <span className="text-lg font-bold">{calculateTotalAmount()}</span>
+                  </div>
                 </div>
+
+                {visibleParts < 10 && (
+                  <button
+                    type="button"
+                    onClick={addPartEntry}
+                    className="mt-2 flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-2"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Add More Part/Service
+                  </button>
+                )}
               </div>
             </div>
           </div>
+          {/*financial details*/}
 
-          {/* Mode of Payment */}
-          <div className="col-span-2 mt-4">
-            <label htmlFor="modeOfPayment" className="block text-sm font-medium text-gray-700 mb-1">
-              Mode of Payment
-            </label>
-            <select
-              id="modeOfPayment"
-              name="modeOfPayment"
-              value={formData.modeOfPayment || ''}
-              onChange={handleInputChange}
-              className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            >
-              <option value="">Select payment mode</option>
-              <option value="Cash">Cash</option>
-              <option value="Credit Card">Credit Card</option>
-              <option value="Debit Card">Debit Card</option>
-              <option value="UPI">UPI</option>
-              <option value="Insurance">Insurance</option>
-              <option value="Bank Transfer">Bank Transfer</option>
-            </select>
+          <div className="col-span-2 flex flex-row w-full gap-4">
+            {/* Mode of Payment */}
+            <div className="w-1/2">
+              <label
+                htmlFor="modeOfPayment"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Mode of Payment
+              </label>
+              <select
+                id="modeOfPayment"
+                name="modeOfPayment"
+                value={formData.modeOfPayment || ''}
+                onChange={handleInputChange}
+                className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              >
+                <option value="">Select payment mode</option>
+                <option value="Cash">Cash</option>
+                <option value="Credit Card">Credit Card</option>
+                <option value="Debit Card">Debit Card</option>
+                <option value="UPI">UPI</option>
+                <option value="Insurance">Insurance</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+              </select>
+            </div>
+
+            {/* Discount */}
+            <div className="w-1/2">
+              <label htmlFor="discount" className="block text-sm font-medium text-gray-700 mb-1">
+                Discount
+              </label>
+              <input
+                type="number"
+                id="discount"
+                name="discount"
+                value={formData.discount || ''}
+                onChange={handleInputChange}
+                className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              />
+            </div>
           </div>
 
           {/* Review On */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Review On</label>
-            <input
-              type="date"
-              name="reviewOn"
-              value={formData.reviewOn || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* PDE (Post-Discharge Examination) - Right Eye */}
-          <div className="md:col-span-2">
-            <h3 className="text-md font-medium text-gray-800 mb-2">PDE - Right Eye</h3>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">RE - Optic Disk</label>
-            <input
-              type="text"
-              name="pdeReOpticDisk"
-              value={formData.pdeReOpticDisk || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              RE - Optic Macula
-            </label>
-            <input
-              type="text"
-              name="pdeReOpticMacula"
-              value={formData.pdeReOpticMacula || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              RE - Optic Blood Vessels
-            </label>
-            <input
-              type="text"
-              name="pdeReOpticBloodVessels"
-              value={formData.pdeReOpticBloodVessels || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">RE - PR</label>
-            <input
-              type="text"
-              name="pdeRePr"
-              value={formData.pdeRePr || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* PDE (Post-Discharge Examination) - Left Eye */}
-          <div className="md:col-span-2">
-            <h3 className="text-md font-medium text-gray-800 mb-2">PDE - Left Eye</h3>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">LE - Optic Disk</label>
-            <input
-              type="text"
-              name="pdeLeOpticDisk"
-              value={formData.pdeLeOpticDisk || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              LE - Optic Macula
-            </label>
-            <input
-              type="text"
-              name="pdeLeOpticMacula"
-              value={formData.pdeLeOpticMacula || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              LE - Optic Blood Vessels
-            </label>
-            <input
-              type="text"
-              name="pdeLeOpticBloodVessels"
-              value={formData.pdeLeOpticBloodVessels || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">LE - PR</label>
-            <input
-              type="text"
-              name="pdeLePr"
-              value={formData.pdeLePr || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Operated By */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Operated By *</label>
-            <div className="relative">
+          <div className="col-span-2 flex flex-row w-full gap-4">
+            <div className="w-1/2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Review On</label>
               <input
-                type="text"
-                name="operatedBy"
-                id="operatedBy"
-                list="operatedByList"
-                value={formData.operatedBy || 'Dr. Srilatha ch'}
+                type="date"
+                name="reviewOn"
+                value={formData.reviewOn || ''}
                 onChange={handleInputChange}
-                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <datalist id="operatedByList">
-                {doctorOptions.map((option, index) => (
-                  <option key={index} value={option} />
-                ))}
-              </datalist>
+            </div>
+
+            {/* Operated By */}
+            <div className="w-1/2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Operated By *</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  name="operatedBy"
+                  id="operatedBy"
+                  list="operatedByList"
+                  value={formData.operatedBy || ''}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <datalist className="bg-white" id="operatedByList">
+                  {doctorOptions.map((option, index) => (
+                    <option className="bg-white text-black" key={index} value={option} />
+                  ))}
+                </datalist>
+              </div>
             </div>
           </div>
         </div>

@@ -1,13 +1,23 @@
 import React, { useState } from 'react'
 
 // Define Operation type
+// Define Prescription type
+interface Prescription {
+  id: string
+  patientId?: string
+  patientName?: string
+  doctorName?: string
+  followUpDate?: string
+  notes?: string
+  [key: string]: unknown
+}
 interface Operation {
   id: string
   patientId: string
   patientName: string
   date: string
   operationType: string
-  surgeon: string
+  operatedBy: string
   assistants?: string
   preOpDiagnosis?: string
   postOpDiagnosis?: string
@@ -22,10 +32,15 @@ interface Operation {
 
 interface FollowUpSectionProps {
   operations: Operation[]
+  prescriptions?: Prescription[]
   loading: boolean
 }
 
-const FollowUpSection: React.FC<FollowUpSectionProps> = ({ operations, loading }) => {
+const FollowUpSection: React.FC<FollowUpSectionProps> = ({
+  operations,
+  prescriptions = [],
+  loading
+}) => {
   const [searchTerm, setSearchTerm] = useState('')
 
   // Filter operations based on search term
@@ -42,23 +57,49 @@ const FollowUpSection: React.FC<FollowUpSectionProps> = ({ operations, loading }
     )
   })
 
+  // Filter prescriptions based on search term
+  const filteredPrescriptions = prescriptions.filter((prescription) => {
+    const patientName = String(
+      prescription.patientName || prescription['PATIENT NAME'] || ''
+    ).toLowerCase()
+    const patientId = String(
+      prescription.patientId || prescription['PATIENT ID'] || ''
+    ).toLowerCase()
+    const doctorName = String(
+      prescription.doctorName || prescription['DOCTOR NAME'] || ''
+    ).toLowerCase()
+    const searchLower = searchTerm.toLowerCase()
+    return (
+      patientName.includes(searchLower) ||
+      patientId.includes(searchLower) ||
+      doctorName.includes(searchLower)
+    )
+  })
+
+  // Combine operations and prescriptions into a single list with a _type flag
+  const combinedFollowUps = [
+    ...filteredOperations.map((o) => ({ ...o, _type: 'Operation' as const })),
+    ...filteredPrescriptions.map((p) => ({ ...p, _type: 'Prescription' as const }))
+  ]
+
   // Format date for display
-  const formatDate = (dateString: unknown): string => {
-    if (!dateString || typeof dateString !== 'string') return 'N/A'
-    try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    } catch (error) {
-      console.error('Error formatting date:', error)
-      return String(dateString)
-    }
-  }
+  // const formatDate = (dateString: unknown): string => {
+  //   if (!dateString || typeof dateString !== 'string') return 'N/A'
+  //   try {
+  //     const date = new Date(dateString)
+  //     return date.toLocaleDateString('en-US', {
+  //       year: 'numeric',
+  //       month: 'short',
+  //       day: 'numeric'
+  //     })
+  //   } catch (error) {
+  //     console.error('Error formatting date:', error)
+  //     return String(dateString)
+  //   }
+  // }
 
   // Get reason for visit/follow-up
+  // Get reason for visit/follow-up for operations
   const getFollowUpReason = (operation: Operation): string => {
     // Check various fields that might contain follow-up reason
     return (
@@ -71,17 +112,48 @@ const FollowUpSection: React.FC<FollowUpSectionProps> = ({ operations, loading }
     )
   }
 
+  // Get reason for prescriptions follow-up
+  const getPrescriptionReason = (prescription: Prescription): string => {
+    return prescription.notes || 'Prescription follow-up'
+  }
+
+  const handleWhatsappClick = (item: Operation | Prescription): void => {
+    // Craft a professional, multi-line WhatsApp message with bold highlights (use * for bold on WhatsApp)
+    const lines = [
+      `*Dear ${item['PATIENT NAME'] || item.patientName || 'Patient'},*`,
+      '',
+      'We hope you are doing well. This is a gentle reminder to follow up on your prescribed medication and ongoing treatment. If you’ve completed your course or are experiencing any issues, please don’t hesitate to schedule a review with us.',
+      '',
+      'Your health is our priority, and we’re here to support you at every step.',
+      '',
+      '*Warm regards*,',
+      '*Sri Harsha Eye Hospital*'
+    ]
+    const message = lines.join('\n')
+    const encoded = encodeURIComponent(message)
+
+    // Ensure the phone number is in international format without the leading + and free of non-digit characters
+    let phone = String(item['PHONE NUMBER'] || '').replace(/\D/g, '') // keep digits only
+    if (phone.startsWith('91')) {
+      phone = phone.slice(2)
+    }
+    phone = `91${phone}` // prepend country code
+
+    // Open WhatsApp chat with the encoded message
+    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank')
+  }
+  console.log(combinedFollowUps)
   return (
-    <div>
+    <div className="bg-white p-8 rounded-lg border border-gray-200">
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-xl font-semibold">Follow-Up / Review</h2>
-        <div className="relative">
+        <div className="relative w-1/4">
           <input
             type="text"
             placeholder="Search by patient name, ID or doctor..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -104,56 +176,69 @@ const FollowUpSection: React.FC<FollowUpSectionProps> = ({ operations, loading }
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
         </div>
-      ) : filteredOperations.length > 0 ? (
+      ) : combinedFollowUps.length === 0 ? (
+        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
+          <p className="text-gray-500">No follow-ups scheduled for today.</p>
+        </div>
+      ) : (
         <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Patient Name
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Department/Doctor
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Doctor / Department
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Reason for Visit / Follow-Up Notes
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Notes / Reason
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Phone
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Review Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Follow Up
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredOperations.map((operation) => {
-                  const reviewDate = operation.followUpDate || operation.reviewOn || ''
-                  const doctorName = String(operation.surgeon || operation.operatedBy || 'N/A')
-                  const followUpReason = getFollowUpReason(operation)
+                {combinedFollowUps.map((item) => {
+                  const isOp = item._type === 'Operation'
+                  const reviewDate = isOp
+                    ? item['reviewOn'] || item['FOLLOW UP DATE'] || ''
+                    : item['FOLLOW UP DATE'] || '-'
+                  const doctorName = isOp
+                    ? String(item.operatedBy) || 'N/A'
+                    : String(item.doctorName || item['DOCTOR NAME'] || 'N/A')
+                  const followUpReason = isOp
+                    ? getFollowUpReason(item)
+                    : getPrescriptionReason(item)
+                  const patientName = isOp
+                    ? String(item.patientName || 'N/A')
+                    : String(item.patientName || item['PATIENT NAME'] || 'N/A')
+                  const patientId = isOp
+                    ? String(item.patientId || 'N/A')
+                    : String(item.patientId || item['PATIENT ID'] || 'N/A')
                   return (
-                    <tr key={operation.id} className="hover:bg-gray-50">
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                        {item._type}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {operation.patientName || 'N/A'}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          ID: {operation.patientId || 'N/A'}
-                        </div>
+                        <div className="text-sm font-medium text-gray-900">{patientName}</div>
+                        <div className="text-xs text-gray-500">ID: {patientId}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{doctorName}</div>
-                        <div className="text-xs text-gray-500">OPHTHALMOLOGY</div>
+                        {isOp && <div className="text-xs text-gray-500">OPHTHALMOLOGY</div>}
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900 max-w-md truncate">
@@ -161,9 +246,22 @@ const FollowUpSection: React.FC<FollowUpSectionProps> = ({ operations, loading }
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 max-w-md truncate">
+                          {item['PHONE NUMBER'] || item['PHONE NUMBER'] || 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          {formatDate(reviewDate)}
+                          {reviewDate}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() => handleWhatsappClick(item)}
+                          className="p-1 inline-flex text-xs leading-5 cursor-pointer font-semibold rounded-full bg-green-100 text-green-800"
+                        >
+                          WhatsApp
+                        </button>
                       </td>
                     </tr>
                   )
@@ -171,10 +269,6 @@ const FollowUpSection: React.FC<FollowUpSectionProps> = ({ operations, loading }
               </tbody>
             </table>
           </div>
-        </div>
-      ) : (
-        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
-          <p className="text-gray-500">No follow-ups scheduled for today.</p>
         </div>
       )}
     </div>

@@ -24,6 +24,10 @@ const Patients: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
 
+  // Filter patients to only include records from today
+  const todayDate = new Date().toISOString().split('T')[0]
+  const todaysPatients = patients.filter((patient) => patient.date === todayDate)
+
   // Load patients on component mount
   useEffect(() => {
     const fetchPatients = async (): Promise<void> => {
@@ -223,12 +227,13 @@ const Patients: React.FC = () => {
               >
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
               </svg>
-              Patient Records
+              Today&apos;s Patient Records
             </h2>
             <div className="text-sm text-gray-500">
-              {!loading && patients.length > 0 && (
+              {!loading && todaysPatients.length > 0 && (
                 <span>
-                  {patients.length} {patients.length === 1 ? 'patient' : 'patients'} found
+                  {todaysPatients.length} {todaysPatients.length === 1 ? 'patient' : 'patients'}{' '}
+                  found
                 </span>
               )}
             </div>
@@ -260,7 +265,7 @@ const Patients: React.FC = () => {
               </div>
             </div>
           )}
-          {!loading && patients.length === 0 ? (
+          {!loading && todaysPatients.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-gray-200 rounded-lg bg-gray-50">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -301,9 +306,9 @@ const Patients: React.FC = () => {
             </div>
           ) : (
             !loading && (
-              <div>
+              <div className="mt-4">
                 <PatientTable
-                  patients={patients}
+                  patients={todaysPatients}
                   onEdit={openEditModal}
                   onDelete={handleDeletePatient}
                 />
@@ -324,14 +329,6 @@ const Patients: React.FC = () => {
           onSave={handleUpdatePatient}
         />
       )}
-
-      <footer className="bg-white border-t border-gray-100 mt-12 py-6 shadow-inner">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
-          <p className="text-sm text-gray-500 text-center">
-            &copy; {new Date().getFullYear()} Copyrights of Docsile. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   )
 }

@@ -13,6 +13,25 @@ interface Operation {
   [key: string]: unknown
 }
 
+type Prescription = {
+  id: string
+  patientId?: string
+  patientName?: string
+  guardianName?: string
+  phone?: string
+  age?: string | number
+  gender?: string
+  address?: string
+  date?: string
+  receiptId?: string
+  amount?: string | number
+  paymentMethod?: string
+  amountReceived?: number
+  amountDue?: number
+  totalAmount?: number
+  [key: string]: unknown
+}
+
 interface API {
   // Operation methods
   getOperations?: () => Promise<Operation[]>
@@ -20,6 +39,7 @@ interface API {
   addOperation?: (operation: Omit<Operation, 'id'>) => Promise<Operation>
   updateOperation?: (id: string, operation: Operation) => Promise<Operation>
   deleteOperation?: (id: string) => Promise<void>
+  getPrescriptions?: () => Promise<Prescription[]>
 }
 
 interface DuesFollowUpSummaryProps {
@@ -63,6 +83,7 @@ const DuesFollowUpSummary: React.FC<DuesFollowUpSummaryProps> = ({ onClick }) =>
         // Use type assertion to handle potential missing method
         const api = window.api as API
         const getOperations = api.getOperations
+        const getPrescriptions = api.getPrescriptions
 
         if (typeof getOperations === 'function') {
           const operations = await getOperations()
@@ -74,7 +95,20 @@ const DuesFollowUpSummary: React.FC<DuesFollowUpSummaryProps> = ({ onClick }) =>
             return followUpDate === today
           })
 
-          setFollowUpsCount(followUpsToday.length)
+          setFollowUpsCount((prev) => prev + followUpsToday.length)
+        }
+
+        if (typeof getPrescriptions === 'function') {
+          const prescriptions = await getPrescriptions()
+
+          // Filter prescriptions with follow-up dates set to today
+          const today = new Date().toISOString().split('T')[0]
+          const followUpsToday = prescriptions.filter((prescription) => {
+            const followUpDate = prescription['FOLLOW UP DATE'] || ''
+            return followUpDate === today
+          })
+
+          setFollowUpsCount((prev) => prev + followUpsToday.length)
         }
       } catch (error) {
         console.error('getOperations not available:', error)

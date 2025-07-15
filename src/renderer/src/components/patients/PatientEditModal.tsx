@@ -12,6 +12,10 @@ interface Patient {
   gender: string
   phone: string
   address: string
+  status?: string
+  doctorName?: string
+  department?: string
+  referredBy?: string
 }
 
 interface PatientEditModalProps {
@@ -34,7 +38,7 @@ const PatientEditModal = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-gray-50 bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
@@ -67,19 +71,14 @@ const PatientEditModal = ({
               age: patient.age,
               gender: patient.gender,
               phone: patient.phone,
-              address: patient.address
+              address: patient.address,
+              status: patient.status || '',
+              doctorName: patient.doctorName || '',
+              department: patient.department || '',
+              referredBy: patient.referredBy || ''
             }}
             onSubmit={handleSubmit}
           />
-
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded mr-2 hover:bg-gray-100"
-            >
-              Cancel
-            </button>
-          </div>
         </div>
       </div>
     </div>

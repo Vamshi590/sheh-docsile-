@@ -83,17 +83,44 @@ const DuesSection: React.FC<DuesSectionProps> = ({ prescriptions, loading, onUpd
     }
   }
 
+  const handleWhatsappClick = (prescription: Prescription): void => {
+    // Craft a professional, multi-line WhatsApp message with bold highlights (use * for bold on WhatsApp)
+    const lines = [
+      `Hello ${prescription['PATIENT NAME']},`,
+      '',
+      '*Greetings from Sri Harsha Eye Hospital*',
+      '',
+      `This is a friendly reminder that an amount of *₹${prescription['AMOUNT DUE']}* is pending on your account.`,
+      '',
+      'Please visit our hospital or contact us at *9849639237* to settle the outstanding amount at your earliest convenience.',
+      '',
+      'Thank you.'
+    ]
+    const message = lines.join('\n')
+    const encoded = encodeURIComponent(message)
+
+    // Ensure the phone number is in international format without the leading + and free of non-digit characters
+    let phone = String(prescription['PHONE NUMBER'] || '').replace(/\D/g, '') // keep digits only
+    if (phone.startsWith('91')) {
+      phone = phone.slice(2)
+    }
+    phone = `91${phone}` // prepend country code
+
+    // Open WhatsApp chat with the encoded message
+    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank')
+  }
+
   return (
-    <div>
+    <div className="bg-white p-8 rounded-lg border border-gray-200">
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-xl font-semibold">Dues</h2>
-        <div className="relative">
+        <div className="relative w-1/4">
           <input
             type="text"
             placeholder="Search by patient name or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -154,6 +181,12 @@ const DuesSection: React.FC<DuesSectionProps> = ({ prescriptions, loading, onUpd
                   </th>
                   <th
                     scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Remind
+                  </th>
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Actions
@@ -204,6 +237,14 @@ const DuesSection: React.FC<DuesSectionProps> = ({ prescriptions, loading, onUpd
                             ₹{amountDue.toFixed(2)}
                           </span>
                         )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div
+                          onClick={() => handleWhatsappClick(prescription)}
+                          className="w-full bg-green-200 text-center rounded-md p-1 cursor-pointer"
+                        >
+                          Whatsapp
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         {isEditing ? (

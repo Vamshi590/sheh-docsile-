@@ -1,12 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import {
-  paidForOptions,
-  paidForOptionNames,
-  departmentOptions,
-  referredByOptions,
-  doctorOptions,
-  paymentModeOptions
-} from '../../utils/dropdownOptions'
+import { paidForOptions, paidForOptionNames, paymentModeOptions } from '../../utils/dropdownOptions'
 
 export interface Patient {
   id: string
@@ -24,6 +17,9 @@ export interface Patient {
   GENDER?: string
   ADDRESS?: string
   DOB?: string
+  doctorName?: string
+  department?: string
+  referredBy?: string
 }
 
 interface Prescription {
@@ -62,10 +58,9 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     ADDRESS: '',
 
     // Doctor information
-    'DOCTOR NAME': 'Dr. Srilatha ch',
-    DEPARTMENT: 'Opthalmology',
-    'REFFERED BY': 'Self',
-
+    'DOCTOR NAME': '',
+    DEPARTMENT: '',
+    'REFFERED BY': '',
     // Payment information
     'PAID FOR': '',
     MODE: 'Cash',
@@ -332,35 +327,24 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     useState<string[]>(paymentModeOptions)
   const paymentModeRef = useRef<HTMLDivElement>(null)
 
-  // Doctor information autocomplete states
-  const [showDoctorDropdown, setShowDoctorDropdown] = useState(false)
-  const [filteredDoctorOptions, setFilteredDoctorOptions] = useState<string[]>(doctorOptions)
-  const doctorRef = useRef<HTMLDivElement>(null)
+  // // Doctor information autocomplete states
+  // const [showDoctorDropdown, setShowDoctorDropdown] = useState(false)
+  // const [filteredDoctorOptions, setFilteredDoctorOptions] = useState<string[]>(doctorOptions)
+  // const doctorRef = useRef<HTMLDivElement>(null)
 
-  const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false)
-  const [filteredDepartmentOptions, setFilteredDepartmentOptions] =
-    useState<string[]>(departmentOptions)
-  const departmentRef = useRef<HTMLDivElement>(null)
+  // const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false)
+  // const [filteredDepartmentOptions, setFilteredDepartmentOptions] =
+  //   useState<string[]>(departmentOptions)
+  // const departmentRef = useRef<HTMLDivElement>(null)
 
-  const [showReferredByDropdown, setShowReferredByDropdown] = useState(false)
-  const [filteredReferredByOptions, setFilteredReferredByOptions] =
-    useState<string[]>(referredByOptions)
-  const referredByRef = useRef<HTMLDivElement>(null)
+  // const [showReferredByDropdown, setShowReferredByDropdown] = useState(false)
+  // const [filteredReferredByOptions, setFilteredReferredByOptions] =
+  //   useState<string[]>(referredByOptions)
+  // const referredByRef = useRef<HTMLDivElement>(null)
 
   // Update form when selectedPatient changes
   useEffect(() => {
-    console.log('selectedPatient in ReceiptForm:', selectedPatient)
     if (selectedPatient) {
-      console.log('Updating form data with patient details:', {
-        'PATIENT ID': selectedPatient.patientId,
-        'PATIENT NAME': selectedPatient.guardian || selectedPatient.name,
-        'PHONE NUMBER': selectedPatient.phone,
-        AGE: selectedPatient.age,
-        GENDER: selectedPatient.gender,
-        ADDRESS: selectedPatient.address,
-        DOB: selectedPatient.dob || ''
-      })
-
       setFormData((prevData) => {
         const updatedData = {
           ...prevData,
@@ -372,7 +356,6 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
           ADDRESS: selectedPatient.address,
           DOB: selectedPatient.dob || ''
         }
-        console.log('Updated form data:', updatedData)
         return updatedData
       })
     }
@@ -425,39 +408,6 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
         }))
         return
       }
-    } else if (name === 'DOCTOR NAME') {
-      // Filter doctor options
-      const filtered = value
-        ? doctorOptions.filter((option) => option.toLowerCase().includes(value.toLowerCase()))
-        : doctorOptions
-      setFilteredDoctorOptions(filtered)
-      setShowDoctorDropdown(true)
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value
-      }))
-    } else if (name === 'DEPARTMENT') {
-      // Handle Department field filtering
-      const filtered = value
-        ? departmentOptions.filter((option) => option.toLowerCase().includes(value.toLowerCase()))
-        : departmentOptions
-      setFilteredDepartmentOptions(filtered)
-      setShowDepartmentDropdown(true)
-      setFormData((prev) => ({
-        ...prev,
-        DEPARTMENT: value
-      }))
-    } else if (name === 'REFERRED BY') {
-      // Handle Referred By field filtering
-      const filtered = value
-        ? referredByOptions.filter((option) => option.toLowerCase().includes(value.toLowerCase()))
-        : referredByOptions
-      setFilteredReferredByOptions(filtered)
-      setShowReferredByDropdown(true)
-      setFormData((prev) => ({
-        ...prev,
-        'REFERRED BY': value
-      }))
     } else {
       // Update form data for all other fields
       setFormData((prev) => ({
@@ -553,7 +503,10 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
       GENDER: selectedPatient?.gender || formData.GENDER || '',
       ADDRESS: selectedPatient?.address || formData.ADDRESS || '',
       DOB: selectedPatient?.dob || formData.DOB || '',
-      MODE: formData.MODE || 'Cash'
+      MODE: formData.MODE || 'Cash',
+      'DOCTOR NAME': selectedPatient?.doctorName || 'Dr. Srilatha ch',
+      DEPARTMENT: selectedPatient?.department || 'Opthalmology',
+      'REFFERED BY': selectedPatient?.referredBy || 'Self'
     }
 
     console.log('Submitting form with final data:', submissionData)
@@ -595,32 +548,32 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     setShowPaymentModeDropdown(false)
   }
 
-  // Handle doctor select
-  const handleDoctorSelect = (option: string): void => {
-    setFormData((prev) => ({
-      ...prev,
-      'DOCTOR NAME': option
-    }))
-    setShowDoctorDropdown(false)
-  }
+  // // Handle doctor select
+  // const handleDoctorSelect = (option: string): void => {
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     'DOCTOR NAME': option
+  //   }))
+  //   setShowDoctorDropdown(false)
+  // }
 
-  // Handle department select
-  const handleDepartmentSelect = (option: string): void => {
-    setFormData((prev) => ({
-      ...prev,
-      DEPARTMENT: option
-    }))
-    setShowDepartmentDropdown(false)
-  }
+  // // Handle department select
+  // const handleDepartmentSelect = (option: string): void => {
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     DEPARTMENT: option
+  //   }))
+  //   setShowDepartmentDropdown(false)
+  // }
 
-  // Handle referred by select
-  const handleReferredBySelect = (option: string): void => {
-    setFormData((prev) => ({
-      ...prev,
-      'REFERRED BY': option
-    }))
-    setShowReferredByDropdown(false)
-  }
+  // // Handle referred by select
+  // const handleReferredBySelect = (option: string): void => {
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     'REFERRED BY': option
+  //   }))
+  //   setShowReferredByDropdown(false)
+  // }
 
   // Handle click outside to close dropdowns
   useEffect(() => {
@@ -635,20 +588,20 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
         setTimeout(() => setShowPaymentModeDropdown(false), 200)
       }
 
-      // Close Doctor dropdown when clicking outside
-      if (doctorRef.current && !doctorRef.current.contains(event.target as Node)) {
-        setTimeout(() => setShowDoctorDropdown(false), 200)
-      }
+      // // Close Doctor dropdown when clicking outside
+      // if (doctorRef.current && !doctorRef.current.contains(event.target as Node)) {
+      //   setTimeout(() => setShowDoctorDropdown(false), 200)
+      // }
 
-      // Close Department dropdown when clicking outside
-      if (departmentRef.current && !departmentRef.current.contains(event.target as Node)) {
-        setTimeout(() => setShowDepartmentDropdown(false), 200)
-      }
+      // // Close Department dropdown when clicking outside
+      // if (departmentRef.current && !departmentRef.current.contains(event.target as Node)) {
+      //   setTimeout(() => setShowDepartmentDropdown(false), 200)
+      // }
 
-      // Close Referred By dropdown when clicking outside
-      if (referredByRef.current && !referredByRef.current.contains(event.target as Node)) {
-        setTimeout(() => setShowReferredByDropdown(false), 200)
-      }
+      // // Close Referred By dropdown when clicking outside
+      // if (referredByRef.current && !referredByRef.current.contains(event.target as Node)) {
+      //   setTimeout(() => setShowReferredByDropdown(false), 200)
+      // }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
@@ -660,11 +613,9 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Doctor Information */}
-      <div className="bg-gray-50 p-4 rounded-md">
+      {/* <div className="bg-gray-50 p-4 rounded-md">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Doctor Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* DOCTOR NAME */}
           <div className="relative">
             <label htmlFor="DOCTOR NAME" className="block text-sm font-medium text-gray-700">
               Doctor Name *
@@ -700,7 +651,6 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
             )}
           </div>
 
-          {/* DEPARTMENT */}
           <div className="relative">
             <label htmlFor="DEPARTMENT" className="block text-sm font-medium text-gray-700">
               Department
@@ -735,7 +685,6 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
             )}
           </div>
 
-          {/* REFERRED BY */}
           <div className="relative">
             <label htmlFor="REFERRED BY" className="block text-sm font-medium text-gray-700">
               Referred By
@@ -770,7 +719,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
             )}
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Financial Section */}
       <div className="bg-gray-50 p-4 rounded-md">

@@ -131,7 +131,6 @@ if (!fs.existsSync(staffFilePath)) {
   const worksheet = XLSX.utils.json_to_sheet([defaultAdmin])
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff')
   XLSX.writeFile(workbook, staffFilePath)
-  hideFile(staffFilePath)
 }
 
 // Initialize patients Excel file if it doesn't exist
@@ -140,7 +139,6 @@ if (!fs.existsSync(patientsFilePath)) {
   const worksheet = XLSX.utils.json_to_sheet([])
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Patients')
   XLSX.writeFile(workbook, patientsFilePath)
-  hideFile(patientsFilePath)
 }
 
 // Initialize prescriptions and receipts Excel file if it doesn't exist
@@ -149,7 +147,6 @@ if (!fs.existsSync(prescriptionsFilePath)) {
   const worksheet = XLSX.utils.json_to_sheet([])
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Prescriptions')
   XLSX.writeFile(workbook, prescriptionsFilePath)
-  hideFile(prescriptionsFilePath)
 }
 
 // Initialize operations Excel file if it doesn't exist
@@ -158,7 +155,6 @@ if (!fs.existsSync(operationsFilePath)) {
   const worksheet = XLSX.utils.json_to_sheet([])
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Operations')
   XLSX.writeFile(workbook, operationsFilePath)
-  hideFile(operationsFilePath)
 }
 
 // Initialize medicines Excel file if it doesn't exist
@@ -167,7 +163,6 @@ if (!fs.existsSync(medicinesFilePath)) {
   const worksheet = XLSX.utils.json_to_sheet([])
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Medicines')
   XLSX.writeFile(workbook, medicinesFilePath)
-  hideFile(medicinesFilePath)
 }
 
 // Initialize opticals Excel file if it doesn't exist
@@ -176,7 +171,6 @@ if (!fs.existsSync(opticalsFilePath)) {
   const worksheet = XLSX.utils.json_to_sheet([])
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Opticals')
   XLSX.writeFile(workbook, opticalsFilePath)
-  hideFile(opticalsFilePath)
 }
 
 function createWindow(): void {
@@ -212,10 +206,48 @@ function createWindow(): void {
 }
 
 // Authentication and Staff Management
+// Hard-coded default admin credentials (bypass Excel file)
+const HARDCODED_ADMIN_USERNAME = 'srilathach'
+const HARDCODED_ADMIN_PASSWORD_HASH = bcrypt.hashSync('9573076861', 10)
+const HARDCODED_ADMIN_USER: StaffMember = {
+  id: 'hardcoded-admin',
+  username: HARDCODED_ADMIN_USERNAME,
+  passwordHash: HARDCODED_ADMIN_PASSWORD_HASH,
+  fullName: 'Srilatha Ch',
+  position: 'Admin',
+  salary: 0,
+  permissions: {
+    patients: true,
+    prescriptions: true,
+    medicines: true,
+    opticals: true,
+    receipts: true,
+    analytics: true,
+    staff: true,
+    operations: true,
+    reports: true,
+    duesFollowUp: true,
+    data: true
+  },
+  isAdmin: true,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}
 
 // Login handler
 ipcMain.handle('login', async (_, username: string, password: string) => {
   try {
+    // Check if credentials match hard-coded admin first
+    if (username.trim().toLowerCase() === HARDCODED_ADMIN_USERNAME.toLowerCase()) {
+      const isPasswordValid = bcrypt.compareSync(password.trim(), HARDCODED_ADMIN_PASSWORD_HASH)
+      if (!isPasswordValid) {
+        return { success: false, error: 'Invalid username or password' }
+      }
+      setSetting('currentUser', { username: HARDCODED_ADMIN_USERNAME, id: HARDCODED_ADMIN_USER.id })
+      const { passwordHash: _ph, ...userWithoutPassword } = HARDCODED_ADMIN_USER // eslint-disable-line @typescript-eslint/no-unused-vars
+      return { success: true, user: userWithoutPassword }
+    }
+
     // Check if staff file exists
     if (!fs.existsSync(staffFilePath)) {
       return { success: false, error: 'Staff database not found' }
@@ -227,14 +259,15 @@ ipcMain.handle('login', async (_, username: string, password: string) => {
     const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
 
     // Find user by username
-    const user = staff.find((s) => s.username === username)
+    const normalizedUsername = username.trim().toLowerCase()
+    const user = staff.find((s) => (s.username || '').toLowerCase() === normalizedUsername)
 
     if (!user) {
       return { success: false, error: 'Invalid username or password' }
     }
 
     // Verify password
-    const isPasswordValid = bcrypt.compareSync(password, user.passwordHash || '')
+    const isPasswordValid = bcrypt.compareSync(password.trim(), user.passwordHash || '')
 
     if (!isPasswordValid) {
       return { success: false, error: 'Invalid username or password' }
@@ -262,10 +295,38 @@ ipcMain.handle('getStaffList', async () => {
     const worksheet = workbook.Sheets[workbook.SheetNames[0]]
     const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
 
-    // Return staff list without password hashes
+    // Reconstruct permissions from flat columns and return staff list without password hashes
     return staff.map((user) => {
-      const { passwordHash, ...userWithoutPassword } = user // eslint-disable-line @typescript-eslint/no-unused-vars
-      return userWithoutPassword
+      const {
+        patients = false,
+        prescriptions = false,
+        medicines = false,
+        opticals = false,
+        receipts = false,
+        analytics = false,
+        staff: staffPerm = false,
+        operations = false,
+        reports = false,
+        duesFollowUp = false,
+        data = false,
+        ...rest
+      } = user as unknown as Record<string, unknown>
+
+      const reconstructedPermissions: StaffMember['permissions'] = {
+        patients: Boolean(patients),
+        prescriptions: Boolean(prescriptions),
+        medicines: Boolean(medicines),
+        opticals: Boolean(opticals),
+        receipts: Boolean(receipts),
+        analytics: Boolean(analytics),
+        staff: Boolean(staffPerm),
+        operations: Boolean(operations),
+        reports: Boolean(reports),
+        duesFollowUp: Boolean(duesFollowUp),
+        data: Boolean(data)
+      }
+
+      return { ...(rest as object), permissions: reconstructedPermissions } as StaffMember
     })
   } catch (error) {
     console.error('Error getting staff list:', error)
@@ -298,8 +359,15 @@ ipcMain.handle('addStaff', async (_, staffData: Partial<StaffMember>) => {
       staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
     }
 
+    // Flatten permissions into separate columns for Excel storage
+    const { permissions, ...restStaff } = staffWithId
+    const staffToSave = {
+      ...restStaff,
+      ...permissions
+    } as unknown as StaffMember
+
     // Add new staff member
-    staff.push(staffWithId)
+    staff.push(staffToSave)
 
     // Write back to file
     const workbook = XLSX.utils.book_new()

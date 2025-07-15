@@ -71,6 +71,8 @@ export const doctorOptions = [
   'Dr. Meena Patel'
 ]
 
+export const statusOptions = ['Regular', 'Follow Up', 'Emergency']
+
 export const paymentModeOptions = [
   'Cash',
   'Credit Card',
@@ -79,6 +81,19 @@ export const paymentModeOptions = [
   'Net Banking',
   'Check',
   'Insurance'
+]
+// Define part options and rates
+export const partOptions = [
+  'Bed',
+  'General Ward',
+  'Delux Room',
+  'ICU',
+  'Operation Theatre',
+  'Consultation',
+  'Medicine',
+  'Lab Tests',
+  'Imaging',
+  'Procedure'
 ]
 
 export const medicineOptions = [

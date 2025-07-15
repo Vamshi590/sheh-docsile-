@@ -30,7 +30,7 @@ interface Operation {
   patientName: string
   date: string
   operationType: string
-  surgeon: string
+  operatedBy: string
   followUpDate?: string
   reviewOn?: string
   [key: string]: unknown
@@ -54,11 +54,13 @@ const DuesFollowUp: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   // Toast notifications state
   const [toasts, setToasts] = useState<ToastMessage[]>([])
+  const [followUpPrescriptions, setFollowUpPrescriptions] = useState<Prescription[]>([])
 
   // Load prescriptions and operations on component mount
   useEffect(() => {
     loadPrescriptions()
     loadOperations()
+    loadFollowUpPrescriptions()
   }, [])
 
   // Function to add a toast notification
@@ -122,6 +124,32 @@ const DuesFollowUp: React.FC = () => {
     } catch (err) {
       console.error('Error loading operations:', err)
       setError('Failed to load operations')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadFollowUpPrescriptions = async (): Promise<void> => {
+    try {
+      setLoading(true)
+      const data = await window.api.getPrescriptions()
+      // Check if getOperations method exists
+      if (data) {
+        // Filter operations with follow-up dates set to today
+        const today = new Date().toISOString().split('T')[0]
+        const followUpsToday = data.filter((prescription) => {
+          const followUpDate = prescription['FOLLOW UP DATE'] || ''
+          return followUpDate === today
+        })
+
+        setFollowUpPrescriptions(followUpsToday)
+      } else {
+        console.error('getPrescriptions method not available')
+        setError('Failed to load prescriptions: API method not available')
+      }
+    } catch (err) {
+      console.error('Error loading prescriptions:', err)
+      setError('Failed to load prescriptions')
     } finally {
       setLoading(false)
     }
@@ -232,7 +260,7 @@ const DuesFollowUp: React.FC = () => {
             <nav className="-mb-px flex space-x-8">
               <button
                 onClick={() => setActiveTab('dues')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`py-4 px-1 border-b-2 cursor-pointer font-medium text-sm ${
                   activeTab === 'dues'
                     ? 'border-indigo-500 text-indigo-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -242,7 +270,7 @@ const DuesFollowUp: React.FC = () => {
               </button>
               <button
                 onClick={() => setActiveTab('followup')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`py-4 px-1 border-b-2 cursor-pointer font-medium text-sm ${
                   activeTab === 'followup'
                     ? 'border-indigo-500 text-indigo-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -262,7 +290,11 @@ const DuesFollowUp: React.FC = () => {
             onUpdateDue={handleUpdateDue}
           />
         ) : (
-          <FollowUpSection operations={operations} loading={loading} />
+          <FollowUpSection
+            operations={operations}
+            prescriptions={followUpPrescriptions}
+            loading={loading}
+          />
         )}
 
         {/* Toast Container */}

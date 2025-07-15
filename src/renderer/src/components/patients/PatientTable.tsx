@@ -44,7 +44,7 @@ const PatientTable = ({ patients, onEdit, onDelete }: PatientTableProps): React.
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 ">
       {/* Search and Action Buttons */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
         <div className="relative w-full md:w-64">
@@ -214,12 +214,6 @@ const PatientTable = ({ patients, onEdit, onDelete }: PatientTableProps): React.
         ) : filteredPatients.length === 0 ? (
           <p>No patients available. Add your first patient using the button above.</p>
         ) : null}
-      </div>
-
-      {/* Results count */}
-      <div className="text-sm text-gray-500 text-right">
-        {filteredPatients.length}
-        {filteredPatients.length === 1 ? ' patient' : ' patients'} found
       </div>
     </div>
   )

@@ -19,11 +19,11 @@ const Staff = (): React.JSX.Element => {
         const parsedUser = JSON.parse(user)
         setCurrentUser(parsedUser)
 
-        // Redirect if not admin
-        if (!parsedUser.permissions.staff) {
-          window.location.hash = '/dashboard'
-          return
-        }
+        // // Redirect if not admin
+        // if (!parsedUser.permissions?.staff) {
+        //   window.location.hash = '/dashboard'
+        //   return
+        // }
       } catch (err) {
         console.error('Error parsing user data:', err)
       }
@@ -118,7 +118,54 @@ const Staff = (): React.JSX.Element => {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="min-h-screen ">
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4 sm:px-8 lg:px-10 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-medium text-gray-800">Staff Management</h1>
+            <p className="text-sm text-gray-500">Sri Harsha Eye Hospital</p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors shadow-sm flex items-center space-x-1.5"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>Add Staff</span>
+            </button>
+            <button
+              onClick={() => (window.location.hash = '/dashboard')}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors shadow-sm flex items-center space-x-1.5"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>Back</span>
+            </button>
+          </div>
+        </div>
+      </header>
+      {/* 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Staff Management</h1>
         {!showAddForm && (
@@ -141,35 +188,39 @@ const Staff = (): React.JSX.Element => {
             Add New Staff
           </button>
         )}
-      </div>
+      </div> */}
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-md">
+        <div className="max-w-7xl mx-auto mt-4 mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-md">
           {error}
         </div>
       )}
 
       {showAddForm ? (
-        <AddStaffForm
-          onSubmit={
-            editingStaff ? (data) => handleUpdateStaff(editingStaff.id, data) : handleAddStaff
-          }
-          onCancel={() => {
-            setShowAddForm(false)
-            setEditingStaff(null)
-          }}
-          initialData={editingStaff}
-          isEditing={!!editingStaff}
-        />
+        <div className="max-w-7xl p-6 mx-auto">
+          <AddStaffForm
+            onSubmit={
+              editingStaff ? (data) => handleUpdateStaff(editingStaff.id, data) : handleAddStaff
+            }
+            onCancel={() => {
+              setShowAddForm(false)
+              setEditingStaff(null)
+            }}
+            initialData={editingStaff}
+            isEditing={!!editingStaff}
+          />
+        </div>
       ) : (
-        <StaffList
-          staffList={staffList}
-          isLoading={isLoading}
-          onEdit={startEditing}
-          onDelete={handleDeleteStaff}
-          onResetPassword={handleResetPassword}
-          currentUser={currentUser}
-        />
+        <main className="max-w-7xl mx-auto p-6">
+          <StaffList
+            staffList={staffList}
+            isLoading={isLoading}
+            onEdit={startEditing}
+            onDelete={handleDeleteStaff}
+            onResetPassword={handleResetPassword}
+            currentUser={currentUser}
+          />
+        </main>
       )}
     </div>
   )
