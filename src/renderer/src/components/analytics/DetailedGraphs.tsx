@@ -1,4 +1,4 @@
-import React, { useState, ReactElement } from 'react'
+import React, { useState, useEffect, ReactElement } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -111,6 +111,25 @@ const DetailedGraphs: React.FC<DetailedGraphsProps> = ({ data }) => {
     'patients' | 'revenue' | 'medicines' | 'opticals'
   >('patients')
   const [chartType, setChartType] = useState<'line' | 'bar' | 'doughnut'>('line')
+
+  // Ensure default chart type matches active category
+  useEffect(() => {
+    // For medicines and opticals, default to doughnut
+    if (
+      (activeCategory === 'medicines' || activeCategory === 'opticals') &&
+      chartType !== 'doughnut'
+    ) {
+      setChartType('doughnut')
+    }
+    // For patients and revenue, default to line if currently doughnut
+    if (
+      (activeCategory === 'patients' || activeCategory === 'revenue') &&
+      chartType === 'doughnut'
+    ) {
+      setChartType('line')
+    }
+    // We intentionally leave other combinations as-is to respect user overrides
+  }, [activeCategory, chartType])
 
   // If data is not available yet, show placeholder
   if (!data) {

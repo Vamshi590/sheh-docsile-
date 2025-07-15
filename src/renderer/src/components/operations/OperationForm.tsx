@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   doctorOptions,
   operationDetailsOptions,
@@ -71,7 +71,9 @@ type Operation = {
   totalAmount?: number
   modeOfPayment?: string
   reviewOn?: string
-  discount?: string
+  discount?: number
+  amountReceived?: number
+  amountDue?: number
   operatedBy?: string
   [key: string]: unknown
 }
@@ -98,6 +100,22 @@ const partRates: Record<string, number> = {
 }
 
 const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSave, onCancel }) => {
+  // Helper to convert partN/daysN/amountN fields into parts array
+  const buildPartsFromFields = (
+    op?: Operation | null
+  ): Array<{ part: string; days: number; amount: number }> => {
+    const list: Array<{ part: string; days: number; amount: number }> = []
+    if (!op) return list
+    for (let i = 1; i <= 10; i++) {
+      const part = op[`part${i}` as keyof Operation] as unknown as string | undefined
+      const days = op[`days${i}` as keyof Operation] as unknown as number | undefined
+      const amount = op[`amount${i}` as keyof Operation] as unknown as number | undefined
+      if (part && part.trim() !== '') {
+        list.push({ part, days: days || 0, amount: amount || 0 })
+      }
+    }
+    return list
+  }
   const [formData, setFormData] = useState<Partial<Operation>>({
     patientId: patient.patientId,
     patientName: patient.name,
@@ -142,13 +160,17 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
     amount10: operation?.amount10 || '',
     days10: operation?.days10 || 0,
     totalAmount: operation?.totalAmount || 0,
-    modeOfPayment: operation?.modeOfPayment || '',
-    discount: operation?.discount || '',
+    modeOfPayment: operation?.modeOfPayment || 'Cash',
+    discount: operation?.discount || 0,
+    amountReceived: operation?.amountReceived || 0,
+    amountDue: operation?.amountDue || 0,
     reviewOn: operation?.reviewOn || '',
     operatedBy: operation?.operatedBy || 'Dr Srilatha ch',
     id: operation?.id
   })
 
+  console.log('operation', operation)
+  console.log('formData', formData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState<{
     type: 'success' | 'error'
@@ -157,19 +179,42 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
 
   // State to track parts entries
   const [parts, setParts] = useState<Array<{ part: string; days: number; amount: number }>>(() => {
-    // Initialize with existing parts or create just one empty entry
+    let initial: Array<{ part: string; days: number; amount: number }> = []
     if (operation?.parts && operation.parts.length > 0) {
-      return operation.parts
+      initial = operation.parts
     } else {
-      // Create a single empty part entry
-      return [{ part: '', days: 0, amount: 0 }]
+      initial = buildPartsFromFields(operation)
     }
+    return initial.length > 0 ? initial : [{ part: '', days: 0, amount: 0 }]
   })
 
   // State to track visible parts (for UI display)
   const [visibleParts, setVisibleParts] = useState<number>(() => {
-    return operation?.parts?.length || 1
+    const count = operation?.parts?.length || buildPartsFromFields(operation).length || 1
+    return count
   })
+
+  // Reinitialize form when the `operation` prop changes (e.g., editing an existing record)
+  useEffect(() => {
+    if (!operation) return
+
+    // Prepare parts array (ensure at least one entry)
+    const opParts =
+      operation.parts && operation.parts.length > 0
+        ? operation.parts
+        : buildPartsFromFields(operation)
+
+    setParts(opParts)
+    setVisibleParts(opParts.length)
+
+    // Reset formData with latest operation values
+    setFormData({
+      ...operation,
+      parts: opParts,
+      modeOfPayment: operation.modeOfPayment || 'Cash',
+      operatedBy: operation.operatedBy || 'Dr Srilatha ch'
+    })
+  }, [operation])
 
   // Function to calculate total amount
   const calculateTotalAmount = React.useCallback((): number => {
@@ -177,7 +222,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
   }, [parts])
 
   // Update total amount when parts change
-  React.useEffect(() => {
+  useEffect(() => {
     const total = calculateTotalAmount()
     setFormData((prev) => ({
       ...prev,
@@ -185,6 +230,17 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
     }))
   }, [parts, calculateTotalAmount])
 
+  // Update amount due whenever total, discount, advance or received changes
+  useEffect(() => {
+    const due =
+      (formData.totalAmount || 0) - (formData.discount || 0) - (formData.amountReceived || 0)
+    setFormData((prev) => ({
+      ...prev,
+      amountDue: due
+    }))
+  }, [formData.totalAmount, formData.discount, formData.amountReceived])
+
+  // Handle input changes
   // Handle input changes
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -192,7 +248,10 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]:
+        name === 'discount' || name === 'advanceAmount' || name === 'amountReceived'
+          ? Number(value)
+          : value
     }))
   }
 
@@ -333,7 +392,11 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
         // Ensure parts array is included
         parts: filteredParts,
         // Ensure totalAmount is set correctly
-        totalAmount: calculateTotalAmount()
+        totalAmount: calculateTotalAmount(),
+        amountReceived: formData.amountReceived,
+        amountDue: formData.amountDue,
+        discount: formData.discount,
+        modeOfPayment: formData.modeOfPayment
       }
 
       // Log the patient ID being used for debugging
@@ -519,7 +582,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
           </div>
 
           {/* Provision Diagnosis */}
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Provision Diagnosis *
             </label>
@@ -537,6 +600,28 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
               <datalist id="provisionDiagnosisList">
                 {provisionDiagnosisOptions.map((option, index) => (
                   <option key={index} value={option} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+
+          {/* Operated By */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Operated By *</label>
+            <div className="relative">
+              <input
+                type="text"
+                name="operatedBy"
+                id="operatedBy"
+                list="operatedByList"
+                value={formData.operatedBy || ''}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <datalist className="bg-white" id="operatedByList">
+                {doctorOptions.map((option, index) => (
+                  <option className="bg-white text-black" key={index} value={option} />
                 ))}
               </datalist>
             </div>
@@ -612,12 +697,12 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                     />
                   </div>
 
-                  <div className="flex items-end">
+                  <div className="flex">
                     {parts.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removePartEntry(index)}
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        className="inline-flex items-center justify-end cursor-pointer underline text-sm leading-4 font-medium rounded-md text-black"
                       >
                         Remove
                       </button>
@@ -627,39 +712,55 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
               ))}
 
               {/* Add More Parts Button */}
-              <div className="col-span-2 flex flex-row w-full justify-between items-center">
-                <div className="flex justify-between items-center mt-4">
-                  <div className="text-right">
-                    <span className="text-sm font-medium text-gray-700">Total Amount: </span>
-                    <span className="text-lg font-bold">{calculateTotalAmount()}</span>
-                  </div>
-                </div>
-
+              <div className="col-span-2 flex w-full justify-end">
                 {visibleParts < 10 && (
                   <button
                     type="button"
                     onClick={addPartEntry}
-                    className="mt-2 flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="mt-2 flex items-center cursor-pointer text-sm font-medium rounded-md text-black underline"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-2"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    Add More Part/Service
+                    + Add More Part/Service
                   </button>
                 )}
               </div>
             </div>
           </div>
           {/*financial details*/}
+
+          {/* Additional Financial Fields */}
+          <div className="col-span-2 flex flex-row w-full gap-4 mt-4">
+            {/* Total Amount */}
+            <div className="w-1/2">
+              <label htmlFor="totalAmount" className="block text-sm font-medium text-gray-700 mb-1">
+                Total Amount
+              </label>
+              <input
+                type="number"
+                id="totalAmount"
+                name="totalAmount"
+                value={formData.totalAmount || 0}
+                readOnly
+                className="block w-full py-2 px-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm sm:text-sm"
+              />
+            </div>
+
+            <div className="w-1/2">
+              <label
+                htmlFor="amountReceived"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Amount Received
+              </label>
+              <input
+                type="number"
+                id="amountReceived"
+                name="amountReceived"
+                value={formData.amountReceived || 0}
+                onChange={handleInputChange}
+                className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm sm:text-sm"
+              />
+            </div>
+          </div>
 
           <div className="col-span-2 flex flex-row w-full gap-4">
             {/* Mode of Payment */}
@@ -677,7 +778,6 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                 onChange={handleInputChange}
                 className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               >
-                <option value="">Select payment mode</option>
                 <option value="Cash">Cash</option>
                 <option value="Credit Card">Credit Card</option>
                 <option value="Debit Card">Debit Card</option>
@@ -703,8 +803,21 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
             </div>
           </div>
 
-          {/* Review On */}
           <div className="col-span-2 flex flex-row w-full gap-4">
+            {/* Amount Due */}
+            <div className="w-1/2">
+              <label htmlFor="amountDue" className="block text-sm font-medium text-gray-700 mb-1">
+                Amount Due
+              </label>
+              <input
+                type="number"
+                id="amountDue"
+                name="amountDue"
+                value={formData.amountDue || 0}
+                readOnly
+                className="block w-full py-2 px-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm sm:text-sm"
+              />
+            </div>
             <div className="w-1/2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Review On</label>
               <input
@@ -715,33 +828,11 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-
-            {/* Operated By */}
-            <div className="w-1/2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Operated By *</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  name="operatedBy"
-                  id="operatedBy"
-                  list="operatedByList"
-                  value={formData.operatedBy || ''}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <datalist className="bg-white" id="operatedByList">
-                  {doctorOptions.map((option, index) => (
-                    <option className="bg-white text-black" key={index} value={option} />
-                  ))}
-                </datalist>
-              </div>
-            </div>
           </div>
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end space-x-2 mt-4">
+        <div className="flex justify-end space-x-2 mt-12">
           <button
             type="button"
             className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
@@ -768,7 +859,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                 : 'bg-red-50 text-red-800'
             }`}
           >
-            {submitMessage.message}
+            {submitMessage?.message}
           </div>
         )}
       </form>

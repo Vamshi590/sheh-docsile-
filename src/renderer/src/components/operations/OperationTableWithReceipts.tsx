@@ -39,7 +39,6 @@ const OperationTableWithReceipts: React.FC<OperationTableWithReceiptsProps> = ({
   onEditOperation,
   onDeleteOperation
 }) => {
-
   const [selectedOperation, setSelectedOperation] = useState<Operation | null>(null)
   // single receipt type for operations
   const receiptRef = useRef<HTMLDivElement>(null)
