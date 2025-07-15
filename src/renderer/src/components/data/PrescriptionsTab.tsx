@@ -327,7 +327,31 @@ const PrescriptionsTab: React.FC = () => {
       )}
 
       {/* Prescriptions table */}
-      <div className="shadow-md rounded-lg overflow-x-auto">
+      <div
+        className="shadow-md rounded-lg overflow-x-auto"
+        style={{
+          overflowX: 'auto',
+          /* Custom scrollbar styling */
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#cbd5e0 #f9fafb'
+        }}
+      >
+        <style>
+          {`
+          /* Custom scrollbar for WebKit browsers (Chrome, Safari) */
+          div::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+          }
+          div::-webkit-scrollbar-track {
+            background: #f9fafb;
+          }
+          div::-webkit-scrollbar-thumb {
+            background-color: #cbd5e0;
+            border-radius: 6px;
+          }
+          `}
+        </style>
         <table className="min-w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed' }}>
           <thead className="bg-gray-50">
             <tr>

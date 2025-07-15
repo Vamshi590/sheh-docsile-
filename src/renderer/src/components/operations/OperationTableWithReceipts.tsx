@@ -140,7 +140,31 @@ const OperationTableWithReceipts: React.FC<OperationTableWithReceiptsProps> = ({
   return (
     <div>
       {/* Operations Table */}
-      <div className="overflow-x-auto mb-6">
+      <div
+        className="overflow-x-auto mb-6"
+        style={{
+          overflowX: 'auto',
+          /* Custom scrollbar styling */
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#cbd5e0 #f9fafb'
+        }}
+      >
+        <style>
+          {`
+          /* Custom scrollbar for WebKit browsers (Chrome, Safari) */
+          div::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+          }
+          div::-webkit-scrollbar-track {
+            background: #f9fafb;
+          }
+          div::-webkit-scrollbar-thumb {
+            background-color: #cbd5e0;
+            border-radius: 6px;
+          }
+          `}
+        </style>
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

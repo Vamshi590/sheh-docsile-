@@ -116,91 +116,102 @@ export default function HospitalReceipt({
           </div>
         </div>
 
+        <h2 className="text-sm text-center font-bold  py-1 px-2 mb-2 ">PRESCRIPTION</h2>
+
         {/* Patient Information Section */}
         <div className="pb-3 mb-4 border-b border-black">
           <h3 className="text-xs font-bold mb-3">PATIENT INFORMATION</h3>
-          <div className="text-[11px]">
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="font-bold w-24 py-1">PATIENT ID</td>
-                  <td className="w-32 py-1">{patientData.patientId}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">DATE</td>
-                  <td className="py-1">{patientData.date}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">PATIENT NAME</td>
-                  <td className="w-32 py-1">{patientData.patientName}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">GENDER</td>
-                  <td className="py-1">{patientData.gender}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">GUARDIAN NAME</td>
-                  <td className="w-32 py-1">{patientData.guardianName || ''}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">AGE</td>
-                  <td className="py-1">{patientData.age}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">ADDRESS</td>
-                  <td className="w-32 py-1">{patientData.address}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">MOBILE</td>
-                  <td className="py-1">{patientData.mobile}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">DOCTOR NAME</td>
-                  <td className="w-32 py-1">{patientData.doctorName}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">DEPT.</td>
-                  <td className="py-1">{patientData.department}</td>
-                </tr>
-              </tbody>
-            </table>
+          {/* grid-based layout */}
+          <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
+            {/* Patient ID */}
+            <div>
+              <div className="font-bold">PATIENT ID</div>
+              <div>{patientData.patientId}</div>
+            </div>
+            {/* Date */}
+            <div>
+              <div className="font-bold">DATE</div>
+              <div>{patientData.date}</div>
+            </div>
+            {/* Patient Name */}
+            <div>
+              <div className="font-bold">PATIENT NAME</div>
+              <div>{patientData.patientName}</div>
+            </div>
+            {/* Gender */}
+            <div>
+              <div className="font-bold">GENDER</div>
+              <div>{patientData.gender}</div>
+            </div>
+            {/* Guardian Name */}
+            <div>
+              <div className="font-bold">GUARDIAN NAME</div>
+              <div>{patientData.guardianName || ''}</div>
+            </div>
+            {/* Age */}
+            <div>
+              <div className="font-bold">AGE</div>
+              <div>{patientData.age}</div>
+            </div>
+            {/* Address */}
+            <div>
+              <div className="font-bold">ADDRESS</div>
+              <div>{patientData.address}</div>
+            </div>
+            {/* Mobile */}
+            <div>
+              <div className="font-bold">MOBILE</div>
+              <div>{patientData.mobile}</div>
+            </div>
+            {/* Doctor Name */}
+            <div>
+              <div className="font-bold">DOCTOR NAME</div>
+              <div>{patientData.doctorName}</div>
+            </div>
+            {/* Department */}
+            <div>
+              <div className="font-bold">DEPT.</div>
+              <div>{patientData.department}</div>
+            </div>
           </div>
         </div>
 
-        {/* Combined Vitals and History Section */}
         <div className="pb-3 mb-4 border-b border-black">
           <h3 className="text-xs font-bold mb-3">VITALS AND HISTORY</h3>
-          <div className="text-[11px]">
-            <table className="w-full">
-              <tbody>
-                {/* Vitals Row */}
-                <tr>
-                  <td className="font-bold w-16 py-1">TEMP.</td>
-                  <td className="w-20 py-1">{vitalsData.temperature || ''}</td>
-                  <td className="font-bold w-12 py-1">P.R.</td>
-                  <td className="w-20 py-1">{vitalsData.pulseRate || ''}</td>
-                  <td className="font-bold w-16 py-1">SPO2</td>
-                  <td className="w-20 py-1">{vitalsData.spo2 || ''}</td>
-                </tr>
-                {/* Medical History Rows */}
-                <tr>
-                  <td className="font-bold w-36 py-1">PRESENT COMPLAINT</td>
-                  <td className="py-1" colSpan={5}>
-                    {medicalHistoryData.presentComplaint || ''}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-36 py-1">PREVIOUS HISTORY</td>
-                  <td className="py-1" colSpan={5}>
-                    {medicalHistoryData.previousHistory || ''}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-36 py-1">OTHERS</td>
-                  <td className="py-1" colSpan={5}>
-                    {medicalHistoryData.others || ''}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          {/* grid-based layout */}
+          <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
+            {/* Patient ID */}
+            <div>
+              <div className="font-bold">TEMP.</div>
+              <div>{vitalsData.temperature || ''}</div>
+            </div>
+            {/* Date */}
+            <div>
+              <div className="font-bold">P.R.</div>
+              <div>{vitalsData.pulseRate || ''}</div>
+            </div>
+            {/* Patient Name */}
+            <div>
+              <div className="font-bold">SPO2</div>
+              <div>{vitalsData.spo2 || ''}</div>
+            </div>
+            {/* Mobile */}
+            <div>
+              <div className="font-bold">Present Complaint</div>
+              <div>{medicalHistoryData.presentComplaint || ''}</div>
+            </div>
+            {/* Doctor Name */}
+            <div>
+              <div className="font-bold">Previous History</div>
+              <div>{medicalHistoryData.previousHistory || ''}</div>
+            </div>
+            {/* Department */}
+            <div>
+              <div className="font-bold">Others</div>
+              <div>{medicalHistoryData.others || '-'}</div>
+            </div>
           </div>
         </div>
-
         {/* Prescription Section */}
         {prescriptionData.length > 0 && (
           <div className="pb-3 mb-4">
@@ -231,44 +242,32 @@ export default function HospitalReceipt({
             </table>
           </div>
         )}
-
-        {/* Advice Section */}
-        {(typeof advise === 'string' && advise) || (Array.isArray(advise) && advise.length > 0) ? (
-          <div className="pb-3 mb-4">
-            <div className="text-[11px]">
-              <table className="w-full">
-                <tbody>
+        <div className="flex justify-between">
+          {/* Advice & Review Section */}
+          {((typeof advise === 'string' && advise) ||
+            (Array.isArray(advise) && advise.length > 0)) && (
+            <div className="pb-3 mb-16">
+              <div className="text-[11px] grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Advice block */}
+                <div>
+                  <div className="font-bold">ADVISE</div>
                   {typeof advise === 'string' ? (
-                    <tr>
-                      <td className="font-bold w-20 py-1">ADVISE :</td>
-                      <td className="py-1">{advise}</td>
-                    </tr>
+                    <div>{advise}</div>
                   ) : (
-                    Array.isArray(advise) &&
-                    advise.map((item, index) => (
-                      <tr key={index}>
-                        <td className="font-bold w-20 py-1">{index === 0 ? 'ADVISE : ' : ''}</td>
-                        <td className="py-1">{item}</td>
-                      </tr>
-                    ))
+                    <ul className="list-disc ml-4">
+                      {Array.isArray(advise) &&
+                        advise.map((item, idx) => <li key={idx}>{item}</li>)}
+                    </ul>
                   )}
-                </tbody>
-              </table>
+                </div>
+              </div>
             </div>
-          </div>
-        ) : null}
-
-        {/* Review Date Section */}
-        <div className="pb-3 mb-16">
+          )}
           <div className="text-[11px]">
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="font-bold w-28 py-1">REVIEW DATE :</td>
-                  <td className="py-1">{reviewDate}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div>
+              <div className="font-bold">REVIEW DATE</div>
+              <div>{reviewDate}</div>
+            </div>
           </div>
         </div>
       </div>

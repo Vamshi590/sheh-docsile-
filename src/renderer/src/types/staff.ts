@@ -19,7 +19,19 @@ export interface StaffUser {
   reports: boolean
   duesFollowUp: boolean
   data: boolean
-
+  permissions?: {
+    patients?: boolean
+    prescriptions?: boolean
+    medicines?: boolean
+    opticals?: boolean
+    receipts?: boolean
+    analytics?: boolean
+    staff?: boolean // Only admins should have this set to true
+    operations?: boolean
+    reports?: boolean
+    duesFollowUp?: boolean
+    data?: boolean
+  }
   isAdmin: boolean // Quick check for admin status
   createdAt: string
   updatedAt: string

@@ -118,102 +118,103 @@ export default function BillingReceipt({
           </div>
         </div>
 
+        <h2 className="text-sm text-center font-bold  py-1 px-2 mb-2 ">BILLING RECEIPT</h2>
+
         {/* Patient Information Section */}
         <div className="pb-3 mb-4 border-b border-black">
           <h3 className="text-xs font-bold mb-3">PATIENT INFORMATION</h3>
-          <div className="text-[11px]">
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="font-bold w-24 py-1">BILL NUMBER</td>
-                  <td className="w-32 py-1">{patientData.billNumber}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">DATE</td>
-                  <td className="py-1">{patientData.date}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">PATIENT ID</td>
-                  <td className="w-32 py-1">{patientData.patientId}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">GENDER</td>
-                  <td className="py-1">{patientData.gender}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">PATIENT NAME</td>
-                  <td className="w-32 py-1">{patientData.patientName}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">AGE</td>
-                  <td className="py-1">{patientData.age}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">GUARDIAN NAME</td>
-                  <td className="w-32 py-1">{patientData.guardianName || ''}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">MOBILE</td>
-                  <td className="py-1">{patientData.mobile}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">ADDRESS</td>
-                  <td className="w-32 py-1">{patientData.address}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">DEPT.</td>
-                  <td className="py-1">{patientData.department}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">DOCTOR NAME</td>
-                  <td className="w-32 py-1">{patientData.doctorName}</td>
-                  <td className="w-32"></td>
-                  <td className="w-16 py-1"></td>
-                  <td className="py-1"></td>
-                </tr>
-              </tbody>
-            </table>
+          {/* grid-based layout */}
+          <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
+            {/* Patient ID */}
+            <div>
+              <div className="font-bold">PATIENT ID</div>
+              <div>{patientData.patientId}</div>
+            </div>
+            {/* Date */}
+            <div>
+              <div className="font-bold">DATE</div>
+              <div>{patientData.date}</div>
+            </div>
+            {/* Patient Name */}
+            <div>
+              <div className="font-bold">PATIENT NAME</div>
+              <div>{patientData.patientName}</div>
+            </div>
+            {/* Gender */}
+            <div>
+              <div className="font-bold">GENDER</div>
+              <div>{patientData.gender}</div>
+            </div>
+            {/* Guardian Name */}
+            <div>
+              <div className="font-bold">GUARDIAN NAME</div>
+              <div>{patientData.guardianName || ''}</div>
+            </div>
+            {/* Age */}
+            <div>
+              <div className="font-bold">AGE</div>
+              <div>{patientData.age}</div>
+            </div>
+            {/* Address */}
+            <div>
+              <div className="font-bold">ADDRESS</div>
+              <div>{patientData.address}</div>
+            </div>
+            {/* Mobile */}
+            <div>
+              <div className="font-bold">MOBILE</div>
+              <div>{patientData.mobile}</div>
+            </div>
+            {/* Doctor Name */}
+            <div>
+              <div className="font-bold">DOCTOR NAME</div>
+              <div>{patientData.doctorName}</div>
+            </div>
+            {/* Department */}
+            <div>
+              <div className="font-bold">DEPT.</div>
+              <div>{patientData.department}</div>
+            </div>
           </div>
         </div>
 
         {/* Medical Information Section */}
         <div className="pb-3 mb-4 border-b border-black">
           <h3 className="text-xs font-bold mb-3">MEDICAL INFORMATION</h3>
-          <div className="text-[11px]">
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="font-bold w-24 py-1">DATE OF ADMIT</td>
-                  <td className="w-32 py-1">{patientData.dateOfAdmit || ''}</td>
-                  <td className="w-32"></td>
-                  <td className="font-bold w-16 py-1">DATE OF DISCHARGE</td>
-                  <td className="py-1 pl-4">{patientData.dateOfDischarge || ''}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">DATE OF OPERATION</td>
-                  <td className="w-32 py-1">{patientData.dateOfOperation || ''}</td>
-                  <td className="w-32"></td>
-                  <td className="w-16 py-1"></td>
-                  <td className="py-1"></td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-24 py-1">DIAGNOSIS</td>
-                  <td className="py-1" colSpan={4}>
-                    {diagnosis}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-36 py-1">OPERATION/PROCEDURE</td>
-                  <td className="py-1" colSpan={4}>
-                    {operationProcedure}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="font-bold w-36 py-1">OPERATION DETAILS</td>
-                  <td className="py-1" colSpan={4}>
-                    {operationDetails}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          {/* grid-based layout */}
+          <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
+            {/* Patient ID */}
+            <div>
+              <div className="font-bold">DATE OF ADMISSION</div>
+              <div>{patientData.dateOfAdmit}</div>
+            </div>
+            {/* Date */}
+            <div>
+              <div className="font-bold">DATE OF DISCHARGE</div>
+              <div>{patientData.dateOfDischarge}</div>
+            </div>
+            {/* Patient Name */}
+            <div>
+              <div className="font-bold">DATE OF OPERATION</div>
+              <div>{patientData.dateOfOperation}</div>
+            </div>
+            {/* Gender */}
+            <div>
+              <div className="font-bold">DIAGNOSIS</div>
+              <div>{diagnosis}</div>
+            </div>
+            {/* Guardian Name */}
+            <div>
+              <div className="font-bold">OPERATION PROCEDURE</div>
+              <div>{operationProcedure}</div>
+            </div>
+            {/* Age */}
+            <div>
+              <div className="font-bold">OPERATION DETAILS</div>
+              <div>{operationDetails}</div>
+            </div>
           </div>
         </div>
-
         {/* Billing Table Section */}
         <div className="pb-3 mb-4">
           <table className="w-full border-collapse text-[11px]">
