@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import MedicineForm from '../components/medicines/MedicineForm'
 import MedicineTable from '../components/medicines/MedicineTable'
 import MedicineEditModal from '../components/medicines/MedicineEditModal'
@@ -21,6 +21,8 @@ interface MedicineDispenseRecord {
   medicineName: string
   batchNumber: string
   quantity: number
+  price: number
+  totalAmount: number
   dispensedDate: string
   patientName: string
   patientId?: string
@@ -46,16 +48,29 @@ const Medicines: React.FC = () => {
   const [loadingRecords, setLoadingRecords] = useState(false)
   const [recordsError, setRecordsError] = useState('')
 
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(10)
+  const [totalCount, setTotalCount] = useState(0)
+
   // Dispense form state
   const [showDispenseForm, setShowDispenseForm] = useState(false)
   const [patientId, setPatientId] = useState('')
   const [patientName, setPatientName] = useState('')
   const [dispensedBy, setDispensedBy] = useState('')
-  const [totalAmount, setTotalAmount] = useState(0)
   const [selectedMedicines, setSelectedMedicines] = useState<
     { id: string; name: string; quantity: number; price: number }[]
   >([])
+  const [totalAmount, setTotalAmount] = useState(0)
   const [loadingPatient, setLoadingPatient] = useState(false)
+
+  // Function to calculate total amount
+  const calculateTotalAmount = useCallback((): void => {
+    const total = selectedMedicines.reduce((sum, medicine) => {
+      return sum + medicine.price * medicine.quantity
+    }, 0)
+    setTotalAmount(total)
+  }, [selectedMedicines])
 
   // Remove this duplicate definition as filteredMedicines is defined below
 
@@ -81,12 +96,53 @@ const Medicines: React.FC = () => {
     fetchMedicines()
   }, [])
 
+  // Function to fetch medicine dispensing records with pagination
+  const fetchDispenseRecords = useCallback(
+    async (page = currentPage) => {
+      try {
+        setLoadingRecords(true)
+        // Use type assertion for API calls with more specific types
+        const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
+        const response = await api.getMedicineDispenseRecords(page, pageSize)
+
+        // The response now includes data, totalCount, page, and pageSize
+        if (response && typeof response === 'object' && 'data' in response) {
+          const { data, totalCount: total } = response as {
+            data: MedicineDispenseRecord[]
+            totalCount: number
+            page: number
+            pageSize: number
+          }
+          setDispenseRecords(data)
+          setTotalCount(total)
+          setCurrentPage(page)
+          setRecordsError('')
+        } else {
+          // Fallback for unexpected response format
+          setDispenseRecords(response as MedicineDispenseRecord[])
+          setRecordsError('')
+        }
+      } catch (err) {
+        console.error('Error loading dispensing records:', err)
+        setRecordsError('Failed to load dispensing records')
+      } finally {
+        setLoadingRecords(false)
+      }
+    },
+    [currentPage, pageSize]
+  )
+
   // Load dispensing records when activeTab changes to dispensing-history
   useEffect(() => {
     if (activeTab === 'dispensing-history') {
       fetchDispenseRecords()
     }
-  }, [activeTab])
+  }, [activeTab, fetchDispenseRecords])
+
+  // Recalculate total amount whenever selectedMedicines changes
+  useEffect(() => {
+    calculateTotalAmount()
+  }, [calculateTotalAmount])
 
   // Function to handle adding a new medicine
   const handleAddMedicine = async (medicine: Omit<Medicine, 'id'>): Promise<void> => {
@@ -238,12 +294,18 @@ const Medicines: React.FC = () => {
       // Use type assertion for API calls with more specific types
       const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
 
+      // Calculate total amount
+      const price = medicineData.price || 0
+      const totalAmount = price * medicineData.quantity
+
       // Call API to dispense medicine
       const result = await api.dispenseMedicine(
         medicineData.id,
         medicineData.quantity,
-        medicineData.name || '',
-        medicineData.patientId || ''
+        medicineData.dispensedBy || '',
+        medicineData.patientId || '',
+        price,
+        totalAmount
       )
 
       // Update medicine in state with new quantity
@@ -343,13 +405,7 @@ const Medicines: React.FC = () => {
     calculateTotalAmount()
   }
 
-  // Function to calculate total amount
-  const calculateTotalAmount = (): void => {
-    const total = selectedMedicines.reduce((sum, medicine) => {
-      return sum + medicine.price * medicine.quantity
-    }, 0)
-    setTotalAmount(total)
-  }
+  // This function is now defined above using useCallback
 
   // Function to handle save dispense
   const handleSaveDispense = async (shouldPrint = false): Promise<void> => {
@@ -364,7 +420,8 @@ const Medicines: React.FC = () => {
         await handleDispenseMedicine({
           ...medicine,
           patientId,
-          dispensedBy
+          dispensedBy,
+          price: medicine.price
         })
       }
 
@@ -416,22 +473,13 @@ const Medicines: React.FC = () => {
     }
   }
 
-  // Function to fetch medicine dispensing records
-  const fetchDispenseRecords = async (): Promise<void> => {
-    try {
-      setLoadingRecords(true)
-      // Use type assertion for API calls with more specific types
-      const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
-      const data = await api.getMedicineDispenseRecords()
-      setDispenseRecords(data as MedicineDispenseRecord[])
-      setRecordsError('')
-    } catch (err) {
-      console.error('Error loading dispensing records:', err)
-      setRecordsError('Failed to load dispensing records')
-    } finally {
-      setLoadingRecords(false)
-    }
-  }
+  // Handle page change
+  const handlePageChange = useCallback(
+    (page: number): void => {
+      fetchDispenseRecords(page)
+    },
+    [fetchDispenseRecords]
+  )
 
   // Filter medicines based on search term and status filter
   const filteredMedicines = medicines.filter((medicine) => {
@@ -1069,6 +1117,10 @@ const Medicines: React.FC = () => {
                       records={dispenseRecords}
                       loading={loadingRecords}
                       error={recordsError}
+                      onPageChange={handlePageChange}
+                      totalCount={totalCount}
+                      currentPage={currentPage}
+                      pageSize={pageSize}
                     />
                   </div>
                 )

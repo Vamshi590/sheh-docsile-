@@ -137,13 +137,29 @@ const api = {
     ipcRenderer.invoke('getMedicinesByStatus', status),
 
   // Medicine Dispense Management
-  getMedicineDispenseRecords: () => ipcRenderer.invoke('getMedicineDispenseRecords'),
+  getMedicineDispenseRecords: (page?: number, pageSize?: number) =>
+    ipcRenderer.invoke('getMedicineDispenseRecords', page, pageSize),
   getMedicineDispenseRecordsByPatient: (patientId: string) =>
     ipcRenderer.invoke('getMedicineDispenseRecordsByPatient', patientId),
   getMedicineDispenseRecordsByMedicine: (medicineId: string) =>
     ipcRenderer.invoke('getMedicineDispenseRecordsByMedicine', medicineId),
-  dispenseMedicine: (id: string, quantity: number, patientName: string, patientId?: string) =>
-    ipcRenderer.invoke('dispenseMedicine', id, quantity, patientName, patientId),
+  dispenseMedicine: (
+    id: string,
+    quantity: number,
+    dispensedBy: string,
+    patientId: string,
+    price: number,
+    totalAmount: number
+  ) =>
+    ipcRenderer.invoke(
+      'dispenseMedicine',
+      id,
+      quantity,
+      dispensedBy,
+      patientId,
+      price,
+      totalAmount
+    ),
 
   // Opticals Management
   getOpticalItems: () => ipcRenderer.invoke('getOpticalItems'),

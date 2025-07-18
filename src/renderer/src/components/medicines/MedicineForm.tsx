@@ -71,7 +71,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
       }
     }
 
-    if (!formData.batchNumber.trim()) {
+    if (!formData.batchNumber || (typeof formData.batchNumber === 'string' && !formData.batchNumber.trim())) {
       newErrors.batchNumber = 'Batch number is required'
     }
 

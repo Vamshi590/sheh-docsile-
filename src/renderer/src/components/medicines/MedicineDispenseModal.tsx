@@ -18,6 +18,7 @@ interface MedicineDispenseModalProps {
     id: string
     quantity: number
     name?: string
+    price?: number
     patientId?: string
     dispensedBy?: string
   }) => Promise<void>
@@ -88,6 +89,7 @@ const MedicineDispenseModal: React.FC<MedicineDispenseModalProps> = ({
         id: medicine.id,
         quantity,
         name: medicine.name,
+        price: medicine.price,
         patientId: patientId || undefined,
         dispensedBy: patientName
       })
