@@ -46,6 +46,17 @@ const Medicines: React.FC = () => {
   const [loadingRecords, setLoadingRecords] = useState(false)
   const [recordsError, setRecordsError] = useState('')
 
+  // Dispense form state
+  const [showDispenseForm, setShowDispenseForm] = useState(false)
+  const [patientId, setPatientId] = useState('')
+  const [patientName, setPatientName] = useState('')
+  const [dispensedBy, setDispensedBy] = useState('')
+  const [totalAmount, setTotalAmount] = useState(0)
+  const [selectedMedicines, setSelectedMedicines] = useState<
+    { id: string; name: string; quantity: number; price: number }[]
+  >([])
+  const [loadingPatient, setLoadingPatient] = useState(false)
+
   // Remove this duplicate definition as filteredMedicines is defined below
 
   // Load medicines on component mount
@@ -214,23 +225,30 @@ const Medicines: React.FC = () => {
   }
 
   // Function to handle dispensing medicine
-  const handleDispenseMedicine = async (
-    id: string,
-    quantity: number,
-    patientName?: string,
+  const handleDispenseMedicine = async (medicineData: {
+    id: string
+    quantity: number
     patientId?: string
-  ): Promise<void> => {
+    dispensedBy?: string
+    name?: string
+    price?: number
+  }): Promise<void> => {
     try {
       setLoading(true)
       // Use type assertion for API calls with more specific types
       const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
 
       // Call API to dispense medicine
-      const result = await api.dispenseMedicine(id, quantity, patientName, patientId)
+      const result = await api.dispenseMedicine(
+        medicineData.id,
+        medicineData.quantity,
+        medicineData.name || '',
+        medicineData.patientId || ''
+      )
 
       // Update medicine in state with new quantity
       const updatedMedicine = result as Medicine
-      setMedicines(medicines.map((m) => (m.id === id ? updatedMedicine : m)))
+      setMedicines(medicines.map((m) => (m.id === medicineData.id ? updatedMedicine : m)))
 
       // Refresh dispensing records
       fetchDispenseRecords()
@@ -243,6 +261,158 @@ const Medicines: React.FC = () => {
       setLoading(false)
       setIsDispenseModalOpen(false)
       setDispensingMedicine(null)
+    }
+  }
+
+  // Function to handle patient search by ID
+  const handlePatientSearch = async (): Promise<void> => {
+    if (!patientId.trim()) return
+
+    try {
+      setLoadingPatient(true)
+      // Use type assertion for API calls with more specific types
+      const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
+      const patients = (await api.getPatients()) as { patientId: string; name: string }[]
+      console.log(patients)
+
+      const patient = patients.find((p) => p.patientId == patientId)
+      if (patient) {
+        setPatientName(patient.name || '')
+      } else {
+        setPatientName('')
+        alert('Patient not found')
+      }
+    } catch (err) {
+      console.error('Error searching for patient:', err)
+      alert('Failed to search for patient')
+    } finally {
+      setLoadingPatient(false)
+    }
+  }
+
+  // Function to add medicine to dispense list
+  const addMedicineToDispense = (medicine: Medicine, quantity: number): void => {
+    if (quantity <= 0) return
+
+    // Check if medicine is already in the list
+    const existingIndex = selectedMedicines.findIndex((m) => m.id === medicine.id)
+
+    if (existingIndex >= 0) {
+      // Update quantity if medicine already exists in the list
+      const updatedMedicines = [...selectedMedicines]
+      updatedMedicines[existingIndex].quantity = quantity
+      setSelectedMedicines(updatedMedicines)
+    } else {
+      // Add new medicine to the list
+      setSelectedMedicines([
+        ...selectedMedicines,
+        {
+          id: medicine.id,
+          name: medicine.name,
+          quantity,
+          price: medicine.price
+        }
+      ])
+    }
+
+    // Update the available quantity in the medicines list
+    setMedicines(
+      medicines.map((m) => {
+        if (m.id === medicine.id) {
+          // Calculate the new quantity
+          const newQuantity = m.quantity - quantity
+          // Return updated medicine with reduced quantity
+          return {
+            ...m,
+            quantity: newQuantity,
+            // If quantity becomes 0, update status to out_of_stock
+            status: newQuantity <= 0 ? 'out_of_stock' : m.status
+          }
+        }
+        return m
+      })
+    )
+
+    // Update total amount
+    calculateTotalAmount()
+  }
+
+  // Function to remove medicine from dispense list
+  const removeMedicineFromDispense = (id: string): void => {
+    setSelectedMedicines(selectedMedicines.filter((m) => m.id !== id))
+    calculateTotalAmount()
+  }
+
+  // Function to calculate total amount
+  const calculateTotalAmount = (): void => {
+    const total = selectedMedicines.reduce((sum, medicine) => {
+      return sum + medicine.price * medicine.quantity
+    }, 0)
+    setTotalAmount(total)
+  }
+
+  // Function to handle save dispense
+  const handleSaveDispense = async (shouldPrint = false): Promise<void> => {
+    try {
+      if (!patientId || selectedMedicines.length === 0) {
+        alert('Please enter patient ID and add medicines to dispense')
+        return
+      }
+
+      // Save each medicine dispense record
+      for (const medicine of selectedMedicines) {
+        await handleDispenseMedicine({
+          ...medicine,
+          patientId,
+          dispensedBy
+        })
+      }
+
+      // Reset form
+      setPatientId('')
+      setPatientName('')
+      setSelectedMedicines([])
+      setTotalAmount(0)
+      setShowDispenseForm(false)
+
+      // If print is requested, handle printing logic here
+      if (shouldPrint) {
+        // Implement printing logic
+        console.log('Printing dispense receipt')
+      }
+
+      alert('Medicines dispensed successfully')
+    } catch (err) {
+      console.error('Error dispensing medicines:', err)
+      alert('Failed to dispense medicines')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Function to toggle dispense form
+  const toggleDispenseForm = (): void => {
+    // Load current user from localStorage when opening the form
+    if (!showDispenseForm) {
+      try {
+        const currentUserStr = localStorage.getItem('currentUser')
+        if (currentUserStr) {
+          const currentUser = JSON.parse(currentUserStr)
+          setDispensedBy(currentUser.fullName || '')
+        }
+      } catch (err) {
+        console.error('Error loading current user:', err)
+      }
+    }
+
+    setShowDispenseForm(!showDispenseForm)
+
+    // Reset form when closing
+    if (showDispenseForm) {
+      setPatientId('')
+      setPatientName('')
+      setSelectedMedicines([])
+      setTotalAmount(0)
     }
   }
 
@@ -290,15 +460,15 @@ const Medicines: React.FC = () => {
             <p className="text-sm text-gray-500">Sri Harsha Eye Hospital</p>
           </div>
           <div className="flex items-center space-x-4 mt-4">
-            <div className="flex border-b border-gray-200">
+            <div className="flex cursor-pointer border-b border-gray-200">
               <button
-                className={`px-4 py-2 font-medium ${activeTab === 'inventory' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-4 py-2 font-medium ${activeTab === 'inventory' ? 'text-blue-600 border-b-2 cursor-pointer border-blue-600' : 'text-gray-500 hover:text-gray-700 cursor-pointer'}`}
                 onClick={() => setActiveTab('inventory')}
               >
                 Inventory
               </button>
               <button
-                className={`px-4 py-2 font-medium ${activeTab === 'dispensing-history' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-4 py-2 font-medium ${activeTab === 'dispensing-history' ? 'text-blue-600 border-b-2 cursor-pointer border-blue-600' : 'text-gray-500 hover:text-gray-700 cursor-pointer'}`}
                 onClick={() => setActiveTab('dispensing-history')}
               >
                 Dispensing History
@@ -472,33 +642,258 @@ const Medicines: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="flex w-full sm:w-auto">
-                  <input
-                    type="text"
-                    placeholder="Search medicines..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-grow"
-                  />
-                  <button
-                    onClick={handleSearch}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
+                <div className="flex items-center justify-center space-x-2">
+                  {/* Dispense Button */}
+                  <div className="ml-2">
+                    <button
+                      onClick={toggleDispenseForm}
+                      className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center"
                     >
-                      <path
-                        fillRule="evenodd"
-                        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-1"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path d="M11 17a1 1 0 001.447.894l4-2A1 1 0 0017 15V9.236a1 1 0 00-1.447-.894l-4 2a1 1 0 00-.553.894V17zM15.211 6.276a1 1 0 000-1.788l-4.764-2.382a1 1 0 00-.894 0L4.789 4.488a1 1 0 000 1.788l4.764 2.382a1 1 0 00.894 0l4.764-2.382zM4.447 8.342A1 1 0 003 9.236V15a1 1 0 00.553.894l4 2A1 1 0 009 17v-5.764a1 1 0 00-.553-.894l-4-2z" />
+                      </svg>
+                      Dispense
+                    </button>
+                  </div>
+
+                  <div className="flex w-full sm:w-auto">
+                    <input
+                      type="text"
+                      placeholder="Search medicines..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-grow"
+                    />
+                    <button
+                      onClick={handleSearch}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {/* Dispense Form */}
+              {showDispenseForm && (
+                <div className="mt-4 mb-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Dispense Medicines</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    {/* Patient ID */}
+                    <div>
+                      <label
+                        htmlFor="patientId"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Patient ID *
+                      </label>
+                      <div className="flex">
+                        <input
+                          type="text"
+                          id="patientId"
+                          value={patientId}
+                          onChange={(e) => setPatientId(e.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-grow"
+                          placeholder="Enter patient ID"
+                        />
+                        <button
+                          onClick={handlePatientSearch}
+                          disabled={loadingPatient}
+                          className="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
+                        >
+                          {loadingPatient ? (
+                            <svg
+                              className="animate-spin h-5 w-5"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                          ) : (
+                            'Search'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Patient Name */}
+                    <div>
+                      <label
+                        htmlFor="patientName"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Patient Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="patientName"
+                        value={patientName}
+                        readOnly
+                        className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                        placeholder="Auto-filled after patient search"
+                      />
+                    </div>
+
+                    {/* Dispensed By */}
+                    <div>
+                      <label
+                        htmlFor="dispensedBy"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Dispensed By
+                      </label>
+                      <input
+                        type="text"
+                        id="dispensedBy"
+                        value={dispensedBy}
+                        readOnly
+                        className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Selected Medicines */}
+                  <div className="mb-4">
+                    <h4 className="text-md font-medium text-gray-800 mb-2">Selected Medicines</h4>
+                    {selectedMedicines.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th
+                                scope="col"
+                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
+                                Name
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
+                                Quantity
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
+                                Price
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
+                                Total
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
+                                Action
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {selectedMedicines.map((medicine) => (
+                              <tr key={medicine.id}>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {medicine.name}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                  {medicine.quantity}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                  ₹{medicine.price.toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                  ₹{(medicine.price * medicine.quantity).toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                  <button
+                                    onClick={() => removeMedicineFromDispense(medicine.id)}
+                                    className="text-red-600 hover:text-red-900 focus:outline-none focus:underline"
+                                  >
+                                    Remove
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                            <tr className="bg-gray-50">
+                              <td
+                                colSpan={3}
+                                className="px-4 py-3 whitespace-nowrap text-sm font-medium text-right text-gray-900"
+                              >
+                                Total Amount:
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-900">
+                                ₹{totalAmount.toFixed(2)}
+                              </td>
+                              <td></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500 italic">
+                        No medicines selected. Add medicines from the table below.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => setShowDispenseForm(false)}
+                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleSaveDispense(false)}
+                      disabled={selectedMedicines.length === 0 || !patientId || !patientName}
+                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => handleSaveDispense(true)}
+                      disabled={selectedMedicines.length === 0 || !patientId || !patientName}
+                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-green-300"
+                    >
+                      Save & Print
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {loading && (
                 <div className="flex items-center justify-center py-10">
@@ -577,6 +972,8 @@ const Medicines: React.FC = () => {
                       onDelete={handleDeleteMedicine}
                       onUpdateStatus={handleUpdateStatus}
                       onDispense={openDispenseModal}
+                      onAddToDispense={addMedicineToDispense}
+                      showDispenseControls={showDispenseForm}
                     />
                   </div>
                 )

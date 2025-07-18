@@ -883,7 +883,7 @@ ipcMain.handle('getPrescriptions', async () => {
     const { data: prescriptions, error } = await supabase
       .from('prescriptions')
       .select('*')
-      .order('date', { ascending: false })
+      .order('DATE', { ascending: false })
 
     if (error) {
       throw new Error(`Supabase error: ${error.message}`)
@@ -924,7 +924,7 @@ ipcMain.handle('getTodaysPrescriptions', async () => {
     const { data: prescriptions, error } = await supabase
       .from('prescriptions')
       .select('*')
-      .eq('date', todayDate)
+      .eq('DATE', todayDate)
 
     if (error) {
       throw new Error(`Supabase error: ${error.message}`)
@@ -1264,6 +1264,47 @@ ipcMain.handle('searchPrescriptions', async (_, searchTerm) => {
 
 // Search patients by ID, name, or phone number
 ipcMain.handle('searchPatients', async (_, searchTerm) => {
+  // If search term is empty, return all patients
+  if (!searchTerm || searchTerm.trim() === '') {
+    try {
+      // Get all patients from Supabase
+      const { data: patients, error } = await supabase.from('patients').select('*')
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      return patients || []
+    } catch (supabaseError) {
+      console.error('Error getting patients from Supabase:', supabaseError)
+      // Fall back to Excel
+    }
+  }
+
+  // Search in Supabase using ilike for case-insensitive search
+  const searchTermLower = `%${searchTerm.toLowerCase()}%`
+
+  try {
+    const { data, error } = await supabase
+      .from('patients')
+      .select('*')
+      .or(
+        `patientId.ilike.${searchTermLower},` +
+          `name.ilike.${searchTermLower},` +
+          `phone.ilike.${searchTermLower}`
+      )
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`)
+    }
+
+    return data || []
+  } catch (supabaseError) {
+    console.error('Error searching patients in Supabase:', supabaseError)
+    // Fall back to local Excel search if Supabase fails
+  }
+
+  // Fallback to local Excel search
   try {
     if (!fs.existsSync(patientsFilePath)) {
       return []
@@ -1285,15 +1326,15 @@ ipcMain.handle('searchPatients', async (_, searchTerm) => {
       return patients
     }
 
-    const searchTermLower = searchTerm.toLowerCase()
+    const searchTermForComparison = searchTerm.toLowerCase()
     return patients.filter(
       (p) =>
-        (p.patientId && p.patientId.toString().toLowerCase().includes(searchTermLower)) ||
-        (p.name && p.name.toString().toLowerCase().includes(searchTermLower)) ||
-        (p.phone && p.phone.toString().toLowerCase().includes(searchTermLower))
+        (p.patientId && p.patientId.toString().toLowerCase().includes(searchTermForComparison)) ||
+        (p.name && p.name.toString().toLowerCase().includes(searchTermForComparison)) ||
+        (p.phone && p.phone.toString().toLowerCase().includes(searchTermForComparison))
     )
   } catch (error) {
-    console.error('Error searching patients:', error)
+    console.error('Error searching patients in Excel:', error)
     return []
   }
 })
@@ -1301,38 +1342,75 @@ ipcMain.handle('searchPatients', async (_, searchTerm) => {
 // Get all operations
 ipcMain.handle('getOperations', async () => {
   try {
-    if (!fs.existsSync(operationsFilePath)) {
-      return []
+    // Fetch all operations from Supabase
+    const { data: operations, error } = await supabase
+      .from('operations')
+      .select('*')
+      .order('dateOfAdmit', { ascending: false })
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`)
     }
 
-    const workbook = XLSX.readFile(operationsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
+    return operations || []
+  } catch (supabaseError) {
+    console.error('Error getting operations from Supabase:', supabaseError)
 
-    return XLSX.utils.sheet_to_json(worksheet)
-  } catch (error) {
-    console.error('Error getting operations:', error)
-    return []
+    // Fallback to local Excel file if Supabase fails
+    try {
+      if (!fs.existsSync(operationsFilePath)) {
+        return []
+      }
+
+      const workbook = XLSX.readFile(operationsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+
+      console.log('Falling back to local Excel file for operations data')
+      return XLSX.utils.sheet_to_json(worksheet)
+    } catch (excelError) {
+      console.error('Error reading from Excel file:', excelError)
+      return []
+    }
   }
 })
 
 // Get operations for a specific patient
 ipcMain.handle('getPatientOperations', async (_, patientId) => {
   try {
-    if (!fs.existsSync(operationsFilePath)) {
-      return []
+    // Fetch patient operations from Supabase
+    const { data: operations, error } = await supabase
+      .from('operations')
+      .select('*')
+      .eq('patientId', patientId)
+      .order('dateOfAdmit', { ascending: false })
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`)
     }
 
-    const workbook = XLSX.readFile(operationsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const operations = XLSX.utils.sheet_to_json(worksheet) as Array<{ patientId: string }>
+    return operations || []
+  } catch (supabaseError) {
+    console.error('Error getting patient operations from Supabase:', supabaseError)
 
-    // Filter operations for the specific patient
-    return operations.filter((operation) => operation.patientId === patientId)
-  } catch (error) {
-    console.error('Error getting patient operations:', error)
-    return []
+    // Fallback to local Excel file if Supabase fails
+    try {
+      if (!fs.existsSync(operationsFilePath)) {
+        return []
+      }
+
+      const workbook = XLSX.readFile(operationsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const operations = XLSX.utils.sheet_to_json(worksheet) as Array<{ patientId: string }>
+
+      // Filter operations for the specific patient
+      console.log('Falling back to local Excel file for patient operations data')
+      return operations.filter((operation) => operation.patientId === patientId)
+    } catch (excelError) {
+      console.error('Error reading from Excel file:', excelError)
+      return []
+    }
   }
 })
 
@@ -1342,6 +1420,50 @@ ipcMain.handle('addOperation', async (_, operation) => {
     // Generate a unique ID for the operation
     const operationWithId = { ...operation, id: uuidv4() }
 
+    // Insert operation into Supabase
+    try {
+      const { data, error } = await supabase.from('operations').insert([operationWithId]).select()
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log('Operation added to Supabase:', data)
+
+      // If Supabase insert was successful, also update local Excel file
+      try {
+        // Read existing operations
+        let operations: Array<{ id: string; [key: string]: unknown }> = []
+        if (fs.existsSync(operationsFilePath)) {
+          const workbook = XLSX.readFile(operationsFilePath)
+          const sheetName = workbook.SheetNames[0]
+          const worksheet = workbook.Sheets[sheetName]
+          operations = XLSX.utils.sheet_to_json(worksheet)
+        }
+
+        // Add the new operation
+        operations.push(operationWithId)
+
+        // Write back to Excel file
+        const newWorkbook = XLSX.utils.book_new()
+        const newWorksheet = XLSX.utils.json_to_sheet(operations)
+        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
+        XLSX.writeFile(newWorkbook, operationsFilePath)
+
+        console.log('Operation also added to Excel file')
+      } catch (excelError) {
+        console.error('Error updating Excel file:', excelError)
+        // Return Supabase data even if Excel update fails
+        return data[0]
+      }
+
+      return data[0]
+    } catch (supabaseError) {
+      console.error('Error adding operation to Supabase:', supabaseError)
+      // Fall back to Excel-only operation if Supabase fails
+    }
+
+    // Fallback to Excel-only add
     // Read existing operations
     let operations: Array<{ id: string; [key: string]: unknown }> = []
     if (fs.existsSync(operationsFilePath)) {
@@ -1360,6 +1482,7 @@ ipcMain.handle('addOperation', async (_, operation) => {
     XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
     XLSX.writeFile(newWorkbook, operationsFilePath)
 
+    console.log('Operation added to Excel file only (Supabase failed)')
     return operationWithId
   } catch (error) {
     console.error('Error adding operation:', error)
@@ -1370,6 +1493,65 @@ ipcMain.handle('addOperation', async (_, operation) => {
 // Update an existing operation
 ipcMain.handle('updateOperation', async (_, id, updatedOperation) => {
   try {
+    // Update operation in Supabase first
+    try {
+      const { data, error } = await supabase
+        .from('operations')
+        .update({ ...updatedOperation })
+        .eq('id', id)
+        .select()
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log('Operation updated in Supabase:', data)
+
+      // If Supabase update was successful, also update local Excel file
+      try {
+        // Read existing operations
+        if (!fs.existsSync(operationsFilePath)) {
+          // Return Supabase data if Excel file doesn't exist
+          return data[0]
+        }
+
+        const workbook = XLSX.readFile(operationsFilePath)
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const operations: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
+          worksheet
+        ) as Array<{ id: string; [key: string]: unknown }>
+
+        // Find and update the operation
+        const operationIndex = operations.findIndex((op) => op.id === id)
+
+        if (operationIndex === -1) {
+          // If operation not found in Excel, return Supabase data
+          return data[0]
+        }
+
+        operations[operationIndex] = { ...updatedOperation, id }
+
+        // Write back to Excel file
+        const newWorkbook = XLSX.utils.book_new()
+        const newWorksheet = XLSX.utils.json_to_sheet(operations)
+        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
+        XLSX.writeFile(newWorkbook, operationsFilePath)
+
+        console.log('Operation also updated in Excel file')
+      } catch (excelError) {
+        console.error('Error updating Excel file:', excelError)
+        // Return Supabase data even if Excel update fails
+        return data[0]
+      }
+
+      return data[0]
+    } catch (supabaseError) {
+      console.error('Error updating operation in Supabase:', supabaseError)
+      // Fall back to Excel-only update if Supabase fails
+    }
+
+    // Fallback to Excel-only update
     // Read existing operations
     if (!fs.existsSync(operationsFilePath)) {
       throw new Error('Operations file does not exist')
@@ -1397,6 +1579,7 @@ ipcMain.handle('updateOperation', async (_, id, updatedOperation) => {
     XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
     XLSX.writeFile(newWorkbook, operationsFilePath)
 
+    console.log('Operation updated in Excel file only (Supabase failed)')
     return operations[operationIndex]
   } catch (error) {
     console.error('Error updating operation:', error)
@@ -1407,6 +1590,61 @@ ipcMain.handle('updateOperation', async (_, id, updatedOperation) => {
 // Delete an operation
 ipcMain.handle('deleteOperation', async (_, id) => {
   try {
+    // Delete from Supabase first
+    try {
+      const { error } = await supabase.from('operations').delete().eq('id', id)
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log('Operation deleted from Supabase')
+
+      // Also delete from local Excel file
+      try {
+        // Read existing operations
+        if (!fs.existsSync(operationsFilePath)) {
+          return { success: true } // Return success if Excel file doesn't exist
+        }
+
+        const workbook = XLSX.readFile(operationsFilePath)
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        let operations: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
+          worksheet
+        ) as Array<{ id: string; [key: string]: unknown }>
+
+        // Find the operation to delete
+        const operationIndex = operations.findIndex((op) => op.id === id)
+
+        if (operationIndex === -1) {
+          // If operation not found in Excel, still return success
+          return { success: true }
+        }
+
+        // Remove the operation
+        operations = operations.filter((op) => op.id !== id)
+
+        // Write back to Excel file
+        const newWorkbook = XLSX.utils.book_new()
+        const newWorksheet = XLSX.utils.json_to_sheet(operations)
+        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
+        XLSX.writeFile(newWorkbook, operationsFilePath)
+
+        console.log('Operation also deleted from Excel file')
+      } catch (excelError) {
+        console.error('Error updating Excel file:', excelError)
+        // Return success even if Excel update fails
+        return { success: true }
+      }
+
+      return { success: true }
+    } catch (supabaseError) {
+      console.error('Error deleting operation from Supabase:', supabaseError)
+      // Fall back to Excel-only delete if Supabase fails
+    }
+
+    // Fallback to Excel-only delete
     // Read existing operations
     if (!fs.existsSync(operationsFilePath)) {
       throw new Error('Operations file does not exist')
@@ -1435,6 +1673,7 @@ ipcMain.handle('deleteOperation', async (_, id) => {
     XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
     XLSX.writeFile(newWorkbook, operationsFilePath)
 
+    console.log('Operation deleted from Excel file only (Supabase failed)')
     return { success: true }
   } catch (error) {
     console.error('Error deleting operation:', error)

@@ -110,6 +110,7 @@ const api = {
   deletePrescription: (id: string) => ipcRenderer.invoke('deletePrescription', id),
   searchPrescriptions: (searchTerm: string) =>
     ipcRenderer.invoke('searchPrescriptions', searchTerm),
+  getTodaysPrescriptions: () => ipcRenderer.invoke('getTodaysPrescriptions'),
 
   // Operations Management
   getOperations: () => ipcRenderer.invoke('getOperations'),

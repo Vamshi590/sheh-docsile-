@@ -106,67 +106,66 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
   ): Array<{ part: string; days: number; amount: number }> => {
     const list: Array<{ part: string; days: number; amount: number }> = []
     if (!op) return list
+
+    console.log('Building parts from fields:', op)
+
     for (let i = 1; i <= 10; i++) {
       const part = op[`part${i}` as keyof Operation] as unknown as string | undefined
       const days = op[`days${i}` as keyof Operation] as unknown as number | undefined
-      const amount = op[`amount${i}` as keyof Operation] as unknown as number | undefined
+      const amount = op[`amount${i}` as keyof Operation] as unknown as string | number | undefined
+
+      // Log each part field for debugging
+      console.log(`Part ${i}:`, { part, days, amount })
+
       if (part && part.trim() !== '') {
-        list.push({ part, days: days || 0, amount: amount || 0 })
+        // Convert amount to number if it's a string
+        const numericAmount = typeof amount === 'string' ? parseFloat(amount) || 0 : amount || 0
+        // Convert days to number if it's a string
+        const numericDays = typeof days === 'string' ? parseInt(days) || 0 : days || 0
+
+        list.push({ part, days: numericDays, amount: numericAmount })
       }
     }
+
+    console.log('Built parts list:', list)
     return list
   }
-  const [formData, setFormData] = useState<Partial<Operation>>({
-    patientId: patient.patientId,
-    patientName: patient.name,
-    dateOfAdmit: operation?.dateOfAdmit || new Date().toISOString().split('T')[0],
-    timeOfAdmit: operation?.timeOfAdmit || '',
-    dateOfOperation: operation?.dateOfOperation || new Date().toISOString().split('T')[0],
-    timeOfOperation: operation?.timeOfOperation || '',
-    dateOfDischarge: operation?.dateOfDischarge || '',
-    timeOfDischarge: operation?.timeOfDischarge || '',
-    operationDetails: operation?.operationDetails || '',
-    operationProcedure: operation?.operationProcedure || '',
-    provisionDiagnosis: operation?.provisionDiagnosis || '',
-    parts: operation?.parts || [{ part: '', days: 0, amount: 0 }],
-    part1: operation?.part1 || '',
-    amount1: operation?.amount1 || '',
-    days1: operation?.days1 || 0,
-    part2: operation?.part2 || '',
-    amount2: operation?.amount2 || '',
-    days2: operation?.days2 || 0,
-    part3: operation?.part3 || '',
-    amount3: operation?.amount3 || '',
-    days3: operation?.days3 || 0,
-    part4: operation?.part4 || '',
-    amount4: operation?.amount4 || '',
-    days4: operation?.days4 || 0,
-    part5: operation?.part5 || '',
-    amount5: operation?.amount5 || '',
-    days5: operation?.days5 || 0,
-    part6: operation?.part6 || '',
-    amount6: operation?.amount6 || '',
-    days6: operation?.days6 || 0,
-    part7: operation?.part7 || '',
-    amount7: operation?.amount7 || '',
-    days7: operation?.days7 || 0,
-    part8: operation?.part8 || '',
-    amount8: operation?.amount8 || '',
-    days8: operation?.days8 || 0,
-    part9: operation?.part9 || '',
-    amount9: operation?.amount9 || '',
-    days9: operation?.days9 || 0,
-    part10: operation?.part10 || '',
-    amount10: operation?.amount10 || '',
-    days10: operation?.days10 || 0,
-    totalAmount: operation?.totalAmount || 0,
-    modeOfPayment: operation?.modeOfPayment || 'Cash',
-    discount: operation?.discount || 0,
-    amountReceived: operation?.amountReceived || 0,
-    amountDue: operation?.amountDue || 0,
-    reviewOn: operation?.reviewOn || '',
-    operatedBy: operation?.operatedBy || 'Dr Srilatha ch',
-    id: operation?.id
+  const [formData, setFormData] = useState<Partial<Operation>>(() => {
+    // Initialize with patient data and default values
+    const initialData: Partial<Operation> = {
+      patientId: patient.patientId,
+      patientName: patient.name,
+      dateOfAdmit: operation?.dateOfAdmit || new Date().toISOString().split('T')[0],
+      timeOfAdmit: operation?.timeOfAdmit || '',
+      dateOfOperation: operation?.dateOfOperation || new Date().toISOString().split('T')[0],
+      timeOfOperation: operation?.timeOfOperation || '',
+      dateOfDischarge: operation?.dateOfDischarge || '',
+      timeOfDischarge: operation?.timeOfDischarge || '',
+      operationDetails: operation?.operationDetails || '',
+      operationProcedure: operation?.operationProcedure || '',
+      provisionDiagnosis: operation?.provisionDiagnosis || '',
+      totalAmount: operation?.totalAmount || 0,
+      modeOfPayment: operation?.modeOfPayment || 'Cash',
+      discount: operation?.discount || 0,
+      amountReceived: operation?.amountReceived || 0,
+      amountDue: operation?.amountDue || 0,
+      reviewOn: operation?.reviewOn || '',
+      operatedBy: operation?.operatedBy || 'Dr Srilatha ch',
+      id: operation?.id
+    }
+
+    // Add individual part fields for backward compatibility
+    for (let i = 1; i <= 10; i++) {
+      const partKey = `part${i}` as keyof Operation
+      const daysKey = `days${i}` as keyof Operation
+      const amountKey = `amount${i}` as keyof Operation
+
+      initialData[partKey] = operation?.[partKey] || ''
+      initialData[daysKey] = operation?.[daysKey] || 0
+      initialData[amountKey] = operation?.[amountKey] || ''
+    }
+
+    return initialData
   })
 
   console.log('operation', operation)
@@ -191,34 +190,45 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
   // State to track visible parts (for UI display)
   const [visibleParts, setVisibleParts] = useState<number>(() => {
     const count = operation?.parts?.length || buildPartsFromFields(operation).length || 1
-    return count
+    return Math.max(count, 1) // Ensure at least 1 part is visible
   })
 
   // Reinitialize form when the `operation` prop changes (e.g., editing an existing record)
   useEffect(() => {
     if (!operation) return
 
-    // Prepare parts array (ensure at least one entry)
-    const opParts =
-      operation.parts && operation.parts.length > 0
-        ? operation.parts
-        : buildPartsFromFields(operation)
+    // Build parts from individual fields (part1, part2, etc.)
+    const partsToUse = buildPartsFromFields(operation)
 
-    setParts(opParts)
-    setVisibleParts(opParts.length)
+    // Make sure we have at least one part entry
+    if (partsToUse.length === 0) {
+      partsToUse.push({ part: '', days: 0, amount: 0 })
+    }
+
+    // Update the parts state and visible parts count
+    setParts(partsToUse)
+    setVisibleParts(Math.max(partsToUse.length, 1))
 
     // Reset formData with latest operation values
     setFormData({
       ...operation,
-      parts: opParts,
       modeOfPayment: operation.modeOfPayment || 'Cash',
       operatedBy: operation.operatedBy || 'Dr Srilatha ch'
     })
+
+    // Log for debugging
+    console.log(
+      'Initialized parts from fields:',
+      partsToUse,
+      'Visible parts:',
+      Math.max(partsToUse.length, 1)
+    )
   }, [operation])
 
   // Function to calculate total amount
   const calculateTotalAmount = React.useCallback((): number => {
-    return parts.reduce((total, item) => total + (item.amount || 0), 0)
+    if (!Array.isArray(parts) || parts.length === 0) return 0
+    return parts.reduce((total, item) => total + (item?.amount || 0), 0)
   }, [parts])
 
   // Update total amount when parts change
@@ -257,7 +267,14 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
 
   // Handle part selection
   const handlePartChange = (index: number, value: string): void => {
-    const updatedParts = [...parts]
+    // Make sure parts array exists and has enough elements
+    const updatedParts = Array.isArray(parts) ? [...parts] : []
+
+    // Ensure the index exists in the array
+    while (updatedParts.length <= index) {
+      updatedParts.push({ part: '', days: 0, amount: 0 })
+    }
+
     updatedParts[index].part = value
 
     // Update amount based on part selection and days
@@ -265,16 +282,29 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
       updatedParts[index].amount = partRates[value] * updatedParts[index].days
     }
 
+    // Update parts array
     setParts(updatedParts)
+
+    // Update individual part fields in formData
+    const partNum = index + 1
     setFormData((prev) => ({
       ...prev,
-      parts: updatedParts
+      [`part${partNum}`]: value,
+      [`days${partNum}`]: updatedParts[index].days,
+      [`amount${partNum}`]: updatedParts[index].amount
     }))
   }
 
   // Handle days input
   const handleDaysChange = (index: number, value: number): void => {
-    const updatedParts = [...parts]
+    // Make sure parts array exists and has enough elements
+    const updatedParts = Array.isArray(parts) ? [...parts] : []
+
+    // Ensure the index exists in the array
+    while (updatedParts.length <= index) {
+      updatedParts.push({ part: '', days: 0, amount: 0 })
+    }
+
     updatedParts[index].days = value
 
     // Update amount based on part selection and days
@@ -282,22 +312,38 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
       updatedParts[index].amount = partRates[updatedParts[index].part] * value
     }
 
+    // Update parts array
     setParts(updatedParts)
+
+    // Update individual part fields in formData
+    const partNum = index + 1
     setFormData((prev) => ({
       ...prev,
-      parts: updatedParts
+      [`days${partNum}`]: value,
+      [`amount${partNum}`]: updatedParts[index].amount
     }))
   }
 
   // Handle manual amount change
   const handleAmountChange = (index: number, value: number): void => {
-    const updatedParts = [...parts]
+    // Make sure parts array exists and has enough elements
+    const updatedParts = Array.isArray(parts) ? [...parts] : []
+
+    // Ensure the index exists in the array
+    while (updatedParts.length <= index) {
+      updatedParts.push({ part: '', days: 0, amount: 0 })
+    }
+
     updatedParts[index].amount = value
 
+    // Update parts array
     setParts(updatedParts)
+
+    // Update individual part fields in formData
+    const partNum = index + 1
     setFormData((prev) => ({
       ...prev,
-      parts: updatedParts
+      [`amount${partNum}`]: value
     }))
   }
 
@@ -306,11 +352,19 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
     // Check if we need to add a new part to the parts array
     if (visibleParts >= parts.length) {
       const newPart = { part: '', days: 0, amount: 0 }
-      setParts([...parts, newPart])
-      setFormData((prev) => ({
-        ...prev,
-        parts: [...parts, newPart]
-      }))
+      const updatedParts = [...parts, newPart]
+      setParts(updatedParts)
+
+      // Update the individual field for the new part
+      const newPartIndex = updatedParts.length
+      if (newPartIndex <= 10) {
+        setFormData((prev) => ({
+          ...prev,
+          [`part${newPartIndex}`]: '',
+          [`days${newPartIndex}`]: 0,
+          [`amount${newPartIndex}`]: 0
+        }))
+      }
     }
 
     // Increase the visible parts count
@@ -331,10 +385,26 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
       const updatedParts = [...parts]
       updatedParts.splice(index, 1)
       setParts(updatedParts)
-      setFormData((prev) => ({
-        ...prev,
-        parts: updatedParts
-      }))
+
+      // Update formData by shifting all parts after the removed one
+      const newFormData = { ...formData }
+
+      // Clear the removed part's fields
+      for (let i = index + 1; i <= 10; i++) {
+        const currentPart = updatedParts[i - 1] || { part: '', days: 0, amount: 0 }
+        newFormData[`part${i}`] = currentPart.part || ''
+        newFormData[`days${i}`] = currentPart.days || 0
+        newFormData[`amount${i}`] = currentPart.amount || 0
+      }
+
+      // Clear the last part if we removed one
+      if (updatedParts.length < 10) {
+        newFormData[`part${updatedParts.length + 1}`] = ''
+        newFormData[`days${updatedParts.length + 1}`] = 0
+        newFormData[`amount${updatedParts.length + 1}`] = 0
+      }
+
+      setFormData(newFormData)
 
       // Decrease visible parts count
       setVisibleParts(visibleParts - 1)
@@ -366,10 +436,19 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
       // }
 
       // Filter out empty parts (where part name is empty)
-      const filteredParts = parts.filter((part) => part.part.trim() !== '')
+      const filteredParts = parts.filter((part) => part && part.part && part.part.trim() !== '')
 
-      // Map parts to individual fields for backward compatibility
+      // Map parts to individual fields - this is the primary way data is stored
       const partsMapping: Record<string, string | number> = {}
+
+      // First clear all part fields
+      for (let i = 1; i <= 10; i++) {
+        partsMapping[`part${i}`] = ''
+        partsMapping[`days${i}`] = 0
+        partsMapping[`amount${i}`] = 0
+      }
+
+      // Then set the values for parts that exist
       filteredParts.forEach((part, index) => {
         if (index < 10) {
           // Only map up to 10 parts
@@ -389,7 +468,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
         createdAt: formData.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         status: formData.status || 'Active',
-        // Ensure parts array is included
+        // Include the parts array separately
         parts: filteredParts,
         // Ensure totalAmount is set correctly
         totalAmount: calculateTotalAmount(),
@@ -631,7 +710,11 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
           <div className="col-span-2 mt-4">
             <h3 className="text-lg font-semibold mb-2">Parts and Services</h3>
             <div className="space-y-4">
-              {parts.slice(0, visibleParts).map((item, index) => (
+              {/* Make sure parts array is valid and has at least one entry */}
+              {(Array.isArray(parts) && parts.length > 0
+                ? parts.slice(0, visibleParts)
+                : [{ part: '', days: 0, amount: 0 }]
+              ).map((item, index) => (
                 <div
                   key={index}
                   className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-3 bg-gray-50 rounded-md"
@@ -648,7 +731,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                         type="text"
                         id={`part-${index}`}
                         name={`part-${index}`}
-                        value={item.part || ''}
+                        value={item?.part || ''}
                         onChange={(e) => handlePartChange(index, e.target.value)}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Enter or select part/service"
@@ -673,7 +756,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                     <input
                       type="number"
                       id={`days-${index}`}
-                      value={item.days}
+                      value={item?.days || 0}
                       onChange={(e) => handleDaysChange(index, parseInt(e.target.value) || 0)}
                       className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       min="0"
@@ -690,7 +773,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                     <input
                       type="number"
                       id={`amount-${index}`}
-                      value={item.amount}
+                      value={item?.amount || 0}
                       onChange={(e) => handleAmountChange(index, parseFloat(e.target.value) || 0)}
                       className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       min="0"

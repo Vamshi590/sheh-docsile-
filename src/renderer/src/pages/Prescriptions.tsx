@@ -34,6 +34,7 @@ declare global {
       updatePrescription: (id: string, prescription: Prescription) => Promise<Prescription>
       deletePrescription: (id: string) => Promise<void>
       searchPrescriptions: (searchTerm: string) => Promise<Prescription[]>
+      getTodaysPrescriptions: () => Promise<Prescription[]>
     }
   }
 }
@@ -90,7 +91,7 @@ const Prescriptions: React.FC = () => {
   const loadPrescriptions = async (): Promise<void> => {
     try {
       setLoading(true)
-      const data = await window.api.getPrescriptions()
+      const data = await window.api.getTodaysPrescriptions()
       setPrescriptions(data)
       setError('')
     } catch (err) {

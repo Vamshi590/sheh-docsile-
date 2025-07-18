@@ -14,12 +14,13 @@ interface MedicineDispenseModalProps {
   medicine: Medicine
   isOpen: boolean
   onClose: () => void
-  onDispense: (
-    id: string,
-    quantity: number,
-    patientName?: string,
+  onDispense: (medicineData: {
+    id: string
+    quantity: number
+    name?: string
     patientId?: string
-  ) => Promise<void>
+    dispensedBy?: string
+  }) => Promise<void>
 }
 
 const MedicineDispenseModal: React.FC<MedicineDispenseModalProps> = ({
@@ -83,7 +84,13 @@ const MedicineDispenseModal: React.FC<MedicineDispenseModalProps> = ({
     try {
       setIsSubmitting(true)
       setError('')
-      await onDispense(medicine.id, quantity, patientName, patientId || undefined)
+      await onDispense({
+        id: medicine.id,
+        quantity,
+        name: medicine.name,
+        patientId: patientId || undefined,
+        dispensedBy: patientName
+      })
       onClose()
     } catch (err) {
       console.error('Error dispensing medicine:', err)

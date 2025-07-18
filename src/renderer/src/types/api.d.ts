@@ -58,6 +58,7 @@ interface API {
 
   // Prescription methods
   getPrescriptions: () => Promise<Prescription[]>
+  getTodaysPrescriptions: () => Promise<Prescription[]>
   addPrescription: (prescription: Omit<Prescription, 'id'>) => Promise<Prescription>
   updatePrescription: (id: string, prescription: Prescription) => Promise<Prescription>
   deletePrescription: (id: string) => Promise<void>

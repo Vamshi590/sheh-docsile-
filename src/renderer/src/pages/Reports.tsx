@@ -32,6 +32,7 @@ declare global {
       updatePrescription: (id: string, prescription: Prescription) => Promise<Prescription>
       deletePrescription: (id: string) => Promise<void>
       searchPrescriptions: (searchTerm: string) => Promise<Prescription[]>
+      getTodaysPrescriptions: () => Promise<Prescription[]>
     }
   }
 }

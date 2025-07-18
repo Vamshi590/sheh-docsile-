@@ -16,9 +16,18 @@ interface MedicineTableProps {
   onDelete: (id: string) => Promise<void>
   onUpdateStatus: (id: string, status: 'available' | 'completed' | 'out_of_stock') => Promise<void>
   onDispense: (medicine: Medicine) => void
+  onAddToDispense?: (medicine: Medicine, quantity: number) => void
+  showDispenseControls?: boolean
 }
 
-const MedicineTable: React.FC<MedicineTableProps> = ({ medicines, onEdit, onDispense }) => {
+const MedicineTable: React.FC<MedicineTableProps> = ({
+  medicines,
+  onEdit,
+  onDispense,
+  onAddToDispense,
+  showDispenseControls = false
+}) => {
+  const [quantities, setQuantities] = React.useState<Record<string, number>>({})
   // Function to format date
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString)
@@ -105,6 +114,14 @@ const MedicineTable: React.FC<MedicineTableProps> = ({ medicines, onEdit, onDisp
           >
             Actions
           </th>
+          {showDispenseControls && (
+            <th
+              scope="col"
+              className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Dispense Quantity
+            </th>
+          )}
         </tr>
       </thead>
       <tbody className="bg-white divide-y divide-gray-200">
@@ -196,6 +213,60 @@ const MedicineTable: React.FC<MedicineTableProps> = ({ medicines, onEdit, onDisp
                 )}
               </div>
             </td>
+            {showDispenseControls && (
+              <td className="px-6 py-4 whitespace-nowrap">
+                {medicine.status === 'available' && medicine.quantity > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => {
+                        const currentQty = quantities[medicine.id] || 0
+                        if (currentQty > 0) {
+                          setQuantities({
+                            ...quantities,
+                            [medicine.id]: currentQty - 1
+                          })
+                        }
+                      }}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-sm font-medium focus:outline-none"
+                      disabled={(quantities[medicine.id] || 0) <= 0}
+                    >
+                      -
+                    </button>
+                    <span className="text-sm font-medium">{quantities[medicine.id] || 0}</span>
+                    <button
+                      onClick={() => {
+                        const currentQty = quantities[medicine.id] || 0
+                        if (currentQty < medicine.quantity) {
+                          setQuantities({
+                            ...quantities,
+                            [medicine.id]: currentQty + 1
+                          })
+                        }
+                      }}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-sm font-medium focus:outline-none"
+                      disabled={(quantities[medicine.id] || 0) >= medicine.quantity}
+                    >
+                      +
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (onAddToDispense && (quantities[medicine.id] || 0) > 0) {
+                          onAddToDispense(medicine, quantities[medicine.id] || 0)
+                          setQuantities({
+                            ...quantities,
+                            [medicine.id]: 0
+                          })
+                        }
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-medium focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                      disabled={(quantities[medicine.id] || 0) <= 0}
+                    >
+                      Add
+                    </button>
+                  </div>
+                )}
+              </td>
+            )}
           </tr>
         ))}
       </tbody>

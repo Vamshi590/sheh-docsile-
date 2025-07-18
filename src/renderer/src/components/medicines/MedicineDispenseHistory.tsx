@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 
 interface MedicineDispenseRecord {
   id: string
@@ -22,6 +22,20 @@ const MedicineDispenseHistory: React.FC<MedicineDispenseHistoryProps> = ({
   loading,
   error
 }) => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [recordsPerPage] = useState(10)
+
+  // Get current records
+  const indexOfLastRecord = currentPage * recordsPerPage
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage
+  const currentRecords = records.slice(indexOfFirstRecord, indexOfLastRecord)
+  const totalPages = Math.ceil(records.length / recordsPerPage)
+
+  // Reset to first page when records change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [records.length])
   // Function to format date
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString)
@@ -149,7 +163,7 @@ const MedicineDispenseHistory: React.FC<MedicineDispenseHistoryProps> = ({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {records.map((record) => (
+          {currentRecords.map((record) => (
             <tr key={record.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-gray-500">{formatDate(record.dispensedDate)}</div>
@@ -173,6 +187,41 @@ const MedicineDispenseHistory: React.FC<MedicineDispenseHistoryProps> = ({
           ))}
         </tbody>
       </table>
+      {/* Pagination */}
+      {records.length > recordsPerPage && (
+        <div className="px-6 py-3 flex items-center justify-between border-t border-gray-200">
+          <div className="flex-1 flex justify-between items-center">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+            >
+              Previous
+            </button>
+            <div className="hidden md:flex">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                <button
+                  key={number}
+                  onClick={() => setCurrentPage(number)}
+                  className={`mx-1 relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md ${currentPage === number ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                >
+                  {number}
+                </button>
+              ))}
+            </div>
+            <div className="md:hidden text-sm text-gray-700">
+              Page {currentPage} of {totalPages}
+            </div>
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
