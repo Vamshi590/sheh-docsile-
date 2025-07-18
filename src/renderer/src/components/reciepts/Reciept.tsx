@@ -40,11 +40,11 @@ export default function CashReceipt({
   authorizedSignatory = ''
 }: CashReceiptProps): React.ReactElement {
   return (
-    <div className="receipt-container bg-white mx-auto relative">
+    <div className="receipt-container bg-[#ffffff] mx-auto relative">
       {/* Main Content */}
       <div className="receipt-content">
         {/* Header Section */}
-        <div className="pb-2 mb-2 border-b-2 border-black">
+        <div className="pb-2 mb-2 border-b-2 border-[#000000]">
           {/* Hospital Name Row */}
           <div className="flex justify-between items-center mb-2">
             <div className="w-12 h-12 flex items-center justify-center">
@@ -78,7 +78,7 @@ export default function CashReceipt({
 
             {/* Center NABH */}
             <div className="w-[20%] flex justify-center">
-              <div className="w-24 h-24 flex items-center justify-center bg-white">
+              <div className="w-24 h-24 flex items-center justify-center bg-[#ffffff]">
                 <img src={nabhimage} alt="" />
               </div>
             </div>
@@ -105,7 +105,7 @@ export default function CashReceipt({
         <h2 className="text-sm text-center font-bold  py-1 px-2 mb-2 ">CASH RECEIPT</h2>
 
         {/* Patient Information Section */}
-        <div className="pb-3 mb-4 border-b border-black">
+        <div className="pb-3 mb-4 border-b border-[#000000]">
           <h3 className="text-xs font-bold mb-3">PATIENT INFORMATION</h3>
           {/* grid-based layout */}
           <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
@@ -171,36 +171,48 @@ export default function CashReceipt({
           <table className="w-full border-collapse text-[11px]">
             <tbody>
               <tr>
-                <td className="border border-black p-2 font-bold bg-gray-50">MODE</td>
-                <td className="border border-black p-2">{paymentData.mode}</td>
+                <td className="border border-[#000000] p-2 font-bold bg-[#ffffff]">MODE</td>
+                <td className="border border-[#000000] p-2 text-right font-bold">
+                  {paymentData.mode}
+                </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold bg-gray-50">TOTAL AMOUNT</td>
-                <td className="border border-black p-2 text-right">{paymentData.totalAmount}</td>
+                <td className="border border-[#000000] p-2 font-bold bg-[#ffffff]">TOTAL AMOUNT</td>
+                <td className="border border-[#000000] p-2 text-right">
+                  {paymentData.totalAmount}
+                </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold">ADVANCE PAID</td>
-                <td className="border border-black p-2 text-right">{paymentData.advancePaid}</td>
+                <td className="border border-[#000000] p-2 font-bold bg-[#ffffff]">ADVANCE PAID</td>
+                <td className="border border-[#000000] p-2 text-right">
+                  {paymentData.advancePaid}
+                </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold">DISCOUNT %</td>
-                <td className="border border-black p-2 text-right">
+                <td className="border border-[#000000] p-2 font-bold bg-[#ffffff]">DISCOUNT %</td>
+                <td className="border border-[#000000] p-2 text-right">
                   {paymentData.discountPercent}
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold">DISCOUNT AMOUNT</td>
-                <td className="border border-black p-2 text-right">{paymentData.discountAmount}</td>
+                <td className="border border-[#000000] p-2 font-bold bg-[#ffffff]">
+                  DISCOUNT AMOUNT
+                </td>
+                <td className="border border-[#000000] p-2 text-right">
+                  {paymentData.discountAmount}
+                </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold bg-gray-50">AMOUNT RECEIVED</td>
-                <td className="border border-black p-2 text-right font-bold bg-gray-50">
+                <td className="border border-[#000000] p-2 font-bold bg-[#ffffff]">
+                  AMOUNT RECEIVED
+                </td>
+                <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
                   {paymentData.amountReceived}
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold">AMOUNT DUE</td>
-                <td className="border border-black p-2 text-right font-bold">
+                <td className="border border-[#000000] p-2 font-bold bg-[#ffffff]">AMOUNT DUE</td>
+                <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
                   {paymentData.amountDue}
                 </td>
               </tr>
@@ -230,7 +242,7 @@ export default function CashReceipt({
           </div>
 
           {/* Bottom Disclaimer */}
-          <div className="border-t border-gray-300 pt-2 text-center text-[9px] text-gray-500">
+          <div className="border-t border-[#000000] pt-2 text-center text-[9px] text-[#000000] mt-2">
             <div className="flex justify-between items-center">
               <span>
                 This is a computer generated receipt. Please preserve this for your records.

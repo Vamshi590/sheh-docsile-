@@ -53,11 +53,11 @@ export default function HospitalReceipt({
   reviewDate = ''
 }: HospitalReceiptProps): React.ReactElement {
   return (
-    <div className="receipt-container bg-white mx-auto relative">
+    <div className="receipt-container bg-[#ffffff] mx-auto relative">
       {/* Main Content */}
       <div className="receipt-content">
         {/* Header Section */}
-        <div className="pb-2 mb-4 border-b-2 border-black">
+        <div className="pb-2 mb-2 border-b-2 border-[#000000]">
           {/* Hospital Name Row */}
           <div className="flex justify-between items-center mb-2">
             <div className="w-12 h-12 flex items-center justify-center">
@@ -91,7 +91,7 @@ export default function HospitalReceipt({
 
             {/* Center NABH */}
             <div className="w-[20%] flex justify-center">
-              <div className="w-24 h-24 flex items-center justify-center bg-white">
+              <div className="w-24 h-24 flex items-center justify-center bg-[#ffffff]">
                 <img src={nabhimage} alt="nabh image" />
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function HospitalReceipt({
         <h2 className="text-sm text-center font-bold  py-1 px-2 mb-2 ">PRESCRIPTION</h2>
 
         {/* Patient Information Section */}
-        <div className="pb-3 mb-4 border-b border-black">
+        <div className="pb-3 mb-4 border-b border-[#000000]">
           <h3 className="text-xs font-bold mb-3">PATIENT INFORMATION</h3>
           {/* grid-based layout */}
           <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
@@ -176,7 +176,7 @@ export default function HospitalReceipt({
           </div>
         </div>
 
-        <div className="pb-3 mb-4 border-b border-black">
+        <div className="pb-3 mb-4 border-b border-[#000000]">
           <h3 className="text-xs font-bold mb-3">VITALS AND HISTORY</h3>
           {/* grid-based layout */}
           <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
@@ -219,13 +219,13 @@ export default function HospitalReceipt({
             <table className="w-full border-collapse text-[11px]">
               <thead>
                 <tr>
-                  <th className="border border-black p-2 text-left font-bold bg-gray-50">
+                  <th className="border border-[#000000] p-2 text-left font-bold bg-[#ffffff]">
                     MEDICINE
                   </th>
-                  <th className="border border-black p-2 text-center font-bold w-20 bg-gray-50">
+                  <th className="border border-[#000000] p-2 text-center font-bold w-20 bg-[#ffffff]">
                     TIMES
                   </th>
-                  <th className="border border-black p-2 text-center font-bold w-20 bg-gray-50">
+                  <th className="border border-[#000000] p-2 text-center font-bold w-20 bg-[#ffffff]">
                     DAYS
                   </th>
                 </tr>
@@ -233,9 +233,9 @@ export default function HospitalReceipt({
               <tbody>
                 {prescriptionData.map((item, index) => (
                   <tr key={index}>
-                    <td className="border border-black p-2">{item.medicine}</td>
-                    <td className="border border-black p-2 text-center">{item.times}</td>
-                    <td className="border border-black p-2 text-center">{item.days}</td>
+                    <td className="border border-[#000000] p-2">{item.medicine}</td>
+                    <td className="border border-[#000000] p-2 text-center">{item.times}</td>
+                    <td className="border border-[#000000] p-2 text-center">{item.days}</td>
                   </tr>
                 ))}
               </tbody>
@@ -263,12 +263,14 @@ export default function HospitalReceipt({
               </div>
             </div>
           )}
-          <div className="text-[11px]">
-            <div>
-              <div className="font-bold">REVIEW DATE</div>
-              <div>{reviewDate}</div>
+          {reviewDate && (
+            <div className="text-[11px]">
+              <div>
+                <div className="font-bold">REVIEW DATE</div>
+                <div>{reviewDate}</div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -288,13 +290,25 @@ export default function HospitalReceipt({
           </div>
 
           {/* Bottom Disclaimer */}
-          <div className="border-t border-gray-300 pt-2 text-center text-[9px] text-gray-500">
+          <div className="border-t border-[#000000] pt-2 mt-2 text-center text-[9px] text-[#000000]">
             <div className="flex justify-between items-center">
               <span>
                 This is a computer generated receipt. Please preserve this for your records.
               </span>
               <span>Generated on: {new Date().toLocaleString()}</span>
             </div>
+            <p className="mt-1 text-[8px] font-semibold text-left">Cautions / Patient Guidance:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-[8px] text-left">
+              <li>
+                Medication is prescribed for the named patient only. Do not share with others.
+              </li>
+              <li>Complete the full course even if symptoms improve, unless advised otherwise.</li>
+              <li>
+                Report immediately if you experience any adverse effects or worsening symptoms.
+              </li>
+              <li>Keep medicines out of reach of children and store as directed on the label.</li>
+              <li>Attend your scheduled follow-up appointment on the given review date.</li>
+            </ul>
             <p className="mt-1 text-[8px]">
               © 2025 Sri Harsha Eye Hospital. All rights reserved. | NABH Accredited | ISO
               9001:2015 Certified

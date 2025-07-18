@@ -30,6 +30,20 @@ interface Operation {
   [key: string]: unknown
 }
 
+interface Patient {
+  id?: string
+  date?: string
+  patientId: string
+  name?: string
+  guardian?: string
+  dob?: string
+  age?: number | string
+  gender?: string
+  phone?: string
+  address?: string
+  [key: string]: unknown
+}
+
 interface FollowUpSectionProps {
   operations: Operation[]
   prescriptions?: Prescription[]
@@ -42,6 +56,23 @@ const FollowUpSection: React.FC<FollowUpSectionProps> = ({
   loading
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
+  const [patients, setPatients] = useState<Patient[]>([])
+
+  // Load patients once on mount
+  React.useEffect(() => {
+    const loadPatients = async (): Promise<void> => {
+      try {
+        if (window.api?.getPatients) {
+          const data = await window.api.getPatients()
+          // Cast to local Patient type to avoid duplicate interface conflict
+          setPatients(data as unknown as Patient[])
+        }
+      } catch (err) {
+        console.error('Failed to load patients:', err)
+      }
+    }
+    loadPatients()
+  }, [])
 
   // Filter operations based on search term
   const filteredOperations = operations.filter((operation) => {
@@ -117,6 +148,17 @@ const FollowUpSection: React.FC<FollowUpSectionProps> = ({
     return prescription.notes || 'Prescription follow-up'
   }
 
+  // Helper to get phone number depending on item type
+  const getPhoneNumber = (item: Operation | Prescription): string => {
+    const isOp = (item as Operation)._type === 'Operation'
+    if (isOp) {
+      const op = item as Operation
+      const patient = patients.find((p) => p.patientId === op.patientId)
+      return String(patient?.phone || patient?.['PHONE NUMBER'] || '')
+    }
+    return String((item as Prescription)['PHONE NUMBER'] || (item as Prescription).phone || '')
+  }
+
   const handleWhatsappClick = (item: Operation | Prescription): void => {
     // Craft a professional, multi-line WhatsApp message with bold highlights (use * for bold on WhatsApp)
     const lines = [
@@ -133,10 +175,7 @@ const FollowUpSection: React.FC<FollowUpSectionProps> = ({
     const encoded = encodeURIComponent(message)
 
     // Ensure the phone number is in international format without the leading + and free of non-digit characters
-    let phone = String(item['PHONE NUMBER'] || '').replace(/\D/g, '') // keep digits only
-    if (phone.startsWith('91')) {
-      phone = phone.slice(2)
-    }
+    let phone = getPhoneNumber(item).replace(/\D/g, '') // keep digits only
     phone = `91${phone}` // prepend country code
 
     // Open WhatsApp chat with the encoded message
@@ -247,7 +286,10 @@ const FollowUpSection: React.FC<FollowUpSectionProps> = ({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 max-w-md truncate">
-                          {item['PHONE NUMBER'] || item['PHONE NUMBER'] || 'N/A'}
+                          {(() => {
+                            const phone = getPhoneNumber(item)
+                            return phone || 'N/A'
+                          })()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

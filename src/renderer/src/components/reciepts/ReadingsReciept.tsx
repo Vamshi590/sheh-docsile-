@@ -58,11 +58,11 @@ export default function EyeReceipt({
   reviewDate = ''
 }: EyeReceiptProps): React.ReactElement {
   return (
-    <div className="receipt-container bg-white mx-auto relative">
+    <div className="receipt-container bg-[#ffffff] mx-auto relative">
       {/* Main Content */}
       <div className="receipt-content">
         {/* Header Section */}
-        <div className="pb-2 mb-4 border-b-2 border-black">
+        <div className="pb-2 mb-4 border-b-2 border-[#000000]">
           {/* Hospital Name Row */}
           <div className="flex justify-between items-center mb-2">
             <div className="w-12 h-12  flex items-center justify-center">
@@ -96,7 +96,7 @@ export default function EyeReceipt({
 
             {/* Center NABH */}
             <div className="w-[20%] flex justify-center">
-              <div className="w-24 h-24 flex items-center justify-center bg-white">
+              <div className="w-24 h-24 flex items-center justify-center bg-[#ffffff]">
                 <img src={nabhimage} alt="" />
               </div>
             </div>
@@ -123,7 +123,7 @@ export default function EyeReceipt({
         <h2 className="text-sm text-center font-bold  py-1 px-2 mb-2 ">READINGS</h2>
 
         {/* Patient Information Section */}
-        <div className="pb-3 mb-4 border-b border-black">
+        <div className="pb-3 mb-4 border-b border-[#000000]">
           <h3 className="text-xs font-bold mb-3">PATIENT INFORMATION</h3>
           {/* grid-based layout */}
           <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
@@ -187,58 +187,58 @@ export default function EyeReceipt({
             <table className="w-full border-collapse text-[11px]">
               <thead>
                 <tr>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50 w-16"></th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50 w-16">
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff] w-16"></th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff] w-16">
                     SPH
                   </th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50 w-16">
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff] w-16">
                     CYL
                   </th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50 w-16">
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff] w-16">
                     AXIS
                   </th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50 w-16">
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff] w-16">
                     VA
                   </th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50 w-20">
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff] w-20">
                     VAC P.H.
                   </th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="border border-black p-2 text-center font-bold">R/E</td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center font-bold">R/E</td>
+                  <td className="border border-[#000000] p-2 text-center">
                     {arReadingData.rightEye.sph}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {arReadingData.rightEye.cyl}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {arReadingData.rightEye.axis}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {arReadingData.rightEye.va}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {arReadingData.rightEye.vacPh}
                   </td>
                 </tr>
                 <tr>
-                  <td className="border border-black p-2 text-center font-bold">L/E</td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center font-bold">L/E</td>
+                  <td className="border border-[#000000] p-2 text-center">
                     {arReadingData.leftEye.sph}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {arReadingData.leftEye.cyl}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {arReadingData.leftEye.axis}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {arReadingData.leftEye.va}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {arReadingData.leftEye.vacPh}
                   </td>
                 </tr>
@@ -254,84 +254,100 @@ export default function EyeReceipt({
             <table className="w-full border-collapse text-[11px]">
               <thead>
                 <tr>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50"></th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]"></th>
                   <th
-                    className="border border-black p-2 text-center font-bold bg-gray-50"
+                    className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]"
                     colSpan={4}
                   >
                     RIGHT EYE
                   </th>
                   <th
-                    className="border border-black p-2 text-center font-bold bg-gray-50"
+                    className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]"
                     colSpan={4}
                   >
                     LEFT EYE
                   </th>
                 </tr>
                 <tr>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50"></th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">SPH</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">CYL</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">AXIS</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">BCVA</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">SPH</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">CYL</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">AXIS</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">BCVA</th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]"></th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    SPH
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    CYL
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    AXIS
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    BCVA
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    SPH
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    CYL
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    AXIS
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    BCVA
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="border border-black p-2 text-center font-bold">DIST</td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center font-bold">DIST</td>
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.dist.rightEye.sph}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.dist.rightEye.cyl}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.dist.rightEye.axis}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.dist.rightEye.va}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.dist.leftEye.sph}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.dist.leftEye.cyl}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.dist.leftEye.axis}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.dist.leftEye.va}
                   </td>
                 </tr>
                 <tr>
-                  <td className="border border-black p-2 text-center font-bold">NEAR</td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center font-bold">NEAR</td>
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.near.rightEye.sph}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.near.rightEye.cyl}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.near.rightEye.axis}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.near.rightEye.va}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.near.leftEye.sph}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.near.leftEye.cyl}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.near.leftEye.axis}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {previousGlassPrescription.near.leftEye.va}
                   </td>
                 </tr>
@@ -342,89 +358,105 @@ export default function EyeReceipt({
 
         {/* Subjective Refraction Section */}
         {subjectiveRefraction && (
-          <div className="pb-3 mb-4 border-b border-black">
+          <div className="pb-3 mb-4 border-b border-[#000000]">
             <h3 className="text-xs font-bold mb-3 text-center">SUBJECTIVE REFRACTION</h3>
             <table className="w-full border-collapse text-[11px]">
               <thead>
                 <tr>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50"></th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]"></th>
                   <th
-                    className="border border-black p-2 text-center font-bold bg-gray-50"
+                    className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]"
                     colSpan={4}
                   >
                     RIGHT EYE
                   </th>
                   <th
-                    className="border border-black p-2 text-center font-bold bg-gray-50"
+                    className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]"
                     colSpan={4}
                   >
                     LEFT EYE
                   </th>
                 </tr>
                 <tr>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50"></th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">SPH</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">CYL</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">AXIS</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">BCVA</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">SPH</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">CYL</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">AXIS</th>
-                  <th className="border border-black p-2 text-center font-bold bg-gray-50">BCVA</th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]"></th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    SPH
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    CYL
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    AXIS
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    BCVA
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    SPH
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    CYL
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    AXIS
+                  </th>
+                  <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
+                    BCVA
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="border border-black p-2 text-center font-bold">DIST</td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center font-bold">DIST</td>
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.dist.rightEye.sph}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.dist.rightEye.cyl}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.dist.rightEye.axis}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.dist.rightEye.va}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.dist.leftEye.sph}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.dist.leftEye.cyl}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.dist.leftEye.axis}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.dist.leftEye.va}
                   </td>
                 </tr>
                 <tr>
-                  <td className="border border-black p-2 text-center font-bold">NEAR</td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center font-bold">NEAR</td>
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.near.rightEye.sph}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.near.rightEye.cyl}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.near.rightEye.axis}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.near.rightEye.va}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.near.leftEye.sph}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.near.leftEye.cyl}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.near.leftEye.axis}
                   </td>
-                  <td className="border border-black p-2 text-center">
+                  <td className="border border-[#000000] p-2 text-center">
                     {subjectiveRefraction.near.leftEye.va}
                   </td>
                 </tr>
@@ -483,7 +515,7 @@ export default function EyeReceipt({
           </div>
 
           {/* Bottom Disclaimer */}
-          <div className="border-t border-gray-300 pt-2 text-center text-[9px] text-gray-500">
+          <div className="border-t border-[#000000] mt-2 pt-2 text-center text-[9px] text-[#000000]">
             <div className="flex justify-between items-center">
               <span>
                 This is a computer generated receipt. Please preserve this for your records.

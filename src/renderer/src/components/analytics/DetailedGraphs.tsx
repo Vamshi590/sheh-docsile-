@@ -367,9 +367,9 @@ const DetailedGraphs: React.FC<DetailedGraphsProps> = ({ data }) => {
             : `There has been a ${Math.abs(revenueStats.change)}% decrease in total revenue compared to the previous period.`
         }`
       case 'medicines':
-        return `This chart shows the top medicines dispensed by quantity. The most frequently dispensed medicine is ${medicineStats.topItems[0]?.name || 'N/A'} with ${medicineStats.topItems[0]?.quantity || 0} units.`
+        return `This chart shows the top medicines dispensed by quantity. The most frequently dispensed medicine is ${medicineStats?.topItems?.[0]?.name || 'N/A'} with ${medicineStats?.topMedicines?.[0]?.count || 0} units.`
       case 'opticals':
-        return `This chart shows the top optical items sold by quantity. The most popular optical item is ${opticalStats.topItems[0]?.name || 'N/A'} with ${opticalStats.topItems[0]?.quantity || 0} units sold.`
+        return `This chart shows the top optical items sold by quantity. The most popular optical item is ${opticalStats?.topBrands?.[0]?.name || 'N/A'} with ${opticalStats?.topBrands?.[0]?.count || 0} units sold.`
       default:
         return ''
     }

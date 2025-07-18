@@ -201,10 +201,6 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
 
   // Format billing items for operation receipt
   const billingItems: { particulars: string; amount: number; days?: number }[] = []
-
-  // Log the report object to see what fields are available
-  console.log('Report data for billing items:', selectedOperation || report)
-
   // If we have a selected operation, use its part/amount fields
   if (selectedOperation) {
     for (let i = 1; i <= 10; i++) {
@@ -415,8 +411,6 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
           <div id={`receipt-${report.id}`}>
             <ReadingsReceipt
               patientData={patientData}
-              vitalsData={vitalsData}
-              medicalHistoryData={medicalHistoryData}
               arReadingData={arReadingData}
               previousGlassPrescription={previousGlassPrescription}
               subjectiveRefraction={subjectiveRefraction}

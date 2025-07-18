@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import html2canvas from 'html2canvas'
+import { saveAs } from 'file-saver'
+import { PDFDocument } from 'pdf-lib'
 
 // Define interfaces
 interface Operation {
@@ -176,8 +179,46 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
     setShowOperationsModal(false)
   }
 
-  // Handle print action
+  // Handle print action – render receipt in off-screen iframe to avoid about/blob prompts and preserve preview
   const handlePrint = (): void => {
+    const receiptEl = document.querySelector('[id^="receipt-"]') as HTMLElement | null
+    if (!receiptEl) {
+      console.error('Receipt element not found for printing')
+      return
+    }
+
+    // Collect current page <style> and <link> tags so styles are preserved in preview
+    const styleTags = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map((node) => node.outerHTML)
+      .join('\n')
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">${styleTags}<style>@media print{body{margin:0}}</style></head><body>${receiptEl.outerHTML}</body></html>`
+
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    document.body.appendChild(iframe)
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+    if (!iframeDoc) {
+      console.error('Unable to access iframe document for printing')
+      return
+    }
+    iframeDoc.open()
+    iframeDoc.write(html)
+    iframeDoc.close()
+
+    iframe.onload = (): void => {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+      setTimeout(() => {
+        document.body.removeChild(iframe)
+      }, 1000)
+    }
   }
 
   // Handle WhatsApp share
@@ -185,9 +226,114 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
     setShowWhatsAppModal(true)
   }
 
-  // Send WhatsApp message
+  // Send WhatsApp message – generate PDF and open WhatsApp Web
+
+  // Helper to strip unsupported oklch() colors -> fallback #000
+  const stripOKLCH = (root: HTMLElement): void => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
+    while (walker.nextNode()) {
+      const el = walker.currentNode as HTMLElement
+      const inline = el.getAttribute('style')
+      if (inline && inline.includes('oklch')) {
+        el.setAttribute('style', inline.replace(/oklch\([^)]*\)/g, '#000'))
+      }
+      const styles = window.getComputedStyle(el)
+      ;['color', 'backgroundColor', 'borderColor'].forEach((prop) => {
+        const val = styles.getPropertyValue(prop)
+        if (val && val.includes('oklch')) {
+          el.style.setProperty(prop, '#000')
+        }
+      })
+    }
+  }
+
   const sendWhatsAppMessage = async (): Promise<void> => {
-  
+    try {
+      const receiptEl = document.querySelector('[id^="receipt-"]') as HTMLElement | null
+      if (!receiptEl) {
+        alert('Receipt element not found')
+        return
+      }
+      // Clone and clean oklch colors
+      const clone = receiptEl.cloneNode(true) as HTMLElement
+      stripOKLCH(clone)
+      clone.style.width = '794px'
+      clone.style.height = '1123px'
+      clone.style.backgroundColor = '#ffffff'
+      document.body.appendChild(clone)
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true
+      })
+      document.body.removeChild(clone)
+      const imgData = canvas.toDataURL('image/png')
+
+      // Create PDF with A4 dimensions (points)
+      const pdfDoc = await PDFDocument.create()
+      const PAGE_WIDTH = 595.28
+      const PAGE_HEIGHT = 841.89
+      const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+      const pngImage = await pdfDoc.embedPng(imgData)
+
+      // Scale the image so it always fits inside the page while preserving aspect ratio
+      const imgWidth = pngImage.width
+      const imgHeight = pngImage.height
+      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
+      const drawWidth = imgWidth * scale
+      const drawHeight = imgHeight * scale
+      const x = (PAGE_WIDTH - drawWidth) / 2
+      const y = (PAGE_HEIGHT - drawHeight) / 2
+
+      page.drawImage(pngImage, {
+        x,
+        y,
+        width: drawWidth,
+        height: drawHeight
+      })
+      const pdfBytes = await pdfDoc.save()
+
+      // Save locally so the user can attach it in WhatsApp Web
+      // Build filename as patientNAME_date.pdf  (e.g., John_Doe_2025-07-16.pdf)
+      const dateStr = new Date().toISOString().slice(0, 10)
+      let patientName = 'Receipt'
+      const nameNode = receiptEl.querySelector('[data-patient-name]') as HTMLElement | null
+      if (nameNode?.textContent) {
+        patientName = nameNode.textContent.trim().replace(/\s+/g, '_')
+      }
+      const fileName = `${patientName}_${dateStr}.pdf`
+
+      // Attempt silent save if Node fs API is available (Electron renderer with contextIsolation disabled)
+      let savedSilently = false
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const _require = (window as any).require
+        if (typeof _require === 'function') {
+          const fs = _require('fs') as typeof import('fs')
+          const path = _require('path') as typeof import('path')
+          const os = _require('os') as typeof import('os')
+          const dest = path.join(os.homedir(), 'Downloads', fileName)
+          fs.writeFileSync(dest, Buffer.from(pdfBytes), { encoding: 'binary' })
+          savedSilently = true
+        }
+      } catch {
+        /* ignore */
+      }
+
+      if (!savedSilently) {
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+        saveAs(blob, fileName)
+      }
+
+      // Open WhatsApp Web (user can then attach the just-saved file)
+      window.open('https://web.whatsapp.com/', '_blank')
+
+      setShowWhatsAppModal(false)
+    } catch (err) {
+      console.error('Failed to create/send PDF:', err)
+      alert('Failed to share via WhatsApp')
+    }
   }
 
   return (
@@ -404,6 +550,7 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
           </div>
         </div>
       )}
+      {/* Print Preview Modal placeholder not needed due to new window approach */}
     </div>
   )
 }

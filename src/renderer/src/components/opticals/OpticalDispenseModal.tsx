@@ -30,17 +30,28 @@ const OpticalDispenseModal: React.FC<OpticalDispenseModalProps> = ({
   onClose,
   onDispense
 }) => {
+  const getUserName = (): string => {
+    try {
+      const stored = localStorage.getItem('currentUser')
+      if (!stored) return ''
+      const parsed = JSON.parse(stored)
+      return parsed?.fullName ?? ''
+    } catch {
+      return ''
+    }
+  }
   const [quantity, setQuantity] = useState(1)
-  const [patientName, setPatientName] = useState('')
+  const [patientName, setPatientName] = useState(getUserName())
   const [patientId, setPatientId] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+
 
   // Reset form when optical changes
   useEffect(() => {
     if (isOpen) {
       setQuantity(1)
-      setPatientName('')
+      setPatientName(getUserName())
       setPatientId('')
       setError('')
     }
@@ -161,11 +172,11 @@ const OpticalDispenseModal: React.FC<OpticalDispenseModalProps> = ({
               </div>
 
               <div>
-                <label 
+                <label
                   htmlFor="patientName"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Patient Name
+                  Dispensed By
                 </label>
                 <input
                   type="text"
@@ -174,19 +185,6 @@ const OpticalDispenseModal: React.FC<OpticalDispenseModalProps> = ({
                   onChange={(e) => setPatientName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="patientId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Patient ID (Optional)
-                </label>
-                <input
-                  type="text"
-                  id="patientId"
-                  value={patientId}
-                  onChange={(e) => setPatientId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
 

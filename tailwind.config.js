@@ -2,11 +2,19 @@
 module.exports = {
   content: ['./src/**/*.{js,jsx,ts,tsx}', './index.html'],
   theme: {
-    extend: {}
+    colors: {
+      primaryBlack: '#000000',
+      primaryWhite: '#FFFFFF',
+      primaryRed: '#FF0000',
+      primaryGreen: '#00FF00',
+      primaryBlue: '#0000FF',
+      primaryYellow: '#FFFF00'
+    }
   },
   plugins: [],
-  // Disable the modern OKLCH color format and use RGB instead
   future: {
+    oklch: false,
+    enableUniversalColorPalette: false,
     disableColorOpacityUtilitiesByDefault: true,
     respectDefaultRingColorOpacity: true
   },

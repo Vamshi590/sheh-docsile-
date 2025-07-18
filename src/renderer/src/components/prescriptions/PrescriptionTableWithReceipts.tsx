@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import ReceiptViewer from '../reports/ReceiptViewer'
-
+import { saveAs } from 'file-saver'
+import { PDFDocument } from 'pdf-lib'
 // Define the Prescription type to match with other components
 type Prescription = {
   id: string
@@ -47,6 +48,14 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
   const [selectedReceiptType, setSelectedReceiptType] = useState<string | null>(null)
   const [selectedOperation, setSelectedOperation] = useState<Operation | null>(null)
   // State for managing receipt viewing and operations
+
+  // Reset selection if current selection is no longer in filtered list
+  useEffect(() => {
+    if (selectedPrescription && !prescriptions.some(p => p.id === selectedPrescription.id)) {
+      setSelectedPrescription(null)
+      setSelectedReceiptType(null)
+    }
+  }, [prescriptions])
 
   // Handle row click to select a prescription
   const handleRowClick = (prescription: Prescription): void => {
@@ -216,202 +225,119 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
     }
   }
 
-  // Handle WhatsApp share
-  const handleWhatsAppShare = async (): Promise<void> => {
-    if (!selectedPrescription) return
-    const phoneNumber = selectedPrescription?.['PHONE NUMBER']?.toString() || ''
-    if (!phoneNumber) {
-      alert('No phone number available for this patient')
-      return
+  const stripOKLCH = (root: HTMLElement): void => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
+    while (walker.nextNode()) {
+      const el = walker.currentNode as HTMLElement
+      const inline = el.getAttribute('style')
+      if (inline && inline.includes('oklch')) {
+        el.setAttribute('style', inline.replace(/oklch\([^)]*\)/g, '#000'))
+      }
+      const styles = window.getComputedStyle(el)
+      ;['color', 'backgroundColor', 'borderColor'].forEach((prop) => {
+        const val = styles.getPropertyValue(prop)
+        if (val && val.includes('oklch')) {
+          el.style.setProperty(prop, '#000')
+        }
+      })
     }
+  }
+
+  const sendWhatsAppMessage = async (): Promise<void> => {
     try {
-      // Get the receipt content element using our ref
-      const receiptElement = receiptRef.current
-      if (!receiptElement) {
-        alert('Receipt content not found')
+      const receiptEl =
+        (receiptRef.current?.querySelector('[id^="receipt-"]') as HTMLElement | null) ||
+        (receiptRef.current as HTMLElement | null)
+      if (!receiptEl) {
+        alert('Receipt element not found')
         return
       }
+      // Clone and clean oklch colors
+      const clone = receiptEl.cloneNode(true) as HTMLElement
+      stripOKLCH(clone)
+      clone.style.width = '794px'
+      clone.style.height = '1123px'
+      clone.style.backgroundColor = '#ffffff'
+      document.body.appendChild(clone)
 
-      // Apply a temporary style to replace OKLCH colors with RGB
-      const tempStyle = document.createElement('style')
-      tempStyle.setAttribute('data-temp-style', 'true')
-      tempStyle.innerHTML = `
-        * {
-          color: black !important;
-          background-color: white !important;
-          border-color: black !important;
-        }
-        .receipt-viewer {
-          color: black !important;
-          background-color: white !important;
-        }
-      `
-      document.head.appendChild(tempStyle)
-
-      // Add debug log to check receipt element dimensions
-      console.log('Receipt element dimensions:', {
-        width: receiptElement.offsetWidth,
-        height: receiptElement.offsetHeight
-      })
-
-      // Create a canvas from the receipt element
-      const canvas = await html2canvas(receiptElement, {
-        scale: 3, // Higher scale for better quality
-        logging: true,
-        useCORS: true,
+      const canvas = await html2canvas(clone, {
+        scale: 2,
         backgroundColor: '#ffffff',
-        width: receiptElement.offsetWidth,
-        height: receiptElement.offsetHeight,
-        ignoreElements: (element) => {
-          // Skip elements with complex CSS that might use OKLCH
-          return element.classList.contains('ignore-in-pdf') || false
-        }
+        useCORS: true
       })
-
-      // Log canvas dimensions for debugging
-      console.log('Canvas dimensions:', {
-        width: canvas.width,
-        height: canvas.height
-      })
-
-      // Create PDF
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      })
-
-      // Add image to PDF with proper margins and scaling
+      document.body.removeChild(clone)
       const imgData = canvas.toDataURL('image/png')
-      const pageWidth = 210 // A4 width in mm
-      const pageHeight = 297 // A4 height in mm
-      const margin = 5 // margin in mm
 
-      // Calculate dimensions for both width-based and height-based scaling
-      // to determine which one utilizes more of the page
-      const availableWidth = pageWidth - margin
-      const availableHeight = pageHeight - margin
+      // Create PDF with A4 dimensions (points)
+      const pdfDoc = await PDFDocument.create()
+      const PAGE_WIDTH = 595.28
+      const PAGE_HEIGHT = 841.89
+      const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+      const pngImage = await pdfDoc.embedPng(imgData)
 
-      // Width-based scaling (fit to page width)
-      const widthBasedImgWidth = availableWidth
-      const widthBasedImgHeight = (canvas.height * widthBasedImgWidth) / canvas.width
-      const widthBasedArea = widthBasedImgWidth * widthBasedImgHeight
+      // Scale the image so it always fits inside the page while preserving aspect ratio
+      const imgWidth = pngImage.width
+      const imgHeight = pngImage.height
+      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
+      const drawWidth = imgWidth * scale
+      const drawHeight = imgHeight * scale
+      const x = (PAGE_WIDTH - drawWidth) / 2
+      const y = (PAGE_HEIGHT - drawHeight) / 2
 
-      // Height-based scaling (fit to page height)
-      const heightBasedImgHeight = availableHeight
-      const heightBasedImgWidth = (canvas.width * heightBasedImgHeight) / canvas.height
-      const heightBasedArea = heightBasedImgWidth * heightBasedImgHeight
-
-      // Log calculated dimensions for both approaches
-      console.log('PDF dimensions calculation:', {
-        pageWidth,
-        pageHeight,
-        widthBased: {
-          width: widthBasedImgWidth,
-          height: widthBasedImgHeight,
-          area: widthBasedArea
-        },
-        heightBased: {
-          width: heightBasedImgWidth,
-          height: heightBasedImgHeight,
-          area: heightBasedArea
-        },
-        aspectRatio: canvas.width / canvas.height
+      page.drawImage(pngImage, {
+        x,
+        y,
+        width: drawWidth,
+        height: drawHeight
       })
+      const pdfBytes = await pdfDoc.save()
 
-      // Always use the approach that maximizes the area used on the page
-      const useHeightBased = heightBasedArea > widthBasedArea
-
-      // Set minimal margins
-      const yPosition = margin / 2
-
-      if (useHeightBased) {
-        // Use height-based scaling to maximize page usage
-        const xPos = (pageWidth - heightBasedImgWidth) / 2
-        console.log('Using height-based scaling for maximum area:', {
-          width: heightBasedImgWidth,
-          height: heightBasedImgHeight,
-          xPos,
-          yPosition
-        })
-        pdf.addImage(imgData, 'PNG', xPos, yPosition, heightBasedImgWidth, heightBasedImgHeight)
-      } else {
-        // Use width-based scaling
-        const xPosition = margin / 2
-        console.log('Using width-based scaling for maximum area:', {
-          width: widthBasedImgWidth,
-          height: widthBasedImgHeight,
-          xPosition,
-          yPosition
-        })
-        pdf.addImage(imgData, 'PNG', xPosition, yPosition, widthBasedImgWidth, widthBasedImgHeight)
+      // Save locally so the user can attach it in WhatsApp Web
+      // Build filename as patientNAME_date.pdf  (e.g., John_Doe_2025-07-16.pdf)
+      const dateStr = new Date().toISOString().slice(0, 10)
+      let patientName = 'Receipt'
+      const nameNode = receiptEl.querySelector('[data-patient-name]') as HTMLElement | null
+      if (nameNode?.textContent) {
+        patientName = nameNode.textContent.trim().replace(/\s+/g, '_')
       }
+      const fileName = `${patientName}_${dateStr}.pdf`
 
-      // Save PDF to a blob
-      const pdfBlob = pdf.output('blob')
-
-      // Format the message
-      let message = `Dear ${selectedPrescription.patientName?.toString() || 'Patient'},\n\n`
-      message += `Thank you for visiting Sri Harsha Eye Hospital.\n\n`
-
-      if (selectedReceiptType === 'cash') {
-        message += `Your payment details are attached.\n`
-      } else if (selectedReceiptType === 'prescription') {
-        message += `Your prescription details are attached.\n`
-        if (selectedPrescription.followUpDate) {
-          message += `Follow-up Date: ${selectedPrescription.followUpDate?.toString() || ''}\n`
+      // Attempt silent save if Node fs API is available (Electron renderer with contextIsolation disabled)
+      let savedSilently = false
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const _require = (window as any).require
+        if (typeof _require === 'function') {
+          const fs = _require('fs') as typeof import('fs')
+          const path = _require('path') as typeof import('path')
+          const os = _require('os') as typeof import('os')
+          const dest = path.join(os.homedir(), 'Downloads', fileName)
+          fs.writeFileSync(dest, Buffer.from(pdfBytes), { encoding: 'binary' })
+          savedSilently = true
         }
+      } catch {
+        /* ignore */
       }
 
-      message += `\nBest regards,\nSri Harsha Eye Hospital Team`
-
-      // Create a temporary file URL for the PDF
-      const pdfUrl = URL.createObjectURL(pdfBlob)
-
-      // Create a File object from the blob for sharing
-      const pdfFile = new File([pdfBlob], `receipt-${selectedPrescription.id}.pdf`, {
-        type: 'application/pdf'
-      })
-
-      // Encode the message for WhatsApp URL
-      const encodedMessage = encodeURIComponent(message)
-
-      // Try to use the Web Share API if available (modern browsers)
-      if (navigator.share && navigator.canShare({ files: [pdfFile] })) {
-        try {
-          await navigator.share({
-            files: [pdfFile],
-            title: 'Receipt from Sri Harsha Eye Hospital',
-            text: message
-          })
-          console.log('PDF shared successfully')
-          return
-        } catch (err) {
-          console.error('Error sharing PDF:', err)
-          // Fall back to WhatsApp URL if sharing fails
-        }
+      if (!savedSilently) {
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+        saveAs(blob, fileName)
       }
 
-      // Fallback: Open WhatsApp with message and download PDF separately
-      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`
-      console.log(whatsappUrl)
-
-      // Also download the PDF since we can't directly share it
-      const downloadLink = document.createElement('a')
-      downloadLink.href = pdfUrl
-      downloadLink.download = `receipt-${selectedPrescription.id}.pdf`
-      document.body.appendChild(downloadLink)
-      downloadLink.click()
-      document.body.removeChild(downloadLink)
-    } catch (error) {
-      console.error('Error creating PDF:', error)
-      alert('Failed to create PDF. Please try again.')
-    } finally {
-      // Remove the temporary style
-      const tempStyle = document.querySelector('style[data-temp-style="true"]')
-      if (tempStyle) {
-        document.head.removeChild(tempStyle)
+      // Build patient phone
+      let patientPhone = String(
+        selectedPrescription?.['PHONE NUMBER'] || selectedPrescription?.phone || ''
+      ).replace(/\D/g, '')
+      if (patientPhone.startsWith('91')) {
+        patientPhone = patientPhone.slice(2)
       }
+      patientPhone = `91${patientPhone}`
+
+      // Open WhatsApp Web with chat to patient number
+      window.open(`https://web.whatsapp.com/send?phone=${patientPhone}`, '_blank')
+    } catch (err) {
+      console.error('Failed to create/send PDF:', err)
+      alert('Failed to share via WhatsApp')
     }
   }
 
@@ -524,7 +450,10 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
                     </button>
                   )}
                   <button
-                    onClick={() => setSelectedReceiptType(null)}
+                    onClick={() => {
+                      setSelectedReceiptType(null)
+                      setSelectedPrescription(null)
+                    }}
                     className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center"
                     title="Close Receipt"
                   >
@@ -578,7 +507,7 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
                 </button>
                 <button
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center"
-                  onClick={handleWhatsAppShare}
+                  onClick={sendWhatsAppMessage}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

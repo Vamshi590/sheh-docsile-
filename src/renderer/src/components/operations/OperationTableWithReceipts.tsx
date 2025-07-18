@@ -58,7 +58,6 @@ const OperationTableWithReceipts: React.FC<OperationTableWithReceiptsProps> = ({
   const generatePdf = async (): Promise<Blob | null> => {
     if (!receiptRef.current) return null
 
-    // Temporary style to avoid oklch colours
     const tempStyle = document.createElement('style')
     tempStyle.setAttribute('data-temp-style', 'true')
     tempStyle.innerHTML = `*{color:black!important;background:white!important;border-color:black!important}`

@@ -159,7 +159,7 @@ const DuesFollowUpSummary: React.FC<DuesFollowUpSummaryProps> = ({ onClick }) =>
             <div className="flex items-center">
               <span className="text-sm text-gray-600 mr-2">Follow-Ups:</span>
               <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                {followUpsCount}
+                {Math.round(followUpsCount / 2)}
               </span>
             </div>
           </>

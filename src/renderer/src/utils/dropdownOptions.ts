@@ -120,9 +120,13 @@ export const medicineOptions = [
 ]
 
 export const timingOptions = [
-  'Once daily',
-  'Twice daily',
-  'Three times daily',
+  'Once daily (1-0-0)',
+  'Once daily (0-1-0)',
+  'Once daily (0-0-1)',
+  'Twice daily (1-0-1)',
+  'Twice daily (0-1-1)',
+  'Twice daily (1-1-0)',
+  'Three times daily (1-1-1)',
   'Four times daily',
   'Every morning',
   'Every night',

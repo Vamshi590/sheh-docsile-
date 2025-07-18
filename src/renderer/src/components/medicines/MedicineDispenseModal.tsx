@@ -29,7 +29,17 @@ const MedicineDispenseModal: React.FC<MedicineDispenseModalProps> = ({
   onDispense
 }) => {
   const [quantity, setQuantity] = useState(1)
-  const [patientName, setPatientName] = useState('')
+  const getUserName = (): string => {
+    try {
+      const stored = localStorage.getItem('currentUser')
+      if (!stored) return ''
+      const parsed = JSON.parse(stored)
+      return parsed?.fullName ?? ''
+    } catch {
+      return ''
+    }
+  }
+  const [patientName, setPatientName] = useState<string>(getUserName())
   const [patientId, setPatientId] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -38,12 +48,11 @@ const MedicineDispenseModal: React.FC<MedicineDispenseModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setQuantity(1)
-      setPatientName('')
+      setPatientName(getUserName())
       setPatientId('')
       setError('')
     }
   }, [isOpen, medicine])
-
   // Close on escape key
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent): void => {
@@ -151,35 +160,17 @@ const MedicineDispenseModal: React.FC<MedicineDispenseModalProps> = ({
                         htmlFor="patientName"
                         className="block text-sm font-medium text-gray-700"
                       >
-                        Patient Name (Optional)
+                        Dispensed By
                       </label>
                       <input
                         type="text"
                         id="patientName"
                         name="patientName"
                         value={patientName}
-                        onChange={(e) => setPatientName(e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        readOnly
+                        className="mt-1 block w-full border border-gray-300 bg-gray-100 rounded-md shadow-sm py-2 px-3 sm:text-sm"
                       />
                     </div>
-
-                    <div className="mb-4">
-                      <label
-                        htmlFor="patientId"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Patient ID (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        id="patientId"
-                        name="patientId"
-                        value={patientId}
-                        onChange={(e) => setPatientId(e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      />
-                    </div>
-
                     {error && (
                       <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
                         {error}

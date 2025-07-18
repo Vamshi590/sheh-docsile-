@@ -55,11 +55,11 @@ export default function BillingReceipt({
   authorizedSignatory = ''
 }: BillingReceiptProps): React.ReactElement {
   return (
-    <div className="receipt-container bg-white mx-auto relative">
+    <div className="receipt-container bg-[#ffffff] mx-auto relative">
       {/* Main Content */}
       <div className="receipt-content">
         {/* Header Section */}
-        <div className="pb-2 mb-4 border-b-2 border-black">
+        <div className="pb-2 mb-4 border-b-2 border-[#000000]">
           {/* Hospital Name Row */}
           <div className="flex justify-between items-center mb-2">
             <div className="w-12 h-12 flex items-center justify-center">
@@ -93,7 +93,7 @@ export default function BillingReceipt({
 
             {/* Center NABH */}
             <div className="w-[20%] flex justify-center">
-              <div className="w-24 h-24  flex items-center justify-center bg-white">
+              <div className="w-24 h-24  flex items-center justify-center bg-[#ffffff]">
                 <img src={nabhimage} alt="" />
               </div>
             </div>
@@ -121,7 +121,7 @@ export default function BillingReceipt({
         <h2 className="text-sm text-center font-bold  py-1 px-2 mb-2 ">BILLING RECEIPT</h2>
 
         {/* Patient Information Section */}
-        <div className="pb-3 mb-4 border-b border-black">
+        <div className="pb-3 mb-4 border-b border-[#000000]">
           <h3 className="text-xs font-bold mb-3">PATIENT INFORMATION</h3>
           {/* grid-based layout */}
           <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
@@ -179,7 +179,7 @@ export default function BillingReceipt({
         </div>
 
         {/* Medical Information Section */}
-        <div className="pb-3 mb-4 border-b border-black">
+        <div className="pb-3 mb-4 border-b border-[#000000]">
           <h3 className="text-xs font-bold mb-3">MEDICAL INFORMATION</h3>
           {/* grid-based layout */}
           <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
@@ -220,10 +220,10 @@ export default function BillingReceipt({
           <table className="w-full border-collapse text-[11px]">
             <thead>
               <tr>
-                <th className="border border-black p-2 text-center font-bold bg-gray-50">
+                <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff]">
                   PARTICULARS
                 </th>
-                <th className="border border-black p-2 text-center font-bold bg-gray-50 w-32">
+                <th className="border border-[#000000] p-2 text-center font-bold bg-[#ffffff] w-32">
                   AMOUNT
                 </th>
               </tr>
@@ -249,8 +249,8 @@ export default function BillingReceipt({
               {/* Empty rows for additional items */}
               {Array.from({ length: Math.max(0, 5 - billingItems.length) }).map((_, index) => (
                 <tr key={`empty-${index}`}>
-                  <td className="border border-black p-2 h-8"></td>
-                  <td className="border border-black p-2 h-8"></td>
+                  <td className="border border-[#000000] p-2 h-8"></td>
+                  <td className="border border-[#000000] p-2 h-8"></td>
                 </tr>
               ))}
 
@@ -258,48 +258,54 @@ export default function BillingReceipt({
               {billingData && (
                 <>
                   <tr>
-                    <td className="border border-black p-2 text-right font-bold bg-gray-50">
+                    <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
                       TOTAL AMOUNT
                     </td>
-                    <td className="border border-black p-2 text-right font-bold bg-gray-50">
+                    <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
                       {billingData.totalAmount.toFixed(2)}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 text-right font-bold">ADVANCE PAID</td>
-                    <td className="border border-black p-2 text-right">
+                    <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
+                      ADVANCE PAID
+                    </td>
+                    <td className="border border-[#000000] p-2 text-right">
                       {billingData.advancePaid.toFixed(2)}
                     </td>
                   </tr>
                   {billingData.discountPercent > 0 && (
                     <tr>
-                      <td className="border border-black p-2 text-right font-bold">DISCOUNT %</td>
-                      <td className="border border-black p-2 text-right">
+                      <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
+                        DISCOUNT %
+                      </td>
+                      <td className="border border-[#000000] p-2 text-right">
                         {billingData.discountPercent}
                       </td>
                     </tr>
                   )}
                   {billingData.discountAmount > 0 && (
                     <tr>
-                      <td className="border border-black p-2 text-right font-bold">
+                      <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
                         DISCOUNT AMOUNT
                       </td>
-                      <td className="border border-black p-2 text-right">
+                      <td className="border border-[#000000] p-2 text-right">
                         {billingData.discountAmount.toFixed(2)}
                       </td>
                     </tr>
                   )}
                   <tr>
-                    <td className="border border-black p-2 text-right font-bold bg-gray-50">
+                    <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
                       AMT. RECEIVED
                     </td>
-                    <td className="border border-black p-2 text-right font-bold bg-gray-50">
+                    <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
                       {billingData.totalAmount.toFixed(2)}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 text-right font-bold">BALANCE</td>
-                    <td className="border border-black p-2 text-right font-bold">
+                    <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
+                      BALANCE
+                    </td>
+                    <td className="border border-[#000000] p-2 text-right font-bold bg-[#ffffff]">
                       {billingData.balance.toFixed(2)}
                     </td>
                   </tr>
@@ -326,7 +332,7 @@ export default function BillingReceipt({
           </div>
 
           {/* Bottom Disclaimer */}
-          <div className="border-t border-gray-300 pt-2 text-center text-[9px] text-gray-500">
+          <div className="border-t border-[#000000] pt-2 text-center text-[9px] text-[#000000]">
             <div className="flex justify-between items-center">
               <span>
                 This is a computer generated receipt. Please preserve this for your records.
