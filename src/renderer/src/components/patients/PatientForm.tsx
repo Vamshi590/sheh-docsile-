@@ -42,7 +42,7 @@ interface PatientFormProps {
 
 const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, initialValues, patientCount = 0 }) => {
   const [formData, setFormData] = useState({
-    date: initialValues?.date || new Date().toISOString().split('T')[0],
+    date: initialValues?.date || String(new Date().toISOString().split('T')[0]),
     patientId: initialValues?.patientId || '',
     name: initialValues?.name || '',
     guardian: initialValues?.guardian || '',
@@ -100,7 +100,7 @@ const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, initialValues, pati
     // Clear form if it's not for editing (no initialValues)
     if (!initialValues) {
       setFormData({
-        date: new Date().toISOString().split('T')[0],
+        date: String(new Date().toISOString().split('T')[0]),
         patientId: '',
         name: '',
         guardian: '',

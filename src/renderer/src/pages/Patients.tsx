@@ -24,29 +24,26 @@ const Patients: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
 
-  // Filter patients to only include records from today
-  const todayDate = new Date().toISOString().split('T')[0]
-  const todaysPatients = patients.filter((patient) => patient.date === todayDate)
-
-  // Load patients on component mount
+  // Load today's patients on component mount
   useEffect(() => {
-    const fetchPatients = async (): Promise<void> => {
+    const fetchTodaysPatients = async (): Promise<void> => {
       try {
         setLoading(true)
         // Use type assertion for API calls with more specific types
         const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
-        const data = await api.getPatients()
+        const data = await api.getTodaysPatients()
+        console.log(data)
         setPatients(data as Patient[])
         setError('')
       } catch (err) {
-        console.error('Error loading patients:', err)
-        setError('Failed to load patients')
+        console.error("Error loading today's patients:", err)
+        setError("Failed to load today's patients")
       } finally {
         setLoading(false)
       }
     }
 
-    fetchPatients()
+    fetchTodaysPatients()
   }, [])
 
   // Function to handle adding a new patient
@@ -230,10 +227,9 @@ const Patients: React.FC = () => {
               Today&apos;s Patient Records
             </h2>
             <div className="text-sm text-gray-500">
-              {!loading && todaysPatients.length > 0 && (
+              {!loading && patients.length > 0 && (
                 <span>
-                  {todaysPatients.length} {todaysPatients.length === 1 ? 'patient' : 'patients'}{' '}
-                  found
+                  {patients.length} {patients.length === 1 ? 'patient' : 'patients'} found
                 </span>
               )}
             </div>
@@ -265,7 +261,7 @@ const Patients: React.FC = () => {
               </div>
             </div>
           )}
-          {!loading && todaysPatients.length === 0 ? (
+          {!loading && patients.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-gray-200 rounded-lg bg-gray-50">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -308,7 +304,7 @@ const Patients: React.FC = () => {
             !loading && (
               <div className="mt-4">
                 <PatientTable
-                  patients={todaysPatients}
+                  patients={patients}
                   onEdit={openEditModal}
                   onDelete={handleDeletePatient}
                 />

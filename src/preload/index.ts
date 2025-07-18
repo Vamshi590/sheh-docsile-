@@ -83,21 +83,23 @@ interface OpticalItem {
 const api = {
   // Authentication
   login: (username: string, password: string) => ipcRenderer.invoke('login', username, password),
-  
+
   // Staff Management
   getStaffList: () => ipcRenderer.invoke('getStaffList'),
   addStaff: (staff: StaffUser & { passwordHash?: string }) => ipcRenderer.invoke('addStaff', staff),
-  updateStaff: (id: string, staff: Partial<StaffUser> & { passwordHash?: string }) => 
+  updateStaff: (id: string, staff: Partial<StaffUser> & { passwordHash?: string }) =>
     ipcRenderer.invoke('updateStaff', id, staff),
   deleteStaff: (id: string) => ipcRenderer.invoke('deleteStaff', id),
   resetStaffPassword: (id: string) => ipcRenderer.invoke('resetStaffPassword', id),
-  checkPermission: (userId: string, module: string) => ipcRenderer.invoke('checkPermission', userId, module),
+  checkPermission: (userId: string, module: string) =>
+    ipcRenderer.invoke('checkPermission', userId, module),
 
   // Patient Management
   getPatients: () => ipcRenderer.invoke('getPatients'),
   addPatient: (patient: Patient) => ipcRenderer.invoke('addPatient', patient),
   updatePatient: (id: string, patient: Patient) => ipcRenderer.invoke('updatePatient', id, patient),
   deletePatient: (id: string) => ipcRenderer.invoke('deletePatient', id),
+  getTodaysPatients: () => ipcRenderer.invoke('getTodaysPatients'),
 
   // Prescriptions & Receipts Management
   getPrescriptions: () => ipcRenderer.invoke('getPrescriptions'),

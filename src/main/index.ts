@@ -25,6 +25,18 @@ interface StaffMember {
   updatedAt: string
   [key: string]: unknown
 }
+interface Patient {
+  id: string
+  date: string
+  patientId: string
+  name: string
+  guardian: string
+  dob: string
+  age: number
+  gender: string
+  phone: string
+  address: string
+}
 
 // Get the AppData path for storing user data
 const appDataPath = join(app.getPath('appData'), 'ShehData')
@@ -578,21 +590,87 @@ app.on('window-all-closed', () => {
 
 // Authentication handler is already defined above
 
+// Import Supabase client
+import { supabase } from './supabaseClient'
+
+// Get today's patients
+ipcMain.handle('getTodaysPatients', async () => {
+  try {
+    // Get today's date in YYYY-MM-DD format
+    const todayDate = new Date().toISOString().split('T')[0]
+
+    // Fetch today's patients from Supabase
+    const { data: patients, error } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('date', todayDate)
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`)
+    }
+
+    console.log("Today's patients fetched from Supabase successfully")
+    return patients || []
+  } catch (error) {
+    console.error("Error getting today's patients from Supabase:", error)
+
+    // Fallback to local Excel file if Supabase fails
+    try {
+      if (!fs.existsSync(patientsFilePath)) {
+        return []
+      }
+
+      const workbook = XLSX.readFile(patientsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+
+      const patients = XLSX.utils.sheet_to_json(worksheet) as Patient[]
+      const todayDate = new Date().toISOString().split('T')[0]
+      const todaysPatients = patients.filter((patient) => patient.date === todayDate)
+
+      console.log("Falling back to local Excel file for today's patients data")
+      return todaysPatients
+    } catch (localError) {
+      console.error("Error getting today's patients from local file:", localError)
+      return []
+    }
+  }
+})
+
 // Get all patients
 ipcMain.handle('getPatients', async () => {
   try {
-    if (!fs.existsSync(patientsFilePath)) {
-      return []
+    // Fetch all patients from Supabase
+    const { data: patients, error } = await supabase
+      .from('patients')
+      .select('*')
+      .order('date', { ascending: false })
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`)
     }
 
-    const workbook = XLSX.readFile(patientsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-
-    return XLSX.utils.sheet_to_json(worksheet)
+    console.log('Patients fetched from Supabase successfully')
+    return patients || []
   } catch (error) {
-    console.error('Error getting patients:', error)
-    return []
+    console.error('Error getting patients from Supabase:', error)
+    // Fallback to local Excel file if Supabase fails
+    try {
+      if (!fs.existsSync(patientsFilePath)) {
+        return []
+      }
+
+      const workbook = XLSX.readFile(patientsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const patients = XLSX.utils.sheet_to_json(worksheet) as Patient[]
+
+      console.log('Falling back to local Excel file for patients data')
+      return patients
+    } catch (excelError) {
+      console.error('Error reading from Excel file:', excelError)
+      return []
+    }
   }
 })
 
@@ -602,7 +680,7 @@ ipcMain.handle('addPatient', async (_, patient) => {
     // Generate a unique ID for the patient
     const patientWithId = { ...patient, id: uuidv4() }
 
-    // Read existing patients
+    // Read existing patients from Excel to maintain local data consistency
     let patients: Array<{ id: string; [key: string]: unknown }> = []
     if (fs.existsSync(patientsFilePath)) {
       const workbook = XLSX.readFile(patientsFilePath)
@@ -611,14 +689,29 @@ ipcMain.handle('addPatient', async (_, patient) => {
       patients = XLSX.utils.sheet_to_json(worksheet)
     }
 
-    // Add the new patient
+    // Add the new patient to the local array
     patients.push(patientWithId)
 
-    // Write back to Excel file
+    // Write back to Excel file to maintain local data
     const newWorkbook = XLSX.utils.book_new()
     const newWorksheet = XLSX.utils.json_to_sheet(patients)
     XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Patients')
     XLSX.writeFile(newWorkbook, patientsFilePath)
+
+    // Also add the patient to Supabase
+    try {
+      // Insert patient into Supabase
+      const { data, error } = await supabase.from('patients').insert([patientWithId]).select()
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+      console.log('Patient added to Supabase:', data)
+    } catch (supabaseError) {
+      console.error('Error adding patient to Supabase:', supabaseError)
+      // We don't throw this error to maintain backward compatibility
+      // The patient is still added to the local Excel file
+    }
 
     return patientWithId
   } catch (error) {
@@ -652,10 +745,56 @@ ipcMain.handle('updatePatient', async (_, id, updatedPatient) => {
     patients[patientIndex] = { ...updatedPatient, id }
 
     // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(patients)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Patients')
-    XLSX.writeFile(newWorkbook, patientsFilePath)
+    try {
+      const newWorkbook = XLSX.utils.book_new()
+      const newWorksheet = XLSX.utils.json_to_sheet(patients)
+      XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Patients')
+      // Use a retry mechanism with timeout to handle file locks
+      let retries = 3
+      let success = false
+      while (retries > 0 && !success) {
+        try {
+          XLSX.writeFile(newWorkbook, patientsFilePath)
+          success = true
+        } catch (error) {
+          // Define a type for filesystem errors
+          interface FileSystemError extends Error {
+            code?: string
+          }
+          const writeError = error as FileSystemError
+          if (writeError.code === 'EBUSY' && retries > 1) {
+            // File is locked, wait a bit and retry
+            console.log(`File is locked, retrying... (${retries - 1} attempts left)`)
+            await new Promise((resolve) => setTimeout(resolve, 1000)) // Wait 1 second
+            retries--
+          } else {
+            // Either not a busy error or last retry failed
+            throw writeError
+          }
+        }
+      }
+    } catch (excelError) {
+      console.error('Error writing to Excel file:', excelError)
+      // Continue with Google Sheets attempt even if Excel fails
+    }
+    // Also update the patient in Supabase
+    try {
+      // Update patient in Supabase
+      const { data, error } = await supabase
+        .from('patients')
+        .update(patients[patientIndex])
+        .eq('id', id)
+        .select()
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+      console.log('Patient updated in Supabase:', data)
+    } catch (supabaseError) {
+      console.error('Error updating patient in Supabase:', supabaseError)
+      // We don't throw this error to maintain backward compatibility
+      // The patient is still updated in the local Excel file
+    }
 
     return patients[patientIndex]
   } catch (error) {
@@ -683,10 +822,52 @@ ipcMain.handle('deletePatient', async (_, id) => {
     const updatedPatients = patients.filter((p) => p.id !== id)
 
     // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(updatedPatients)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Patients')
-    XLSX.writeFile(newWorkbook, patientsFilePath)
+    try {
+      const newWorkbook = XLSX.utils.book_new()
+      const newWorksheet = XLSX.utils.json_to_sheet(updatedPatients)
+      XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Patients')
+      // Use a retry mechanism with timeout to handle file locks
+      let retries = 3
+      let success = false
+      while (retries > 0 && !success) {
+        try {
+          XLSX.writeFile(newWorkbook, patientsFilePath)
+          success = true
+        } catch (error) {
+          // Define a type for filesystem errors
+          interface FileSystemError extends Error {
+            code?: string
+          }
+          const writeError = error as FileSystemError
+          if (writeError.code === 'EBUSY' && retries > 1) {
+            // File is locked, wait a bit and retry
+            console.log(`File is locked, retrying... (${retries - 1} attempts left)`)
+            await new Promise((resolve) => setTimeout(resolve, 1000)) // Wait 1 second
+            retries--
+          } else {
+            // Either not a busy error or last retry failed
+            throw writeError
+          }
+        }
+      }
+    } catch (excelError) {
+      console.error('Error writing to Excel file:', excelError)
+      // Continue with Google Sheets attempt even if Excel fails
+    }
+    // Also delete the patient from Supabase
+    try {
+      // Delete patient from Supabase
+      const { error } = await supabase.from('patients').delete().eq('id', id)
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+      console.log('Patient deleted from Supabase successfully')
+    } catch (supabaseError) {
+      console.error('Error deleting patient from Supabase:', supabaseError)
+      // We don't throw this error to maintain backward compatibility
+      // The patient is still deleted from the local Excel file
+    }
 
     return true
   } catch (error) {
@@ -698,18 +879,86 @@ ipcMain.handle('deletePatient', async (_, id) => {
 // Get all prescriptions and receipts
 ipcMain.handle('getPrescriptions', async () => {
   try {
-    if (!fs.existsSync(prescriptionsFilePath)) {
-      return []
+    // Fetch all prescriptions from Supabase
+    const { data: prescriptions, error } = await supabase
+      .from('prescriptions')
+      .select('*')
+      .order('date', { ascending: false })
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`)
     }
 
-    const workbook = XLSX.readFile(prescriptionsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-
-    return XLSX.utils.sheet_to_json(worksheet)
+    console.log('Prescriptions fetched from Supabase successfully')
+    return prescriptions || []
   } catch (error) {
-    console.error('Error getting prescriptions:', error)
-    return []
+    console.error('Error getting prescriptions from Supabase:', error)
+
+    // Fallback to local Excel file if Supabase fails
+    try {
+      if (!fs.existsSync(prescriptionsFilePath)) {
+        return []
+      }
+
+      const workbook = XLSX.readFile(prescriptionsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const prescriptions = XLSX.utils.sheet_to_json(worksheet)
+
+      console.log('Falling back to local Excel file for prescriptions data')
+      return prescriptions
+    } catch (excelError) {
+      console.error('Error reading from Excel file:', excelError)
+      return []
+    }
+  }
+})
+
+// Get today's prescriptions
+ipcMain.handle('getTodaysPrescriptions', async () => {
+  try {
+    // Get today's date in YYYY-MM-DD format
+    const todayDate = new Date().toISOString().split('T')[0]
+
+    // Fetch today's prescriptions from Supabase
+    const { data: prescriptions, error } = await supabase
+      .from('prescriptions')
+      .select('*')
+      .eq('date', todayDate)
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`)
+    }
+
+    console.log("Today's prescriptions fetched from Supabase successfully")
+    return prescriptions || []
+  } catch (error) {
+    console.error("Error getting today's prescriptions from Supabase:", error)
+
+    // Fallback to local Excel file if Supabase fails
+    try {
+      if (!fs.existsSync(prescriptionsFilePath)) {
+        return []
+      }
+
+      const workbook = XLSX.readFile(prescriptionsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const prescriptions = XLSX.utils.sheet_to_json(worksheet) as Array<{ date?: string }>
+
+      // Filter for today's date
+      const todayDate = new Date().toISOString().split('T')[0]
+      const todaysPrescriptions = prescriptions.filter((p) => {
+        if (!p.date) return false
+        return p.date.toString() === todayDate
+      })
+
+      console.log("Falling back to local Excel file for today's prescriptions data")
+      return todaysPrescriptions
+    } catch (excelError) {
+      console.error('Error reading from Excel file:', excelError)
+      return []
+    }
   }
 })
 
@@ -719,8 +968,8 @@ ipcMain.handle('addPrescription', async (_, prescription) => {
     // Generate a unique ID for the prescription
     const prescriptionWithId = { ...prescription, id: uuidv4() }
 
-    // Read existing prescriptions
-    let prescriptions: Array<{ id: string; [key: string]: unknown }> = []
+    // Read existing prescriptions from local file for Sno calculation
+    let prescriptions: Array<{ id: string; Sno?: number; [key: string]: unknown }> = []
     if (fs.existsSync(prescriptionsFilePath)) {
       const workbook = XLSX.readFile(prescriptionsFilePath)
       const sheetName = workbook.SheetNames[0]
@@ -728,22 +977,63 @@ ipcMain.handle('addPrescription', async (_, prescription) => {
       prescriptions = XLSX.utils.sheet_to_json(worksheet)
     }
 
-    // Add serial number (Sno) to the new prescription
-    // Find the highest existing Sno and increment by 1, or start at 1 if none exist
-    const highestSno = prescriptions.reduce((max, item) => {
+    // Also get the highest Sno from Supabase
+    let highestSnoFromSupabase = 0
+    try {
+      const { data, error } = await supabase
+        .from('prescriptions')
+        .select('Sno')
+        .order('Sno', { ascending: false })
+        .limit(1)
+
+      if (!error && data && data.length > 0 && data[0].Sno) {
+        highestSnoFromSupabase = data[0].Sno as number
+      }
+    } catch (supabaseError) {
+      console.error('Error getting highest Sno from Supabase:', supabaseError)
+      // Continue with local calculation if Supabase fails
+    }
+
+    // Calculate highest Sno from local file
+    const highestSnoFromLocal = prescriptions.reduce((max, item) => {
       const sno = typeof item.Sno === 'number' ? item.Sno : 0
       return sno > max ? sno : max
     }, 0)
 
+    // Use the higher of the two values
+    const highestSno = Math.max(highestSnoFromSupabase, highestSnoFromLocal)
+
     // Add the new prescription with Sno
     const prescriptionWithSno = { ...prescriptionWithId, Sno: highestSno + 1 }
-    prescriptions.push(prescriptionWithSno)
 
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(prescriptions)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Prescriptions')
-    XLSX.writeFile(newWorkbook, prescriptionsFilePath)
+    // Add to Supabase
+    try {
+      const { data, error } = await supabase
+        .from('prescriptions')
+        .insert([prescriptionWithSno])
+        .select()
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log('Prescription added to Supabase:', data)
+    } catch (supabaseError) {
+      console.error('Error adding prescription to Supabase:', supabaseError)
+      // Continue with local file update even if Supabase fails
+    }
+
+    // Also update local Excel file for backup
+    prescriptions.push(prescriptionWithSno)
+    try {
+      const newWorkbook = XLSX.utils.book_new()
+      const newWorksheet = XLSX.utils.json_to_sheet(prescriptions)
+      XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Prescriptions')
+      XLSX.writeFile(newWorkbook, prescriptionsFilePath)
+    } catch (excelError) {
+      console.error('Error writing to Excel file:', excelError)
+      // Continue even if Excel update fails
+    }
 
     return prescriptionWithSno
   } catch (error) {
@@ -755,6 +1045,62 @@ ipcMain.handle('addPrescription', async (_, prescription) => {
 // Update an existing prescription and receipt
 ipcMain.handle('updatePrescription', async (_, id, updatedPrescription) => {
   try {
+    // Update in Supabase first
+    try {
+      const { data, error } = await supabase
+        .from('prescriptions')
+        .update(updatedPrescription)
+        .eq('id', id)
+        .select()
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log('Prescription updated in Supabase:', data)
+
+      // If Supabase update was successful, also update local Excel file
+      try {
+        // Read existing prescriptions
+        if (!fs.existsSync(prescriptionsFilePath)) {
+          return data[0] // Return Supabase data if Excel file doesn't exist
+        }
+
+        const workbook = XLSX.readFile(prescriptionsFilePath)
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const prescriptions: Array<{ id: string; [key: string]: unknown }> =
+          XLSX.utils.sheet_to_json(worksheet) as Array<{ id: string; [key: string]: unknown }>
+
+        // Find and update the prescription
+        const prescriptionIndex = prescriptions.findIndex((p) => p.id === id)
+
+        if (prescriptionIndex === -1) {
+          // If not found in Excel, add it
+          prescriptions.push({ ...updatedPrescription, id })
+        } else {
+          // Update existing record
+          prescriptions[prescriptionIndex] = { ...updatedPrescription, id }
+        }
+
+        // Write back to Excel file
+        const newWorkbook = XLSX.utils.book_new()
+        const newWorksheet = XLSX.utils.json_to_sheet(prescriptions)
+        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Prescriptions')
+        XLSX.writeFile(newWorkbook, prescriptionsFilePath)
+      } catch (excelError) {
+        console.error('Error updating prescription in Excel file:', excelError)
+        // Return Supabase data even if Excel update fails
+        return data[0]
+      }
+
+      return data[0]
+    } catch (supabaseError) {
+      console.error('Error updating prescription in Supabase:', supabaseError)
+      // Fall back to Excel-only update if Supabase fails
+    }
+
+    // Fallback to Excel-only update
     // Read existing prescriptions
     if (!fs.existsSync(prescriptionsFilePath)) {
       throw new Error('Prescriptions file does not exist')
@@ -792,26 +1138,46 @@ ipcMain.handle('updatePrescription', async (_, id, updatedPrescription) => {
 // Delete a prescription and receipt
 ipcMain.handle('deletePrescription', async (_, id) => {
   try {
-    // Read existing prescriptions
-    if (!fs.existsSync(prescriptionsFilePath)) {
-      throw new Error('Prescriptions file does not exist')
+    // Delete from Supabase first
+    try {
+      const { error } = await supabase.from('prescriptions').delete().eq('id', id)
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log('Prescription deleted from Supabase successfully')
+    } catch (supabaseError) {
+      console.error('Error deleting prescription from Supabase:', supabaseError)
+      // Continue with local file update even if Supabase fails
     }
 
-    const workbook = XLSX.readFile(prescriptionsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const prescriptions: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-      worksheet
-    ) as Array<{ id: string; [key: string]: unknown }>
+    // Also update local Excel file
+    try {
+      // Read existing prescriptions
+      if (!fs.existsSync(prescriptionsFilePath)) {
+        return true // Return success if Excel file doesn't exist
+      }
 
-    // Filter out the prescription to delete
-    const updatedPrescriptions = prescriptions.filter((p) => p.id !== id)
+      const workbook = XLSX.readFile(prescriptionsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const prescriptions: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
+        worksheet
+      ) as Array<{ id: string; [key: string]: unknown }>
 
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(updatedPrescriptions)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Prescriptions')
-    XLSX.writeFile(newWorkbook, prescriptionsFilePath)
+      // Filter out the prescription to delete
+      const updatedPrescriptions = prescriptions.filter((p) => p.id !== id)
+
+      // Write back to Excel file
+      const newWorkbook = XLSX.utils.book_new()
+      const newWorksheet = XLSX.utils.json_to_sheet(updatedPrescriptions)
+      XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Prescriptions')
+      XLSX.writeFile(newWorkbook, prescriptionsFilePath)
+    } catch (excelError) {
+      console.error('Error updating Excel file after deletion:', excelError)
+      // Return success even if Excel update fails, as Supabase delete was successful
+    }
 
     return true
   } catch (error) {
@@ -823,6 +1189,48 @@ ipcMain.handle('deletePrescription', async (_, id) => {
 // Search prescriptions by patient ID, name, or phone number
 ipcMain.handle('searchPrescriptions', async (_, searchTerm) => {
   try {
+    // If no search term, return all prescriptions
+    if (!searchTerm || searchTerm.trim() === '') {
+      const { data, error } = await supabase
+        .from('prescriptions')
+        .select('*')
+        .order('date', { ascending: false })
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log('All prescriptions fetched from Supabase for search')
+      return data || []
+    }
+
+    // Search in Supabase using ilike for case-insensitive search
+    const searchTermLower = `%${searchTerm.toLowerCase()}%`
+
+    try {
+      const { data, error } = await supabase
+        .from('prescriptions')
+        .select('*')
+        .or(
+          `patientId.ilike.${searchTermLower},` +
+            `name.ilike.${searchTermLower},` +
+            `phone.ilike.${searchTermLower},` +
+            `guardian.ilike.${searchTermLower}`
+        )
+        .order('date', { ascending: false })
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log('Prescriptions search results fetched from Supabase')
+      return data || []
+    } catch (supabaseError) {
+      console.error('Error searching prescriptions in Supabase:', supabaseError)
+      // Fall back to local Excel search if Supabase fails
+    }
+
+    // Fallback to local Excel search
     if (!fs.existsSync(prescriptionsFilePath)) {
       return []
     }
@@ -830,27 +1238,24 @@ ipcMain.handle('searchPrescriptions', async (_, searchTerm) => {
     const workbook = XLSX.readFile(prescriptionsFilePath)
     const sheetName = workbook.SheetNames[0]
     const worksheet = workbook.Sheets[sheetName]
-    const prescriptions: Array<{
-      id: string
-      'PATIENT ID': string
-      'GUARDIAN NAME': string
-      'PHONE NUMBER': string
-      [key: string]: unknown
-    }> = XLSX.utils.sheet_to_json(worksheet)
+    const prescriptions = XLSX.utils.sheet_to_json(worksheet) as Array<Record<string, unknown>>
 
     // Filter prescriptions based on search term
-    if (!searchTerm || searchTerm.trim() === '') {
-      return prescriptions
-    }
-
-    const searchTermLower = searchTerm.toLowerCase()
-    return prescriptions.filter(
-      (p) =>
-        (p['PATIENT ID'] && p['PATIENT ID'].toString().toLowerCase().includes(searchTermLower)) ||
-        (p['GUARDIAN NAME'] &&
-          p['GUARDIAN NAME'].toString().toLowerCase().includes(searchTermLower)) ||
-        (p['PHONE NUMBER'] && p['PHONE NUMBER'].toString().toLowerCase().includes(searchTermLower))
-    )
+    const searchTermForComparison = searchTerm.toLowerCase()
+    return prescriptions.filter((p) => {
+      // Check all fields that might contain the search term
+      for (const key in p) {
+        const value = p[key]
+        if (
+          value &&
+          typeof value.toString === 'function' &&
+          value.toString().toLowerCase().includes(searchTermForComparison)
+        ) {
+          return true
+        }
+      }
+      return false
+    })
   } catch (error) {
     console.error('Error searching prescriptions:', error)
     return []
