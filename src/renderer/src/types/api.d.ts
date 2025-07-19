@@ -76,6 +76,15 @@ interface API {
   saveOperation: (operation: Omit<Operation, 'id'>) => Promise<Operation>
   updateOperation: (id: string, operation: Operation) => Promise<Operation>
   deleteOperation: (id: string) => Promise<void>
+
+  // Dropdown Options methods
+  addDropdownOption: (
+    fieldName: string,
+    newValue: string
+  ) => Promise<{ success: boolean; message?: string; error?: string }>
+  getDropdownOptions: (
+    fieldName: string
+  ) => Promise<{ success: boolean; options?: string[]; error?: string }>
 }
 
 declare global {

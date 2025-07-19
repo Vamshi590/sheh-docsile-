@@ -36,6 +36,11 @@ interface Patient {
   gender: string
   phone: string
   address: string
+  status: string
+  doctorName: string
+  department: string
+  referredBy: string
+  createdBy: string
 }
 
 // Get the AppData path for storing user data
@@ -1004,6 +1009,60 @@ ipcMain.handle('addPatient', async (_, patient) => {
   } catch (error) {
     console.error('Error adding patient:', error)
     throw error
+  }
+})
+
+// Get patient by ID
+ipcMain.handle('getPatientById', async (_, patientId: string) => {
+  try {
+    // First try to fetch from Supabase
+    const { data: patients, error } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('patientId', patientId)
+      .limit(1)
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`)
+    }
+
+    if (patients && patients.length > 0) {
+      console.log('Patient found in Supabase:', patients[0])
+      return patients[0]
+    }
+
+    // If not found in Supabase, return null
+    console.log('Patient not found in Supabase with ID:', patientId)
+    return null
+  } catch (error) {
+    console.error('Error getting patient by ID from Supabase:', error)
+
+    // Fallback to local Excel file if Supabase fails
+    try {
+      if (!fs.existsSync(patientsFilePath)) {
+        console.log('Patients file does not exist')
+        return null
+      }
+
+      const workbook = XLSX.readFile(patientsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const patients = XLSX.utils.sheet_to_json(worksheet) as Patient[]
+
+      // Find patient by patientId
+      const patient = patients.find((p) => p.patientId === patientId)
+
+      if (patient) {
+        console.log('Patient found in Excel file:', patient)
+        return patient
+      } else {
+        console.log('Patient not found in Excel file with ID:', patientId)
+        return null
+      }
+    } catch (excelError) {
+      console.error('Error reading patient from Excel file:', excelError)
+      return null
+    }
   }
 })
 
@@ -4813,3 +4872,206 @@ ipcMain.handle(
     }
   }
 )
+
+// Dropdown Options Management with Supabase
+// Table: dropdown_options (columns: id, field_name, option_value, created_at)
+
+// Fallback file path for when Supabase is unavailable
+const dropdownOptionsPath = join(__dirname, '../../renderer/src/utils/dropdownOptions.ts')
+
+// Helper function to add option to file system (fallback)
+const addDropdownOptionToFile = async (
+  fieldName: string,
+  newValue: string
+): Promise<{ success: boolean; message?: string; error?: string }> => {
+  try {
+    const fileContent = fs.readFileSync(dropdownOptionsPath, 'utf8')
+
+    let arrayName = ''
+    switch (fieldName) {
+      case 'doctorName':
+        arrayName = 'doctorOptions'
+        break
+      case 'department':
+        arrayName = 'departmentOptions'
+        break
+      case 'referredBy':
+        arrayName = 'referredByOptions'
+        break
+      default:
+        return { success: false, error: 'Invalid field name' }
+    }
+
+    const arrayRegex = new RegExp(`export const ${arrayName} = \\[([\\s\\S]*?)\\]`, 'm')
+    const match = fileContent.match(arrayRegex)
+
+    if (!match) {
+      return { success: false, error: `Array ${arrayName} not found` }
+    }
+
+    const currentArrayContent = match[1]
+    const trimmedValue = newValue.trim()
+
+    // Check if value already exists
+    if (
+      currentArrayContent.toLowerCase().includes(`'${trimmedValue.toLowerCase()}'`) ||
+      currentArrayContent.toLowerCase().includes(`"${trimmedValue.toLowerCase()}"`)
+    ) {
+      return { success: true, message: 'Value already exists' }
+    }
+
+    // Add the new value
+    const newArrayContent =
+      currentArrayContent.trim() + (currentArrayContent.trim() ? ',\n' : '') + `  '${trimmedValue}'`
+    const newFileContent = fileContent.replace(
+      arrayRegex,
+      `export const ${arrayName} = [\n${newArrayContent}\n]`
+    )
+
+    fs.writeFileSync(dropdownOptionsPath, newFileContent, 'utf8')
+    console.log(`Added '${trimmedValue}' to ${arrayName} (file fallback)`)
+    return { success: true, message: 'Option added successfully (file fallback)' }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+}
+
+// Helper function to get options from file system (fallback)
+const getDropdownOptionsFromFile = async (
+  fieldName: string
+): Promise<{ success: boolean; options?: string[]; error?: string }> => {
+  try {
+    const fileContent = fs.readFileSync(dropdownOptionsPath, 'utf8')
+
+    let arrayName = ''
+    switch (fieldName) {
+      case 'doctorName':
+        arrayName = 'doctorOptions'
+        break
+      case 'department':
+        arrayName = 'departmentOptions'
+        break
+      case 'referredBy':
+        arrayName = 'referredByOptions'
+        break
+      default:
+        return { success: false, error: 'Invalid field name' }
+    }
+
+    const arrayRegex = new RegExp(`export const ${arrayName} = \\[([\\s\\S]*?)\\]`, 'm')
+    const match = fileContent.match(arrayRegex)
+
+    if (!match) {
+      return { success: false, error: `Array ${arrayName} not found` }
+    }
+
+    const arrayContent = match[1]
+    const values = arrayContent
+      .split(',\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("'") || line.startsWith('"'))
+      .map((line) => line.slice(1, -1))
+      .filter((value) => value.length > 0)
+
+    return { success: true, options: values }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+}
+
+// Add new option to dropdown
+ipcMain.handle('addDropdownOption', async (_, fieldName: string, newValue: string) => {
+  try {
+    if (!newValue || !newValue.trim()) {
+      return { success: false, error: 'Value cannot be empty' }
+    }
+
+    const trimmedValue = newValue.trim()
+
+    // Validate field name
+    const validFields = ['doctorName', 'department', 'referredBy']
+    if (!validFields.includes(fieldName)) {
+      return { success: false, error: 'Invalid field name' }
+    }
+
+    try {
+      // First, check if the value already exists in Supabase (case-insensitive)
+      const { data: existingOptions, error: checkError } = await supabase
+        .from('dropdown_options')
+        .select('option_value')
+        .eq('field_name', fieldName)
+        .ilike('option_value', trimmedValue)
+        .limit(1)
+
+      if (checkError) {
+        console.warn('Supabase check failed, falling back to file system:', checkError.message)
+        return await addDropdownOptionToFile(fieldName, trimmedValue)
+      }
+
+      if (existingOptions && existingOptions.length > 0) {
+        return { success: true, message: 'Value already exists' }
+      }
+
+      // Add new option to Supabase
+      const { error: insertError } = await supabase.from('dropdown_options').insert({
+        field_name: fieldName,
+        option_value: trimmedValue
+      })
+
+      if (insertError) {
+        console.warn('Supabase insert failed, falling back to file system:', insertError.message)
+        return await addDropdownOptionToFile(fieldName, trimmedValue)
+      }
+
+      console.log(`Added '${trimmedValue}' to ${fieldName} options in Supabase`)
+      return { success: true, message: 'Option added successfully' }
+    } catch (supabaseError) {
+      console.warn('Supabase operation failed, falling back to file system:', supabaseError)
+      return await addDropdownOptionToFile(fieldName, trimmedValue)
+    }
+  } catch (error) {
+    console.error('Error adding dropdown option:', error)
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+})
+
+// Get current dropdown options
+ipcMain.handle('getDropdownOptions', async (_, fieldName: string) => {
+  try {
+    // Validate field name
+    const validFields = ['doctorName', 'department', 'referredBy']
+    if (!validFields.includes(fieldName)) {
+      return { success: false, error: 'Invalid field name' }
+    }
+
+    try {
+      // Try to get options from Supabase first
+      const { data: options, error } = await supabase
+        .from('dropdown_options')
+        .select('option_value')
+        .eq('field_name', fieldName)
+        .order('option_value', { ascending: true })
+
+      if (error) {
+        console.warn('Supabase fetch failed, falling back to file system:', error.message)
+        return await getDropdownOptionsFromFile(fieldName)
+      }
+
+      const values = options?.map((item) => item.option_value) || []
+
+      // If no options in Supabase, fall back to file system
+      if (values.length === 0) {
+        console.log(`No options found in Supabase for ${fieldName}, falling back to file system`)
+        return await getDropdownOptionsFromFile(fieldName)
+      }
+
+      return { success: true, options: values }
+    } catch (supabaseError) {
+      console.warn('Supabase operation failed, falling back to file system:', supabaseError)
+      return await getDropdownOptionsFromFile(fieldName)
+    }
+  } catch (error) {
+    console.error('Error getting dropdown options:', error)
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+})

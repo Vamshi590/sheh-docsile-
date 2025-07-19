@@ -100,6 +100,7 @@ const api = {
   updatePatient: (id: string, patient: Patient) => ipcRenderer.invoke('updatePatient', id, patient),
   deletePatient: (id: string) => ipcRenderer.invoke('deletePatient', id),
   getTodaysPatients: () => ipcRenderer.invoke('getTodaysPatients'),
+  getPatientById: (patientId: string) => ipcRenderer.invoke('getPatientById', patientId),
 
   // Prescriptions & Receipts Management
   getPrescriptions: () => ipcRenderer.invoke('getPrescriptions'),
@@ -206,7 +207,12 @@ const api = {
     endDate: string,
     timeFilter: string,
     format: string
-  ) => ipcRenderer.invoke('exportAnalyticsData', section, startDate, endDate, timeFilter, format)
+  ) => ipcRenderer.invoke('exportAnalyticsData', section, startDate, endDate, timeFilter, format),
+
+  // Dropdown Options Management
+  addDropdownOption: (fieldName: string, newValue: string) =>
+    ipcRenderer.invoke('addDropdownOption', fieldName, newValue),
+  getDropdownOptions: (fieldName: string) => ipcRenderer.invoke('getDropdownOptions', fieldName)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
