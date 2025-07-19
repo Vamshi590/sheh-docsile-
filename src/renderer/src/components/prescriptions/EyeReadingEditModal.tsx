@@ -1,5 +1,6 @@
 import React from 'react'
-import PrescriptionForm from './PrescriptionForm'
+import ReadingForm from './ReadingForm'
+import { Patient } from './ReceiptForm'
 
 // Define the Prescription type to match with other components
 type Prescription = {
@@ -7,31 +8,43 @@ type Prescription = {
   [key: string]: unknown
 }
 
-interface PrescriptionEditModalProps {
+interface EyeReadingEditModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (prescription: Prescription) => Promise<void>
-  prescription: Prescription | null
-  prescriptionCount: number
+  onSave: (eyeReading: Prescription) => Promise<void>
+  eyeReading: Prescription
 }
 
-const PrescriptionEditModal: React.FC<PrescriptionEditModalProps> = ({
+const EyeReadingEditModal: React.FC<EyeReadingEditModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  prescription,
-  prescriptionCount
+  eyeReading
 }) => {
-  if (!isOpen || !prescription) return null
+  if (!isOpen) return null
 
-  const handleSubmit = async (updatedPrescription: Record<string, unknown>): Promise<void> => {
+  // Convert eyeReading to patient format for ReadingForm
+  const selectedPatient: Patient = {
+    id: eyeReading.id, // Required field from Patient interface
+    date: String(eyeReading.DATE || new Date().toISOString().split('T')[0]), // Required field
+    patientId: String(eyeReading['PATIENT ID'] || ''),
+    name: String(eyeReading['PATIENT NAME'] || ''),
+    guardian: String(eyeReading['GUARDIAN NAME'] || ''),
+    dob: String(eyeReading.DOB || ''),
+    age: String(eyeReading.AGE || '0'),
+    gender: String(eyeReading.GENDER || ''),
+    phone: String(eyeReading['PHONE NUMBER'] || ''),
+    address: String(eyeReading.ADDRESS || '')
+  }
+
+  const handleSubmit = async (updatedEyeReading: Record<string, unknown>): Promise<void> => {
     // Ensure we keep the original ID
-    const prescriptionWithId = {
-      ...updatedPrescription,
-      id: prescription?.id
+    const eyeReadingWithId = {
+      ...updatedEyeReading,
+      id: eyeReading.id
     } as Prescription
 
-    await onSave(prescriptionWithId)
+    await onSave(eyeReadingWithId)
     onClose()
   }
 
@@ -48,14 +61,14 @@ const PrescriptionEditModal: React.FC<PrescriptionEditModalProps> = ({
             <div className="sm:flex sm:items-start">
               <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                 <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-headline">
-                  Edit Prescription
+                  Edit Eye Reading
                 </h3>
                 <div className="mt-4 max-h-[70vh] overflow-y-auto">
-                  <PrescriptionForm
+                  <ReadingForm
                     onSubmit={handleSubmit}
                     onCancel={onClose}
-                    initialData={prescription}
-                    prescriptionCount={prescriptionCount}
+                    selectedPatient={selectedPatient}
+                    initialData={eyeReading}
                   />
                 </div>
               </div>
@@ -76,4 +89,4 @@ const PrescriptionEditModal: React.FC<PrescriptionEditModalProps> = ({
   )
 }
 
-export default PrescriptionEditModal
+export default EyeReadingEditModal

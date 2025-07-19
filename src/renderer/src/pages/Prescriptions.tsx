@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import PrescriptionForm from '../components/prescriptions/PrescriptionForm'
 import PrescriptionTableWithReceipts from '../components/prescriptions/PrescriptionTableWithReceipts'
 import PrescriptionEditModal from '../components/prescriptions/PrescriptionEditModal'
+import EyeReadingEditModal from '../components/prescriptions/EyeReadingEditModal'
 import ReceiptForm, { Patient as ReceiptFormPatient } from '../components/prescriptions/ReceiptForm'
 import ReadingForm from '../components/prescriptions/ReadingForm'
 import ToastContainer, { ToastMessage } from '../components/ui/ToastContainer'
@@ -35,6 +36,8 @@ declare global {
       deletePrescription: (id: string) => Promise<void>
       searchPrescriptions: (searchTerm: string) => Promise<Prescription[]>
       getTodaysPrescriptions: () => Promise<Prescription[]>
+      getDropdownOptions: (fieldName: string) => Promise<string[]>
+      addDropdownOption: (fieldName: string, value: string) => Promise<void>
     }
   }
 }
@@ -50,9 +53,22 @@ const Prescriptions: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
   const [showReadingForm, setShowReadingForm] = useState(false)
+  const [editingEyeReading, setEditingEyeReading] = useState<Prescription | null>(null)
+  const [isEyeReadingModalOpen, setIsEyeReadingModalOpen] = useState<boolean>(false)
   const [searchTerm, setSearchTerm] = useState('')
   // Track the current active receipt to link prescriptions and readings to it
   const [currentReceipt, setCurrentReceipt] = useState<Prescription | null>(null)
+  // Track if prescription and eye reading have been added to the current receipt
+  const [hasPrescription, setHasPrescription] = useState<boolean>(false)
+  const [hasEyeReading, setHasEyeReading] = useState<boolean>(false)
+
+  // Reset prescription and eye reading flags when current receipt changes
+  useEffect(() => {
+    if (!currentReceipt) {
+      setHasPrescription(false)
+      setHasEyeReading(false)
+    }
+  }, [currentReceipt])
   // Toast notifications state
   const [toasts, setToasts] = useState<ToastMessage[]>([])
 
@@ -162,6 +178,7 @@ const Prescriptions: React.FC = () => {
         await loadPrescriptions()
         setShowAddForm(false)
         setError('')
+        setHasPrescription(true)
         addToast('Prescription added successfully', 'success')
       }
       // Priority 2: If we have a found patient from search but no receipt, create a new receipt
@@ -199,6 +216,7 @@ const Prescriptions: React.FC = () => {
         await loadPrescriptions()
         setShowAddForm(false)
         setError('')
+        setHasPrescription(true)
         addToast('Prescription added successfully', 'success')
       }
       // Priority 3: No receipt or found patient, create a new receipt with just the form data
@@ -221,7 +239,7 @@ const Prescriptions: React.FC = () => {
         await loadPrescriptions()
         setShowAddForm(false)
         setError('')
-        // Show success toast
+        setHasPrescription(true)
         addToast('Prescription added successfully', 'success')
       }
 
@@ -236,8 +254,6 @@ const Prescriptions: React.FC = () => {
 
   // Convert Patient type from Prescriptions.tsx to the Patient interface expected by ReceiptForm.tsx
   const convertToReceiptFormPatient = (patient: Patient): ReceiptFormPatient => {
-    console.log('Converting patient to ReceiptFormPatient - Raw patient data:', patient)
-
     // IMPORTANT: The patient object structure uses camelCase fields, not uppercase fields
     // Extract fields directly from the patient object based on the actual structure we see in the logs
 
@@ -266,17 +282,6 @@ const Prescriptions: React.FC = () => {
     const gender = String(patient.gender || '')
     const address = String(patient.address || '')
 
-    // Log the extracted details for debugging
-    console.log('Extracted patient details:', {
-      patientId,
-      patientName,
-      guardianName,
-      phoneNumber,
-      age,
-      gender,
-      address
-    })
-
     // Extract DOB if available
     const dob = 'dob' in patient && typeof patient.dob === 'string' ? patient.dob : ''
 
@@ -293,8 +298,6 @@ const Prescriptions: React.FC = () => {
       address: address,
       dob: dob
     }
-
-    console.log('Converted patient object:', convertedPatient)
     return convertedPatient
   }
 
@@ -471,6 +474,7 @@ const Prescriptions: React.FC = () => {
 
         // Update the current receipt in state
         setCurrentReceipt(updatedReceipt)
+        setHasEyeReading(true)
       } else if (foundPatient) {
         // Create a new receipt with patient details and reading data
         const receiptData = {
@@ -487,6 +491,7 @@ const Prescriptions: React.FC = () => {
 
         // Set this as the current receipt
         setCurrentReceipt(newReceipt)
+        setHasEyeReading(true)
       } else {
         // Create a new receipt with just the reading data
         const receiptData = {
@@ -501,6 +506,7 @@ const Prescriptions: React.FC = () => {
 
         // Set this as the current receipt
         setCurrentReceipt(newReceipt)
+        setHasEyeReading(true)
       }
 
       await loadPrescriptions()
@@ -524,12 +530,39 @@ const Prescriptions: React.FC = () => {
       setPrescriptions(prescriptions.map((p) => (p.id === id ? updatedPrescription : p)))
       setIsModalOpen(false)
       setEditingPrescription(null)
+      setShowAddForm(false)
       setError('')
       // Show success toast
       addToast('Prescription updated successfully', 'success')
     } catch (err) {
       console.error('Error updating prescription:', err)
       setError('Failed to update prescription')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Function to handle updating an eye reading
+  const handleUpdateEyeReading = async (eyeReading: Prescription): Promise<void> => {
+    try {
+      setLoading(true)
+      const id = eyeReading.id
+      const updatedEyeReading = await window.api.updatePrescription(id, eyeReading)
+      setPrescriptions(prescriptions.map((p) => (p.id === id ? updatedEyeReading : p)))
+
+      // If this is the current receipt, update it
+      if (currentReceipt && currentReceipt.id === id) {
+        setCurrentReceipt(updatedEyeReading)
+      }
+
+      setIsEyeReadingModalOpen(false)
+      setEditingEyeReading(null)
+      setError('')
+      // Show success toast
+      addToast('Eye reading updated successfully', 'success')
+    } catch (err) {
+      console.error('Error updating eye reading:', err)
+      setError('Failed to update eye reading')
     } finally {
       setLoading(false)
     }
@@ -994,49 +1027,54 @@ const Prescriptions: React.FC = () => {
                       // No existing receipts, show the create receipt button prominently
                       return (
                         <div className="bg-green-50 p-4 rounded-md shadow-sm mb-4 border border-green-200">
-                          <h3 className="text-lg font-medium text-gray-800 mb-2 flex items-center">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5 mr-2 text-green-500"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="text-lg font-medium text-gray-800 mb-2 flex items-center">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5 mr-2 text-green-500"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                Patient Found - Create Receipt First
+                              </h3>
+                              <p className="text-sm text-gray-600 mb-4">
+                                Please create a receipt for this patient before adding prescriptions
+                                or readings.
+                              </p>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                // Close other forms if open
+                                if (showAddForm) setShowAddForm(false)
+                                if (showReadingForm) setShowReadingForm(false)
+                                // Open receipt form
+                                setShowReceiptForm(true)
+                              }}
+                              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors shadow-sm flex items-center space-x-1.5"
                             >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            Patient Found - Create Receipt First
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-4">
-                            Please create a receipt for this patient before adding prescriptions or
-                            readings.
-                          </p>
-                          <button
-                            onClick={() => {
-                              // Close other forms if open
-                              if (showAddForm) setShowAddForm(false)
-                              if (showReadingForm) setShowReadingForm(false)
-                              // Open receipt form
-                              setShowReceiptForm(true)
-                            }}
-                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors shadow-sm flex items-center space-x-1.5"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <span>Create Receipt</span>
-                          </button>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <span>Create Receipt</span>
+                            </button>
+                          </div>
                         </div>
                       )
                     }
@@ -1054,6 +1092,19 @@ const Prescriptions: React.FC = () => {
                       if (showReadingForm) setShowReadingForm(false)
                       // Open prescription form
                       setShowAddForm(true)
+                      if (hasPrescription) {
+                        // If editing, load the existing prescription data into the form
+                        // We can use the current receipt data since it contains the prescription
+                        setEditingPrescription(currentReceipt)
+                        setIsModalOpen(true)
+                        // Show toast message indicating edit mode
+                        addToast('Editing existing prescription', 'info')
+                      } else {
+                        // If adding new, clear any editing state
+                        setEditingPrescription(null)
+                        setShowAddForm(true)
+                        setIsModalOpen(false)
+                      }
                     }}
                     className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors shadow-sm flex items-center space-x-1.5"
                   >
@@ -1063,14 +1114,22 @@ const Prescriptions: React.FC = () => {
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
-                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                      <path
-                        fillRule="evenodd"
-                        d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                        clipRule="evenodd"
-                      />
+                      {hasPrescription ? (
+                        // Edit icon
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      ) : (
+                        // Add prescription icon
+                        <>
+                          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                          <path
+                            fillRule="evenodd"
+                            d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                            clipRule="evenodd"
+                          />
+                        </>
+                      )}
                     </svg>
-                    <span>Add Prescription</span>
+                    <span>{hasPrescription ? 'Edit Prescription' : 'Add Prescription'}</span>
                   </button>
 
                   <button
@@ -1078,8 +1137,18 @@ const Prescriptions: React.FC = () => {
                       // Close other forms if open
                       if (showAddForm) setShowAddForm(false)
                       if (showReceiptForm) setShowReceiptForm(false)
-                      // Open reading form
-                      setShowReadingForm(true)
+
+                      if (hasEyeReading) {
+                        // If editing, open the eye reading edit modal with the current receipt data
+                        setEditingEyeReading(currentReceipt)
+                        setIsEyeReadingModalOpen(true)
+                        // Show toast message indicating edit mode
+                        addToast('Editing existing eye reading', 'info')
+                      } else {
+                        // If adding new, open the reading form
+                        setShowReadingForm(true)
+                        setEditingPrescription(null)
+                      }
                     }}
                     className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md transition-colors shadow-sm flex items-center space-x-1.5"
                   >
@@ -1089,9 +1158,15 @@ const Prescriptions: React.FC = () => {
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
-                      <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                      {hasEyeReading ? (
+                        // Edit icon
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      ) : (
+                        // Eye reading chart icon
+                        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                      )}
                     </svg>
-                    <span>Add Eye Reading</span>
+                    <span>{hasEyeReading ? 'Edit Eye Reading' : 'Add Eye Reading'}</span>
                   </button>
                 </>
               )}
@@ -1349,28 +1424,10 @@ const Prescriptions: React.FC = () => {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <p className="text-gray-600 text-lg mb-2">No prescriptions found</p>
+              <p className="text-gray-600 text-lg mb-2">No prescriptions found for today</p>
               <p className="text-gray-500 mb-6">
-                Click the &quot;New Entry&quot; button to create your first prescription record
+                Search for a patient to create a new prescription record
               </p>
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors shadow-sm inline-flex items-center"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mr-1.5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                New Entry
-              </button>
             </div>
           ) : (
             !loading && (
@@ -1435,6 +1492,17 @@ const Prescriptions: React.FC = () => {
           }}
           onSave={handleUpdatePrescription}
           prescriptionCount={prescriptions.length}
+        />
+      )}
+      {isEyeReadingModalOpen && editingEyeReading && (
+        <EyeReadingEditModal
+          eyeReading={editingEyeReading}
+          isOpen={isEyeReadingModalOpen}
+          onClose={() => {
+            setIsEyeReadingModalOpen(false)
+            setEditingEyeReading(null)
+          }}
+          onSave={handleUpdateEyeReading}
         />
       )}
       {/* Toast Container */}

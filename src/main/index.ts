@@ -4989,7 +4989,16 @@ ipcMain.handle('addDropdownOption', async (_, fieldName: string, newValue: strin
     const trimmedValue = newValue.trim()
 
     // Validate field name
-    const validFields = ['doctorName', 'department', 'referredBy']
+    const validFields = [
+      'doctorName',
+      'department',
+      'referredBy',
+      'medicineOptions',
+      'presentComplainOptions',
+      'previousHistoryOptions',
+      'othersOptions',
+      'others1Options'
+    ]
     if (!validFields.includes(fieldName)) {
       return { success: false, error: 'Invalid field name' }
     }
@@ -5039,7 +5048,16 @@ ipcMain.handle('addDropdownOption', async (_, fieldName: string, newValue: strin
 ipcMain.handle('getDropdownOptions', async (_, fieldName: string) => {
   try {
     // Validate field name
-    const validFields = ['doctorName', 'department', 'referredBy']
+    const validFields = [
+      'doctorName',
+      'department',
+      'referredBy',
+      'medicineOptions',
+      'presentComplainOptions',
+      'previousHistoryOptions',
+      'othersOptions',
+      'others1Options'
+    ]
     if (!validFields.includes(fieldName)) {
       return { success: false, error: 'Invalid field name' }
     }

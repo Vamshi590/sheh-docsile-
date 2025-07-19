@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { medicineOptions, adviceOptions, timingOptions } from '../../utils/dropdownOptions'
+import EditableCombobox from '../common/EditableCombobox'
 
 // Define the Prescription type to match with other components
 type Prescription = {
@@ -30,6 +31,8 @@ declare global {
       deletePrescription: (id: string) => Promise<void>
       searchPrescriptions: (searchTerm: string) => Promise<Prescription[]>
       getTodaysPrescriptions: () => Promise<Prescription[]>
+      getDropdownOptions: (fieldName: string) => Promise<string[]>
+      addDropdownOption: (fieldName: string, value: string) => Promise<void>
     }
   }
 }
@@ -129,6 +132,12 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   const [visiblePrescriptions, setVisiblePrescriptions] = useState(2)
   const [visibleAdvice, setVisibleAdvice] = useState(2)
 
+  // Dynamic dropdown options state
+  const [dynamicPresentComplainOptions, setDynamicPresentComplainOptions] = useState<string[]>([])
+  const [dynamicPreviousHistoryOptions, setDynamicPreviousHistoryOptions] = useState<string[]>([])
+  const [dynamicOthersOptions, setDynamicOthersOptions] = useState<string[]>([])
+  const [dynamicOthers1Options, setDynamicOthers1Options] = useState<string[]>([])
+
   // No need to fetch patients as they are passed as props
 
   // Auto-generate Sno based on prescription count
@@ -146,6 +155,69 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
       })
     }
   }, [prescriptionCount, initialData.Sno])
+
+  // Helper function to fetch dropdown options from backend
+  const fetchDropdownOptions = async (): Promise<void> => {
+    try {
+      const [presentComplainOpts, previousHistoryOpts, othersOpts, others1Opts] = await Promise.all(
+        [
+          window.api.getDropdownOptions('presentComplainOptions'),
+          window.api.getDropdownOptions('previousHistoryOptions'),
+          window.api.getDropdownOptions('othersOptions'),
+          window.api.getDropdownOptions('others1Options')
+        ]
+      )
+      console.log(
+        'Dropdown options:',
+        presentComplainOpts,
+        previousHistoryOpts,
+        othersOpts,
+        others1Opts
+      )
+
+      // Set dynamic options - API returns { success: boolean, options?: string[], error?: string }
+      const presentOptions = (presentComplainOpts as { options?: string[] })?.options || []
+      const previousOptions = (previousHistoryOpts as { options?: string[] })?.options || []
+      const othersOptions = (othersOpts as { options?: string[] })?.options || []
+      const others1Options = (others1Opts as { options?: string[] })?.options || []
+
+      console.log(
+        'Present options:',
+        presentOptions,
+        'Previous options:',
+        previousOptions,
+        'Others options:',
+        othersOptions,
+        'Others1 options:',
+        others1Options
+      )
+
+      setDynamicPresentComplainOptions([...new Set(presentOptions as string[])])
+      setDynamicPreviousHistoryOptions([...new Set(previousOptions as string[])])
+      setDynamicOthersOptions([...new Set(othersOptions as string[])])
+      setDynamicOthers1Options([...new Set(others1Options as string[])])
+    } catch (error) {
+      console.error('Error fetching dropdown options:', error)
+    }
+  }
+
+  // Helper function to add new option permanently
+  const addNewOptionPermanently = async (fieldName: string, value: string): Promise<void> => {
+    try {
+      console.log('Adding new option permanently:', fieldName, value)
+      const response = await window.api.addDropdownOption(fieldName, value)
+      console.log('Response:', response)
+      // Refresh options from backend
+      await fetchDropdownOptions()
+    } catch (error) {
+      console.error('Error adding new dropdown option:', error)
+    }
+  }
+
+  // Fetch dropdown options on component mount
+  useEffect(() => {
+    fetchDropdownOptions()
+  }, [])
 
   // Handle form input changes
   const handleChange = (
@@ -294,13 +366,16 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
             <label htmlFor="PRESENT COMPLAIN" className="block text-sm font-medium text-gray-700">
               Present Complain
             </label>
-            <input
-              type="text"
-              name="PRESENT COMPLAIN"
+            <EditableCombobox
               id="PRESENT COMPLAIN"
+              name="PRESENT COMPLAIN"
               value={(formData['PRESENT COMPLAIN'] as string) || ''}
+              options={dynamicPresentComplainOptions}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              onAddNewOption={(fieldName, value) =>
+                addNewOptionPermanently((fieldName = 'presentComplainOptions'), value)
+              }
+              placeholder="Select or type present complain..."
             />
           </div>
 
@@ -309,13 +384,16 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
             <label htmlFor="PREVIOUS HISTORY" className="block text-sm font-medium text-gray-700">
               Previous History
             </label>
-            <input
-              type="text"
-              name="PREVIOUS HISTORY"
+            <EditableCombobox
               id="PREVIOUS HISTORY"
+              name="PREVIOUS HISTORY"
               value={(formData['PREVIOUS HISTORY'] as string) || ''}
+              options={dynamicPreviousHistoryOptions}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              onAddNewOption={(fieldName, value) =>
+                addNewOptionPermanently((fieldName = 'previousHistoryOptions'), value)
+              }
+              placeholder="Select or type previous history..."
             />
           </div>
 
@@ -324,13 +402,16 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
             <label htmlFor="OTHERS" className="block text-sm font-medium text-gray-700">
               Others
             </label>
-            <input
-              type="text"
-              name="OTHERS"
+            <EditableCombobox
               id="OTHERS"
+              name="OTHERS"
               value={(formData['OTHERS'] as string) || ''}
+              options={dynamicOthersOptions}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              onAddNewOption={(fieldName, value) =>
+                addNewOptionPermanently((fieldName = 'othersOptions'), value)
+              }
+              placeholder="Select or type other information..."
             />
           </div>
 
@@ -339,13 +420,16 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
             <label htmlFor="OTHERS1" className="block text-sm font-medium text-gray-700">
               Others1
             </label>
-            <input
-              type="text"
-              name="OTHERS1"
+            <EditableCombobox
               id="OTHERS1"
+              name="OTHERS1"
               value={(formData['OTHERS1'] as string) || ''}
+              options={dynamicOthers1Options}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              onAddNewOption={(fieldName, value) =>
+                addNewOptionPermanently((fieldName = 'others1Options'), value)
+              }
+              placeholder="Select or type additional information..."
             />
           </div>
         </div>
@@ -371,24 +455,14 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
                 >
                   Prescription {index + 1}
                 </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    name={`PRESCRIPTION ${index + 1}`}
-                    id={`PRESCRIPTION ${index + 1}`}
-                    value={(formData[`PRESCRIPTION ${index + 1}`] as string) || ''}
-                    onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Medicine name, dosage"
-                    list={`medicine-options-${index}`}
-                    autoComplete="off"
-                  />
-                  <datalist id={`medicine-options-${index}`}>
-                    {medicineOptions.map((option, i) => (
-                      <option key={i} value={option} />
-                    ))}
-                  </datalist>
-                </div>
+                <EditableCombobox
+                  id={`PRESCRIPTION ${index + 1}`}
+                  name={`PRESCRIPTION ${index + 1}`}
+                  value={(formData[`PRESCRIPTION ${index + 1}`] as string) || ''}
+                  options={medicineOptions}
+                  onChange={handleChange}
+                  placeholder="Select or type medicine name, dosage..."
+                />
               </div>
 
               {/* Days */}
@@ -418,7 +492,15 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
                 >
                   Timing {index + 1}
                 </label>
-                <div className="relative">
+                <EditableCombobox
+                  id={`TIMING ${index + 1}`}
+                  name={`TIMING ${index + 1}`}
+                  options={timingOptions}
+                  value={(formData[`TIMING ${index + 1}`] as string) || ''}
+                  onChange={handleChange}
+                  placeholder="Select or type timing..."
+                />
+                {/* <div className="relative">
                   <input
                     type="text"
                     name={`TIMING ${index + 1}`}
@@ -435,7 +517,7 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
                       <option key={i} value={option} />
                     ))}
                   </datalist>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
@@ -477,7 +559,15 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
               >
                 Advice {index + 1}
               </label>
-              <div className="relative">
+              <EditableCombobox
+                id={`ADVICE ${index + 1}`}
+                name={`ADVICE ${index + 1}`}
+                options={adviceOptions}
+                value={(formData[`ADVICE ${index + 1}`] as string) || ''}
+                onChange={handleChange}
+                placeholder="Select or type advice..."
+              />
+              {/* <div className="relative">
                 <input
                   type="text"
                   name={`ADVICE ${index + 1}`}
@@ -494,7 +584,7 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
                     <option key={i} value={option} />
                   ))}
                 </datalist>
-              </div>
+              </div> */}
             </div>
           ))}
         </div>
