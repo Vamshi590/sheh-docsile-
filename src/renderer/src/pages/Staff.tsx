@@ -72,6 +72,7 @@ const Staff = (): React.JSX.Element => {
       await api.updateStaff(id, staffData)
       loadStaffList() // Reload the list
       setEditingStaff(null)
+      setShowAddForm(false)
     } catch (err) {
       setError('Failed to update staff member')
       console.error(err)
@@ -88,6 +89,7 @@ const Staff = (): React.JSX.Element => {
       const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
       await api.deleteStaff(id)
       loadStaffList() // Reload the list
+      setShowAddForm(false)
     } catch (err) {
       setError('Failed to delete staff member')
       console.error(err)

@@ -260,15 +260,34 @@ ipcMain.handle('login', async (_, username: string, password: string) => {
       return { success: true, user: userWithoutPassword }
     }
 
-    // Check if staff file exists
-    if (!fs.existsSync(staffFilePath)) {
-      return { success: false, error: 'Staff database not found' }
-    }
+    // Try to get staff from Supabase first, fallback to Excel
+    let staff: StaffMember[] = []
+    try {
+      const { data: supabaseStaff, error } = await supabase.from('staff').select('*')
 
-    // Read staff file
-    const workbook = XLSX.readFile(staffFilePath)
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      if (supabaseStaff && supabaseStaff.length > 0) {
+        staff = supabaseStaff as StaffMember[]
+        console.log('Staff data fetched from Supabase for login')
+      } else {
+        throw new Error('No staff data from Supabase')
+      }
+    } catch (supabaseError) {
+      console.error('Error getting staff from Supabase for login:', supabaseError)
+
+      // Fallback to Excel
+      if (!fs.existsSync(staffFilePath)) {
+        return { success: false, error: 'Staff database not found' }
+      }
+
+      const workbook = XLSX.readFile(staffFilePath)
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+      console.log('Falling back to Excel for staff login data')
+    }
 
     // Find user by username
     const normalizedUsername = username.trim().toLowerCase()
@@ -299,13 +318,37 @@ ipcMain.handle('login', async (_, username: string, password: string) => {
 // Get staff list
 ipcMain.handle('getStaffList', async () => {
   try {
-    if (!fs.existsSync(staffFilePath)) {
-      return []
-    }
+    // Try to get staff from Supabase first, fallback to Excel
+    let staff: StaffMember[] = []
+    try {
+      const { data: supabaseStaff, error } = await supabase
+        .from('staff')
+        .select('*')
+        .order('createdAt', { ascending: false })
 
-    const workbook = XLSX.readFile(staffFilePath)
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      if (supabaseStaff && supabaseStaff.length > 0) {
+        staff = supabaseStaff as StaffMember[]
+        console.log('Staff list fetched from Supabase')
+      } else {
+        throw new Error('No staff data from Supabase')
+      }
+    } catch (supabaseError) {
+      console.error('Error getting staff list from Supabase:', supabaseError)
+
+      // Fallback to Excel
+      if (!fs.existsSync(staffFilePath)) {
+        return []
+      }
+
+      const workbook = XLSX.readFile(staffFilePath)
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+      console.log('Falling back to Excel for staff list')
+    }
 
     // Reconstruct permissions from flat columns and return staff list without password hashes
     return staff.map((user) => {
@@ -363,29 +406,93 @@ ipcMain.handle('addStaff', async (_, staffData: Partial<StaffMember>) => {
       staffWithId.passwordHash = bcrypt.hashSync(staffWithId.passwordHash, 10)
     }
 
-    // Read existing staff
-    let staff: StaffMember[] = []
-    if (fs.existsSync(staffFilePath)) {
-      const workbook = XLSX.readFile(staffFilePath)
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-      staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+    // Flatten permissions object into individual columns for Supabase storage
+    if (staffWithId.permissions) {
+      const permissions = staffWithId.permissions
+      staffWithId.patients = permissions.patients || false
+      staffWithId.prescriptions = permissions.prescriptions || false
+      staffWithId.medicines = permissions.medicines || false
+      staffWithId.opticals = permissions.opticals || false
+      staffWithId.receipts = permissions.receipts || false
+      staffWithId.analytics = permissions.analytics || false
+      staffWithId.staff = permissions.staff || false
+      staffWithId.operations = permissions.operations || false
+      staffWithId.reports = permissions.reports || false
+      staffWithId.duesFollowUp = permissions.duesFollowUp || false
+      staffWithId.data = permissions.data || false
     }
 
-    // Flatten permissions into separate columns for Excel storage
-    const { permissions, ...restStaff } = staffWithId
-    const staffToSave = {
-      ...restStaff,
-      ...permissions
-    } as unknown as StaffMember
+    // Try to add to Supabase first, fallback to Excel
+    try {
+      const { data, error } = await supabase.from('staff').insert([staffWithId]).select()
 
-    // Add new staff member
-    staff.push(staffToSave)
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
 
-    // Write back to file
-    const workbook = XLSX.utils.book_new()
-    const worksheet = XLSX.utils.json_to_sheet(staff)
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff')
-    XLSX.writeFile(workbook, staffFilePath)
+      console.log('Staff member added to Supabase:', data)
+
+      // Also add to Excel for backup
+      try {
+        let staff: StaffMember[] = []
+        if (fs.existsSync(staffFilePath)) {
+          const workbook = XLSX.readFile(staffFilePath)
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+          staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+        }
+
+        // Flatten permissions into separate columns for Excel storage
+        const { permissions, ...restStaff } = staffWithId
+        const staffToSave = {
+          ...restStaff,
+          ...permissions
+        } as unknown as StaffMember
+
+        // Add new staff member
+        staff.push(staffToSave)
+
+        // Write back to file
+        const workbook = XLSX.utils.book_new()
+        const worksheet = XLSX.utils.json_to_sheet(staff)
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff')
+        XLSX.writeFile(workbook, staffFilePath)
+        console.log('Staff member also added to Excel backup')
+      } catch (excelError) {
+        console.error('Error updating Excel backup:', excelError)
+      }
+
+      // Return the new staff member without password hash
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { passwordHash, ...staffWithoutPassword } = data[0] || staffWithId
+      return staffWithoutPassword
+    } catch (supabaseError) {
+      console.error('Error adding staff to Supabase:', supabaseError)
+
+      // Fallback to Excel only
+      let staff: StaffMember[] = []
+      if (fs.existsSync(staffFilePath)) {
+        const workbook = XLSX.readFile(staffFilePath)
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+        staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+      }
+
+      // Flatten permissions into separate columns for Excel storage
+      const { permissions, ...restStaff } = staffWithId
+      const staffToSave = {
+        ...restStaff,
+        ...permissions
+      } as unknown as StaffMember
+
+      // Add new staff member
+      staff.push(staffToSave)
+
+      // Write back to file
+      const workbook = XLSX.utils.book_new()
+      const worksheet = XLSX.utils.json_to_sheet(staff)
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff')
+      XLSX.writeFile(workbook, staffFilePath)
+      console.log('Staff member added to Excel only (Supabase failed)')
+    }
 
     // Return the new staff member without password hash
     const { passwordHash, ...staffWithoutPassword } = staffWithId // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -399,46 +506,106 @@ ipcMain.handle('addStaff', async (_, staffData: Partial<StaffMember>) => {
 // Update staff member
 ipcMain.handle('updateStaff', async (_, id: string, staffData: Partial<StaffMember>) => {
   try {
-    if (!fs.existsSync(staffFilePath)) {
-      throw new Error('Staff file does not exist')
-    }
-
-    // Read existing staff
-    const workbook = XLSX.readFile(staffFilePath)
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
-
-    // Find the staff member to update
-    const staffIndex = staff.findIndex((s) => s.id === id)
-
-    if (staffIndex === -1) {
-      throw new Error('Staff member not found')
-    }
-
-    // Update the staff member
-    const updatedStaff = {
-      ...(staff[staffIndex] as object),
-      ...(staffData as object),
+    // Prepare updated staff data
+    const updatedData = {
+      ...staffData,
       updatedAt: new Date().toISOString()
-    } as StaffMember
+    } as Partial<StaffMember>
 
     // Hash the password if it was updated
     if (staffData.passwordHash) {
-      updatedStaff.passwordHash = bcrypt.hashSync(staffData.passwordHash, 10)
+      updatedData.passwordHash = bcrypt.hashSync(staffData.passwordHash, 10)
     }
 
-    // Replace the staff member in the array
-    staff[staffIndex] = updatedStaff
+    // Flatten permissions object into individual columns if permissions are being updated
+    if (staffData.permissions) {
+      const permissions = staffData.permissions
+      updatedData.patients = permissions.patients || false
+      updatedData.prescriptions = permissions.prescriptions || false
+      updatedData.medicines = permissions.medicines || false
+      updatedData.opticals = permissions.opticals || false
+      updatedData.receipts = permissions.receipts || false
+      updatedData.analytics = permissions.analytics || false
+      updatedData.staff = permissions.staff || false
+      updatedData.operations = permissions.operations || false
+      updatedData.reports = permissions.reports || false
+      updatedData.duesFollowUp = permissions.duesFollowUp || false
+      updatedData.data = permissions.data || false
+    }
 
-    // Write back to file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(staff)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
-    XLSX.writeFile(newWorkbook, staffFilePath)
+    // Try to update in Supabase first
+    try {
+      const { data, error } = await supabase.from('staff').update(updatedData).eq('id', id).select()
 
-    // Return the updated staff member without password hash
-    const { passwordHash, ...staffWithoutPassword } = updatedStaff // eslint-disable-line @typescript-eslint/no-unused-vars
-    return staffWithoutPassword
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log('Staff member updated in Supabase:', data)
+
+      // Also update in Excel for backup
+      try {
+        if (!fs.existsSync(staffFilePath)) {
+          // Return Supabase data if Excel file doesn't exist
+          const { passwordHash, ...staffWithoutPassword } = data[0] || updatedData // eslint-disable-line @typescript-eslint/no-unused-vars
+          return staffWithoutPassword
+        }
+
+        const workbook = XLSX.readFile(staffFilePath)
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+        const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+
+        const staffIndex = staff.findIndex((s) => s.id === id)
+        if (staffIndex !== -1) {
+          staff[staffIndex] = { ...staff[staffIndex], ...updatedData } as StaffMember
+
+          const newWorkbook = XLSX.utils.book_new()
+          const newWorksheet = XLSX.utils.json_to_sheet(staff)
+          XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
+          XLSX.writeFile(newWorkbook, staffFilePath)
+          console.log('Staff member also updated in Excel backup')
+        }
+      } catch (excelError) {
+        console.error('Error updating Excel backup:', excelError)
+      }
+
+      // Return the updated staff member without password hash
+      const { passwordHash, ...staffWithoutPassword } = data[0] || updatedData // eslint-disable-line @typescript-eslint/no-unused-vars
+      return staffWithoutPassword
+    } catch (supabaseError) {
+      console.error('Error updating staff in Supabase:', supabaseError)
+
+      // Fallback to Excel only
+      if (!fs.existsSync(staffFilePath)) {
+        throw new Error('Staff file does not exist')
+      }
+
+      const workbook = XLSX.readFile(staffFilePath)
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+
+      const staffIndex = staff.findIndex((s) => s.id === id)
+      if (staffIndex === -1) {
+        throw new Error('Staff member not found')
+      }
+
+      const updatedStaff = {
+        ...(staff[staffIndex] as object),
+        ...updatedData
+      } as StaffMember
+
+      staff[staffIndex] = updatedStaff
+
+      const newWorkbook = XLSX.utils.book_new()
+      const newWorksheet = XLSX.utils.json_to_sheet(staff)
+      XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
+      XLSX.writeFile(newWorkbook, staffFilePath)
+      console.log('Staff member updated in Excel only (Supabase failed)')
+
+      // Return the updated staff member without password hash
+      const { passwordHash, ...staffWithoutPassword } = updatedStaff // eslint-disable-line @typescript-eslint/no-unused-vars
+      return staffWithoutPassword
+    }
   } catch (error) {
     console.error('Error updating staff:', error)
     throw error
@@ -448,14 +615,28 @@ ipcMain.handle('updateStaff', async (_, id: string, staffData: Partial<StaffMemb
 // Delete staff member
 ipcMain.handle('deleteStaff', async (_, id: string) => {
   try {
-    if (!fs.existsSync(staffFilePath)) {
-      throw new Error('Staff file does not exist')
-    }
+    // First check admin constraint by getting all staff
+    let staff: StaffMember[] = []
+    try {
+      const { data: supabaseStaff, error } = await supabase.from('staff').select('*')
 
-    // Read existing staff
-    const workbook = XLSX.readFile(staffFilePath)
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      staff = supabaseStaff || []
+    } catch (supabaseError) {
+      console.error('Error getting staff from Supabase for delete check:', supabaseError)
+
+      // Fallback to Excel for admin check
+      if (!fs.existsSync(staffFilePath)) {
+        throw new Error('Staff file does not exist')
+      }
+
+      const workbook = XLSX.readFile(staffFilePath)
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+    }
 
     // Filter out the staff member to delete
     const updatedStaff = staff.filter((s) => s.id !== id)
@@ -466,13 +647,56 @@ ipcMain.handle('deleteStaff', async (_, id: string) => {
       throw new Error('Cannot delete the last administrator')
     }
 
-    // Write back to file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(updatedStaff)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
-    XLSX.writeFile(newWorkbook, staffFilePath)
+    // Try to delete from Supabase first
+    try {
+      const { error } = await supabase.from('staff').delete().eq('id', id)
 
-    return { success: true }
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log('Staff member deleted from Supabase')
+
+      // Also delete from Excel for backup
+      try {
+        if (fs.existsSync(staffFilePath)) {
+          const workbook = XLSX.readFile(staffFilePath)
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+          const excelStaff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+          const updatedExcelStaff = excelStaff.filter((s) => s.id !== id)
+
+          const newWorkbook = XLSX.utils.book_new()
+          const newWorksheet = XLSX.utils.json_to_sheet(updatedExcelStaff)
+          XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
+          XLSX.writeFile(newWorkbook, staffFilePath)
+          console.log('Staff member also deleted from Excel backup')
+        }
+      } catch (excelError) {
+        console.error('Error updating Excel backup:', excelError)
+      }
+
+      return { success: true }
+    } catch (supabaseError) {
+      console.error('Error deleting staff from Supabase:', supabaseError)
+
+      // Fallback to Excel only
+      if (!fs.existsSync(staffFilePath)) {
+        throw new Error('Staff file does not exist')
+      }
+
+      const workbook = XLSX.readFile(staffFilePath)
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const excelStaff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+      const updatedExcelStaff = excelStaff.filter((s) => s.id !== id)
+
+      const newWorkbook = XLSX.utils.book_new()
+      const newWorksheet = XLSX.utils.json_to_sheet(updatedExcelStaff)
+      XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
+      XLSX.writeFile(newWorkbook, staffFilePath)
+      console.log('Staff member deleted from Excel only (Supabase failed)')
+
+      return { success: true }
+    }
   } catch (error) {
     console.error('Error deleting staff:', error)
     throw error
@@ -482,40 +706,90 @@ ipcMain.handle('deleteStaff', async (_, id: string) => {
 // Reset staff password
 ipcMain.handle('resetStaffPassword', async (_, id: string) => {
   try {
-    if (!fs.existsSync(staffFilePath)) {
-      throw new Error('Staff file does not exist')
-    }
-
-    // Read existing staff
-    const workbook = XLSX.readFile(staffFilePath)
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
-
-    // Find the staff member
-    const staffIndex = staff.findIndex((s) => s.id === id)
-
-    if (staffIndex === -1) {
-      throw new Error('Staff member not found')
-    }
-
     // Generate a random password
     const newPassword = crypto.randomBytes(4).toString('hex')
+    const hashedPassword = bcrypt.hashSync(newPassword, 10)
+    const updatedAt = new Date().toISOString()
 
-    // Update the staff member's password
-    staff[staffIndex] = {
-      ...staff[staffIndex],
-      passwordHash: bcrypt.hashSync(newPassword, 10),
-      updatedAt: new Date().toISOString()
+    // Try to update in Supabase first
+    try {
+      const { data, error } = await supabase
+        .from('staff')
+        .update({
+          passwordHash: hashedPassword,
+          updatedAt: updatedAt
+        })
+        .eq('id', id)
+        .select()
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error('Staff member not found')
+      }
+
+      console.log('Staff password reset in Supabase')
+
+      // Also update in Excel for backup
+      try {
+        if (fs.existsSync(staffFilePath)) {
+          const workbook = XLSX.readFile(staffFilePath)
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+          const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+
+          const staffIndex = staff.findIndex((s) => s.id === id)
+          if (staffIndex !== -1) {
+            staff[staffIndex] = {
+              ...staff[staffIndex],
+              passwordHash: hashedPassword,
+              updatedAt: updatedAt
+            }
+
+            const newWorkbook = XLSX.utils.book_new()
+            const newWorksheet = XLSX.utils.json_to_sheet(staff)
+            XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
+            XLSX.writeFile(newWorkbook, staffFilePath)
+            console.log('Staff password also reset in Excel backup')
+          }
+        }
+      } catch (excelError) {
+        console.error('Error updating Excel backup:', excelError)
+      }
+
+      return newPassword
+    } catch (supabaseError) {
+      console.error('Error resetting password in Supabase:', supabaseError)
+
+      // Fallback to Excel only
+      if (!fs.existsSync(staffFilePath)) {
+        throw new Error('Staff file does not exist')
+      }
+
+      const workbook = XLSX.readFile(staffFilePath)
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+
+      const staffIndex = staff.findIndex((s) => s.id === id)
+      if (staffIndex === -1) {
+        throw new Error('Staff member not found')
+      }
+
+      staff[staffIndex] = {
+        ...staff[staffIndex],
+        passwordHash: hashedPassword,
+        updatedAt: updatedAt
+      }
+
+      const newWorkbook = XLSX.utils.book_new()
+      const newWorksheet = XLSX.utils.json_to_sheet(staff)
+      XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
+      XLSX.writeFile(newWorkbook, staffFilePath)
+      console.log('Staff password reset in Excel only (Supabase failed)')
+
+      return newPassword
     }
-
-    // Write back to file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(staff)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Staff')
-    XLSX.writeFile(newWorkbook, staffFilePath)
-
-    // Return the new password
-    return newPassword
   } catch (error) {
     console.error('Error resetting password:', error)
     throw error
@@ -525,17 +799,30 @@ ipcMain.handle('resetStaffPassword', async (_, id: string) => {
 // Check if user has permission for a module
 ipcMain.handle('checkPermission', async (_, userId: string, module: string) => {
   try {
-    if (!fs.existsSync(staffFilePath)) {
-      return { hasAccess: false, module }
+    let user: StaffMember | null = null
+
+    // Try to get user from Supabase first
+    try {
+      const { data, error } = await supabase.from('staff').select('*').eq('id', userId).single()
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      user = data
+    } catch (supabaseError) {
+      console.error('Error getting user from Supabase for permission check:', supabaseError)
+
+      // Fallback to Excel
+      if (!fs.existsSync(staffFilePath)) {
+        return { hasAccess: false, module }
+      }
+
+      const workbook = XLSX.readFile(staffFilePath)
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
+      user = staff.find((s) => s.id === userId) || null
     }
-
-    // Read staff file
-    const workbook = XLSX.readFile(staffFilePath)
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-    const staff = XLSX.utils.sheet_to_json(worksheet) as StaffMember[]
-
-    // Find user by ID
-    const user = staff.find((s) => s.id === userId)
 
     if (!user) {
       return { hasAccess: false, module }
@@ -2176,6 +2463,23 @@ ipcMain.handle('getMedicinesByStatus', async (_, status) => {
 // Get all optical items
 ipcMain.handle('getOpticalItems', async () => {
   try {
+    // Try to get data from Supabase first
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('opticals').select('*')
+
+        if (error) {
+          console.error('Error getting optical items from Supabase:', error)
+        } else if (data && data.length > 0) {
+          return data
+        }
+      } catch (supabaseError) {
+        console.error('Error getting optical items from Supabase:', supabaseError)
+        // Fall back to Excel if Supabase fails
+      }
+    }
+
+    // Fallback to Excel
     if (!fs.existsSync(opticalsFilePath)) {
       return []
     }
@@ -2194,6 +2498,44 @@ ipcMain.handle('getOpticalItems', async () => {
 // Search optical items
 ipcMain.handle('searchOpticalItems', async (_, searchTerm, type) => {
   try {
+    let opticalItems: Array<{
+      id: string
+      type: string
+      brand: string
+      model?: string
+      [key: string]: unknown
+    }> = []
+
+    // Try to get data from Supabase first
+    if (supabase) {
+      try {
+        let query = supabase.from('opticals').select('*')
+
+        // Apply type filter if provided
+        if (type) {
+          query = query.eq('type', type)
+        }
+
+        // Apply search term if provided
+        if (searchTerm && searchTerm.trim() !== '') {
+          const searchTermLower = searchTerm.toLowerCase()
+          query = query.or(`brand.ilike.%${searchTermLower}%,model.ilike.%${searchTermLower}%`)
+        }
+
+        const { data, error } = await query
+
+        if (error) {
+          console.error('Error searching optical items from Supabase:', error)
+        } else if (data && data.length > 0) {
+          return data
+        }
+      } catch (supabaseError) {
+        console.error('Error searching optical items from Supabase:', supabaseError)
+        // Fall back to Excel if Supabase fails
+      }
+    }
+
+    // Fallback to Excel
     if (!fs.existsSync(opticalsFilePath)) {
       return []
     }
@@ -2201,13 +2543,7 @@ ipcMain.handle('searchOpticalItems', async (_, searchTerm, type) => {
     const workbook = XLSX.readFile(opticalsFilePath)
     const sheetName = workbook.SheetNames[0]
     const worksheet = workbook.Sheets[sheetName]
-    const opticalItems: Array<{
-      id: string
-      type: string
-      brand: string
-      model?: string
-      [key: string]: unknown
-    }> = XLSX.utils.sheet_to_json(worksheet)
+    opticalItems = XLSX.utils.sheet_to_json(worksheet)
 
     // Filter by type if provided
     let filteredItems = opticalItems
@@ -2238,7 +2574,23 @@ ipcMain.handle('addOpticalItem', async (_, item) => {
     // Generate a unique ID for the optical item
     const itemWithId = { ...item, id: uuidv4() }
 
-    // Read existing optical items
+    // Try to add to Supabase first
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('opticals').insert([itemWithId]).select()
+
+        if (error) {
+          console.error('Error adding optical item to Supabase:', error)
+        } else if (data && data.length > 0) {
+          // Successfully added to Supabase, still add to Excel as backup
+          console.log('Successfully added optical item to Supabase')
+        }
+      } catch (supabaseError) {
+        console.error('Error adding optical item to Supabase:', supabaseError)
+      }
+    }
+
+    // Read existing optical items from Excel
     let opticalItems: Array<{ id: string; [key: string]: unknown }> = []
     if (fs.existsSync(opticalsFilePath)) {
       const workbook = XLSX.readFile(opticalsFilePath)
@@ -2266,6 +2618,28 @@ ipcMain.handle('addOpticalItem', async (_, item) => {
 // Update an existing optical item
 ipcMain.handle('updateOpticalItem', async (_, id, updatedItem) => {
   try {
+    const itemWithId = { ...updatedItem, id }
+
+    // Try to update in Supabase first
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('opticals')
+          .update(itemWithId)
+          .eq('id', id)
+          .select()
+
+        if (error) {
+          console.error('Error updating optical item in Supabase:', error)
+        } else if (data && data.length > 0) {
+          console.log('Successfully updated optical item in Supabase')
+        }
+      } catch (supabaseError) {
+        console.error('Error updating optical item in Supabase:', supabaseError)
+      }
+    }
+
+    // Update in Excel as well
     // Read existing optical items
     if (!fs.existsSync(opticalsFilePath)) {
       throw new Error('Opticals file does not exist')
@@ -2285,7 +2659,7 @@ ipcMain.handle('updateOpticalItem', async (_, id, updatedItem) => {
       throw new Error('Optical item not found')
     }
 
-    opticalItems[itemIndex] = { ...updatedItem, id }
+    opticalItems[itemIndex] = itemWithId
 
     // Write back to Excel file
     const newWorkbook = XLSX.utils.book_new()
@@ -2303,6 +2677,22 @@ ipcMain.handle('updateOpticalItem', async (_, id, updatedItem) => {
 // Delete an optical item
 ipcMain.handle('deleteOpticalItem', async (_, id) => {
   try {
+    // Try to delete from Supabase first
+    if (supabase) {
+      try {
+        const { error } = await supabase.from('opticals').delete().eq('id', id)
+
+        if (error) {
+          console.error('Error deleting optical item from Supabase:', error)
+        } else {
+          console.log('Successfully deleted optical item from Supabase')
+        }
+      } catch (supabaseError) {
+        console.error('Error deleting optical item from Supabase:', supabaseError)
+      }
+    }
+
+    // Delete from Excel as well
     // Read existing optical items
     if (!fs.existsSync(opticalsFilePath)) {
       throw new Error('Opticals file does not exist')
@@ -2334,6 +2724,26 @@ ipcMain.handle('deleteOpticalItem', async (_, id) => {
 // Update optical item status
 ipcMain.handle('updateOpticalItemStatus', async (_, id, status) => {
   try {
+    // Try to update status in Supabase first
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('opticals')
+          .update({ status })
+          .eq('id', id)
+          .select()
+
+        if (error) {
+          console.error('Error updating optical item status in Supabase:', error)
+        } else if (data && data.length > 0) {
+          console.log('Successfully updated optical item status in Supabase')
+        }
+      } catch (supabaseError) {
+        console.error('Error updating optical item status in Supabase:', supabaseError)
+      }
+    }
+
+    // Update in Excel as well
     // Read existing optical items
     if (!fs.existsSync(opticalsFilePath)) {
       throw new Error('Opticals file does not exist')
@@ -2370,6 +2780,30 @@ ipcMain.handle('updateOpticalItemStatus', async (_, id, status) => {
 // Get optical items by status
 ipcMain.handle('getOpticalItemsByStatus', async (_, status, type) => {
   try {
+    // Try to get data from Supabase first
+    if (supabase) {
+      try {
+        let query = supabase.from('opticals').select('*').eq('status', status)
+
+        // Further filter by type if provided
+        if (type) {
+          query = query.eq('type', type)
+        }
+
+        const { data, error } = await query
+
+        if (error) {
+          console.error('Error getting optical items by status from Supabase:', error)
+        } else if (data && data.length > 0) {
+          return data
+        }
+      } catch (supabaseError) {
+        console.error('Error getting optical items by status from Supabase:', supabaseError)
+        // Fall back to Excel if Supabase fails
+      }
+    }
+
+    // Fallback to Excel
     if (!fs.existsSync(opticalsFilePath)) {
       return []
     }
@@ -2408,6 +2842,23 @@ ipcMain.handle('getOpticalItemsByStatus', async (_, status, type) => {
 // Get optical items by type
 ipcMain.handle('getOpticalItemsByType', async (_, type) => {
   try {
+    // Try to get data from Supabase first
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('opticals').select('*').eq('type', type)
+
+        if (error) {
+          console.error('Error getting optical items by type from Supabase:', error)
+        } else if (data && data.length > 0) {
+          return data
+        }
+      } catch (supabaseError) {
+        console.error('Error getting optical items by type from Supabase:', supabaseError)
+        // Fall back to Excel if Supabase fails
+      }
+    }
+
+    // Fallback to Excel
     if (!fs.existsSync(opticalsFilePath)) {
       return []
     }
@@ -2849,122 +3300,280 @@ if (!fs.existsSync(opticalDispenseFilePath)) {
 }
 
 // Dispense optical item
-ipcMain.handle('dispenseOptical', async (_, id, quantity, patientName, patientId) => {
+ipcMain.handle('dispenseOptical', async (_, id, quantity, patientName, patientId, dispensedBy) => {
   try {
-    // Read existing optical items
-    if (!fs.existsSync(opticalsFilePath)) {
-      throw new Error('Opticals file does not exist')
+    let supabaseOpticalItem: Record<string, unknown> | null = null
+    let excelOpticalItem: Record<string, unknown> | null = null
+    let supabaseSuccess = false
+
+    // Try to update in Supabase first
+    if (supabase) {
+      try {
+        // First get the current item to check quantity
+        const { data: opticalData, error: getError } = await supabase
+          .from('opticals')
+          .select('*')
+          .eq('id', id)
+          .single()
+
+        if (getError) {
+          console.error('Error getting optical item from Supabase:', getError)
+        } else if (opticalData) {
+          supabaseOpticalItem = opticalData as Record<string, unknown>
+
+          // Check if the item is available
+          if (supabaseOpticalItem && supabaseOpticalItem.status !== 'available') {
+            throw new Error('Optical item is not available')
+          }
+
+          // Check if there's enough quantity
+          if (supabaseOpticalItem && (supabaseOpticalItem.quantity as number) < quantity) {
+            throw new Error(`Only ${supabaseOpticalItem.quantity} units available`)
+          }
+
+          // Calculate new quantity
+          const newQuantity = supabaseOpticalItem
+            ? (supabaseOpticalItem.quantity as number) - quantity
+            : 0
+
+          // Determine if status needs to be updated
+          const newStatus =
+            newQuantity <= 0 ? 'out_of_stock' : (supabaseOpticalItem?.status as string)
+
+          // Update the item in Supabase
+          const { data: updateData, error: updateError } = await supabase
+            .from('opticals')
+            .update({ quantity: newQuantity, status: newStatus })
+            .eq('id', id)
+            .select()
+
+          if (updateError) {
+            console.error('Error updating optical item in Supabase:', updateError)
+          } else if (updateData && updateData.length > 0) {
+            console.log('Successfully updated optical item in Supabase')
+            supabaseSuccess = true
+
+            // Create dispense record in Supabase
+            if (supabaseOpticalItem) {
+              const dispenseRecord = {
+                id: uuidv4(),
+                opticalId: id,
+                opticalType: supabaseOpticalItem.type as string,
+                brand: supabaseOpticalItem.brand as string,
+                model: (supabaseOpticalItem.model as string) || '',
+                quantity: quantity,
+                price: (supabaseOpticalItem.price as number) || 0,
+                patientName: patientName,
+                patientId: patientId || '',
+                dispensedBy: dispensedBy || '',
+                dispensedAt: new Date().toISOString()
+              }
+
+              const { error: dispenseError } = await supabase
+                .from('optical_dispense_records')
+                .insert(dispenseRecord)
+
+              if (dispenseError) {
+                console.error('Error creating dispense record in Supabase:', dispenseError)
+              } else {
+                console.log('Successfully created dispense record in Supabase')
+              }
+            }
+          }
+        }
+      } catch (supabaseError) {
+        console.error('Error with Supabase operations:', supabaseError)
+        // Fall back to Excel if Supabase fails
+      }
     }
 
-    const workbook = XLSX.readFile(opticalsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const opticalItems: Array<{
-      id: string
-      type: string
-      brand: string
-      model?: string
-      size?: string
-      power?: string
-      quantity: number
-      price: number
-      status: string
-      [key: string]: unknown
-    }> = XLSX.utils.sheet_to_json(worksheet)
+    // Read the optical items file
+    let opticalItems: Record<string, unknown>[] = []
 
-    // Find the optical item to dispense
-    const itemIndex = opticalItems.findIndex((item) => item.id === id)
+    if (fs.existsSync(opticalsFilePath)) {
+      const workbook = XLSX.readFile(opticalsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      opticalItems = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as Record<
+        string,
+        unknown
+      >[]
+    } else {
+      throw new Error('Optical items file not found')
+    }
 
-    if (itemIndex === -1) {
+    // Find the optical item by ID
+    excelOpticalItem = opticalItems.find((item) => item.id === id) || null
+
+    if (!excelOpticalItem) {
       throw new Error('Optical item not found')
     }
 
-    const opticalItem = opticalItems[itemIndex]
-
     // Check if the item is available
-    if (opticalItem.status !== 'available') {
+    if (excelOpticalItem.status !== 'available') {
       throw new Error('Optical item is not available')
     }
 
     // Check if there's enough quantity
-    if ((opticalItem.quantity as number) < quantity) {
-      throw new Error(`Only ${opticalItem.quantity} units available`)
+    if ((excelOpticalItem.quantity as number) < quantity) {
+      throw new Error(`Only ${excelOpticalItem.quantity} units available`)
     }
 
-    // Update the optical item quantity and status
-    opticalItems[itemIndex].quantity = (opticalItems[itemIndex].quantity as number) - quantity
+    // Update the quantity
+    excelOpticalItem.quantity = (excelOpticalItem.quantity as number) - quantity
 
-    // If quantity becomes 0, mark as out of stock
-    if ((opticalItems[itemIndex].quantity as number) <= 0) {
-      opticalItems[itemIndex].status = 'out_of_stock'
+    // Update the status if needed
+    if ((excelOpticalItem.quantity as number) <= 0) {
+      excelOpticalItem.status = 'out_of_stock'
     }
 
-    // Write updated optical items back to Excel file
+    // Write the updated optical items back to the file
     const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(opticalItems)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Opticals')
+    const newSheet = XLSX.utils.json_to_sheet(opticalItems)
+    XLSX.utils.book_append_sheet(newWorkbook, newSheet, 'Optical Items')
     XLSX.writeFile(newWorkbook, opticalsFilePath)
 
     // Create a dispense record
-    const dispenseRecord = {
-      id: uuidv4(),
-      opticalId: id,
-      opticalType: opticalItem.type,
-      brand: opticalItem.brand,
-      model: opticalItem.model || '',
-      quantity: quantity,
-      price: opticalItem.price || 0,
-      patientName: patientName,
-      patientId: patientId || '',
-      dispensedAt: new Date().toISOString()
-    }
+    const opticalDispenseFilePath = app.getPath('userData') + '/optical_dispense_records.xlsx'
+    let dispenseRecords: Record<string, unknown>[] = []
 
-    // Read existing dispense records
-    let dispenseRecords: Array<{ id: string; [key: string]: unknown }> = []
     if (fs.existsSync(opticalDispenseFilePath)) {
       const dispenseWorkbook = XLSX.readFile(opticalDispenseFilePath)
       const dispenseSheetName = dispenseWorkbook.SheetNames[0]
-      const dispenseWorksheet = dispenseWorkbook.Sheets[dispenseSheetName]
-      dispenseRecords = XLSX.utils.sheet_to_json(dispenseWorksheet)
+      dispenseRecords = XLSX.utils.sheet_to_json(
+        dispenseWorkbook.Sheets[dispenseSheetName]
+      ) as Record<string, unknown>[]
     }
 
     // Add the new dispense record
-    dispenseRecords.push(dispenseRecord)
+    const excelDispenseRecord = {
+      id: uuidv4(),
+      opticalId: id,
+      opticalType: excelOpticalItem.type,
+      brand: excelOpticalItem.brand,
+      model: excelOpticalItem.model || '',
+      quantity: quantity,
+      price: excelOpticalItem.price || 0,
+      patientName: patientName,
+      patientId: patientId || '',
+      dispensedBy: dispensedBy || '',
+      dispensedAt: new Date().toISOString()
+    }
 
-    // Write back to Excel file
-    const dispenseWorkbook = XLSX.utils.book_new()
-    const dispenseWorksheet = XLSX.utils.json_to_sheet(dispenseRecords)
-    XLSX.utils.book_append_sheet(dispenseWorkbook, dispenseWorksheet, 'OpticalDispenseRecords')
-    XLSX.writeFile(dispenseWorkbook, opticalDispenseFilePath)
+    dispenseRecords.push(excelDispenseRecord)
 
-    return opticalItems[itemIndex]
+    // Write the updated dispense records back to the file
+    const newDispenseWorkbook = XLSX.utils.book_new()
+    const dispenseSheet = XLSX.utils.json_to_sheet(dispenseRecords)
+    XLSX.utils.book_append_sheet(newDispenseWorkbook, dispenseSheet, 'Dispense Records')
+    XLSX.writeFile(newDispenseWorkbook, opticalDispenseFilePath)
+
+    // Return the updated item - prefer Supabase item if available, otherwise Excel item
+    return supabaseSuccess && supabaseOpticalItem ? supabaseOpticalItem : excelOpticalItem
   } catch (error) {
     console.error('Error dispensing optical item:', error)
     throw error
   }
 })
 
-// Get optical dispense records
-ipcMain.handle('getOpticalDispenseRecords', async () => {
+// Get optical dispense records with pagination
+ipcMain.handle('getOpticalDispenseRecords', async (_, page = 1, pageSize = 10) => {
   try {
+    let data: Record<string, unknown>[] = []
+    let totalCount = 0
+
+    // Try to get records from Supabase first
+    if (supabase) {
+      try {
+        // Get total count first
+        const { count, error: countError } = await supabase
+          .from('optical_dispense_records')
+          .select('*', { count: 'exact', head: true })
+
+        if (countError) {
+          console.error('Error getting optical dispense records count from Supabase:', countError)
+        } else if (count !== null) {
+          totalCount = count
+
+          // Now get paginated data
+          const { data: supabaseData, error: dataError } = await supabase
+            .from('optical_dispense_records')
+            .select('*')
+            .order('dispensedAt', { ascending: false })
+            .range((page - 1) * pageSize, page * pageSize - 1)
+
+          if (dataError) {
+            console.error('Error getting optical dispense records from Supabase:', dataError)
+          } else if (supabaseData) {
+            data = supabaseData as Record<string, unknown>[]
+
+            // Return early with Supabase data
+            return {
+              data,
+              totalCount,
+              page,
+              pageSize
+            }
+          }
+        }
+      } catch (supabaseError) {
+        console.error('Error with Supabase operations:', supabaseError)
+        // Fall back to Excel if Supabase fails
+      }
+    }
+
+    // Fall back to Excel if Supabase failed or is not available
     if (!fs.existsSync(opticalDispenseFilePath)) {
-      return []
+      return { data: [], totalCount: 0, page, pageSize }
     }
 
     const workbook = XLSX.readFile(opticalDispenseFilePath)
     const sheetName = workbook.SheetNames[0]
     const worksheet = workbook.Sheets[sheetName]
+    const allRecords = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[]
 
-    return XLSX.utils.sheet_to_json(worksheet)
+    // Calculate pagination
+    totalCount = allRecords.length
+    const startIndex = (page - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    data = allRecords.slice(startIndex, endIndex) as Record<string, unknown>[]
+
+    // Return paginated data with metadata
+    return {
+      data,
+      totalCount,
+      page,
+      pageSize
+    }
   } catch (error) {
     console.error('Error getting optical dispense records:', error)
-    return []
+    return { data: [], totalCount: 0, page, pageSize }
   }
 })
 
 // Get optical dispense records by patient ID
 ipcMain.handle('getOpticalDispenseRecordsByPatient', async (_, patientId) => {
   try {
+    // Try to get records from Supabase first
+    if (supabase) {
+      try {
+        const { data: supabaseData, error } = await supabase
+          .from('optical_dispense_records')
+          .select('*')
+          .eq('patientId', patientId)
+          .order('dispensedAt', { ascending: false })
+
+        if (error) {
+          console.error('Error getting optical dispense records by patient from Supabase:', error)
+        } else if (supabaseData && supabaseData.length > 0) {
+          return supabaseData as Record<string, unknown>[]
+        }
+      } catch (supabaseError) {
+        console.error('Error with Supabase operations:', supabaseError)
+        // Fall back to Excel if Supabase fails
+      }
+    }
+
+    // Fall back to Excel if Supabase failed or is not available
     if (!fs.existsSync(opticalDispenseFilePath)) {
       return []
     }
@@ -2986,6 +3595,27 @@ ipcMain.handle('getOpticalDispenseRecordsByPatient', async (_, patientId) => {
 // Get optical dispense records by type
 ipcMain.handle('getOpticalDispenseRecordsByType', async (_, type) => {
   try {
+    // Try to get records from Supabase first
+    if (supabase) {
+      try {
+        const { data: supabaseData, error } = await supabase
+          .from('optical_dispense_records')
+          .select('*')
+          .eq('opticalType', type)
+          .order('dispensedAt', { ascending: false })
+
+        if (error) {
+          console.error('Error getting optical dispense records by type from Supabase:', error)
+        } else if (supabaseData && supabaseData.length > 0) {
+          return supabaseData as Record<string, unknown>[]
+        }
+      } catch (supabaseError) {
+        console.error('Error with Supabase operations:', supabaseError)
+        // Fall back to Excel if Supabase fails
+      }
+    }
+
+    // Fall back to Excel if Supabase failed or is not available
     if (!fs.existsSync(opticalDispenseFilePath)) {
       return []
     }
@@ -3007,6 +3637,30 @@ ipcMain.handle('getOpticalDispenseRecordsByType', async (_, type) => {
 // Get optical dispense records by optical ID
 ipcMain.handle('getOpticalDispenseRecordsByOptical', async (_, opticalId) => {
   try {
+    // Try to get records from Supabase first
+    if (supabase) {
+      try {
+        const { data: supabaseData, error } = await supabase
+          .from('optical_dispense_records')
+          .select('*')
+          .eq('opticalId', opticalId)
+          .order('dispensedAt', { ascending: false })
+
+        if (error) {
+          console.error(
+            'Error getting optical dispense records by optical ID from Supabase:',
+            error
+          )
+        } else if (supabaseData && supabaseData.length > 0) {
+          return supabaseData as Record<string, unknown>[]
+        }
+      } catch (supabaseError) {
+        console.error('Error with Supabase operations:', supabaseError)
+        // Fall back to Excel if Supabase fails
+      }
+    }
+
+    // Fall back to Excel if Supabase failed or is not available
     if (!fs.existsSync(opticalDispenseFilePath)) {
       return []
     }
@@ -3188,28 +3842,78 @@ async function generateAnalyticsData(
       } as TimeSeriesData
     }
 
-    // Get patients data
-    if (fs.existsSync(patientsFilePath)) {
-      const workbook = XLSX.readFile(patientsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      // Field names from Excel: date, patientId, name, guardian, dob, age, gender, phone, address, id
-      const patients: Array<{
-        id: string
-        date: string
-        gender: string
-        dob: string
-        name: string
-        patientId: string
-        age: number
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
+    // Get patients data - try Supabase first, fallback to Excel
+    let patients: Array<{
+      id: string
+      date: string
+      gender: string
+      dob: string
+      name: string
+      patientId: string
+      age: number
+      [key: string]: unknown
+    }> = []
 
-      // Filter patients by date range
-      const filteredPatients = patients.filter((patient) => {
-        const patientDate = new Date(patient.date)
-        return patientDate >= start && patientDate <= end
-      })
+    try {
+      // Try to get patients from Supabase first
+      const { data: supabasePatients, error } = await supabase
+        .from('patients')
+        .select('*')
+        .gte('date', start.toISOString().split('T')[0])
+        .lte('date', end.toISOString().split('T')[0])
+        .order('date', { ascending: false })
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      if (supabasePatients && supabasePatients.length > 0) {
+        patients = supabasePatients as Array<{
+          id: string
+          date: string
+          gender: string
+          dob: string
+          name: string
+          patientId: string
+          age: number
+          [key: string]: unknown
+        }>
+        console.log('Patients data fetched from Supabase for analytics')
+      } else {
+        throw new Error('No patients data from Supabase')
+      }
+    } catch (supabaseError) {
+      console.error('Error getting patients from Supabase for analytics:', supabaseError)
+
+      // Fallback to Excel
+      if (fs.existsSync(patientsFilePath)) {
+        const workbook = XLSX.readFile(patientsFilePath)
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        // Field names from Excel: date, patientId, name, guardian, dob, age, gender, phone, address, id
+        const allPatients: Array<{
+          id: string
+          date: string
+          gender: string
+          dob: string
+          name: string
+          patientId: string
+          age: number
+          [key: string]: unknown
+        }> = XLSX.utils.sheet_to_json(worksheet)
+
+        // Filter patients by date range
+        patients = allPatients.filter((patient) => {
+          const patientDate = new Date(patient.date)
+          return patientDate >= start && patientDate <= end
+        })
+        console.log('Falling back to Excel for patients analytics data')
+      }
+    }
+
+    if (patients.length > 0) {
+      // Filter patients by date range (for Excel fallback)
+      const filteredPatients = patients
 
       // Calculate patient statistics
       analyticsData.patientStats.total = filteredPatients.length
@@ -3270,31 +3974,85 @@ async function generateAnalyticsData(
       })
     }
 
-    // Get prescriptions data for revenue and conditions
-    if (fs.existsSync(prescriptionsFilePath)) {
-      const workbook = XLSX.readFile(prescriptionsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      // Field names from Excel: Sno, DATE, RECEIPT NO, PATIENT ID, PATIENT NAME, etc.
-      const prescriptions: Array<{
-        DATE: string
-        'RECEIPT NO': string
-        'PATIENT ID': string
-        'PATIENT NAME': string
-        'AMOUNT RECEIVED': number
-        'PAID FOR': string
-        'TOTAL AMOUNT': number
-        'AMOUNT DUE': number
-        'PRESENT COMPLAIN': string
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
+    // Get prescriptions data for revenue and conditions - try Supabase first, fallback to Excel
+    let prescriptions: Array<{
+      DATE: string
+      'RECEIPT NO': string
+      'PATIENT ID': string
+      'PATIENT NAME': string
+      'AMOUNT RECEIVED': number
+      'PAID FOR': string
+      'TOTAL AMOUNT': number
+      'AMOUNT DUE': number
+      'PRESENT COMPLAIN': string
+      [key: string]: unknown
+    }> = []
 
-      // Filter prescriptions by date range
-      const filteredPrescriptions = prescriptions.filter((prescription) => {
-        if (!prescription.DATE) return false
-        const prescriptionDate = new Date(prescription.DATE.toString())
-        return prescriptionDate >= start && prescriptionDate <= end
-      })
+    try {
+      // Try to get prescriptions from Supabase first
+      const { data: supabasePrescriptions, error } = await supabase
+        .from('prescriptions')
+        .select('*')
+        .gte('DATE', start.toISOString().split('T')[0])
+        .lte('DATE', end.toISOString().split('T')[0])
+        .order('DATE', { ascending: false })
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      if (supabasePrescriptions && supabasePrescriptions.length > 0) {
+        prescriptions = supabasePrescriptions as Array<{
+          DATE: string
+          'RECEIPT NO': string
+          'PATIENT ID': string
+          'PATIENT NAME': string
+          'AMOUNT RECEIVED': number
+          'PAID FOR': string
+          'TOTAL AMOUNT': number
+          'AMOUNT DUE': number
+          'PRESENT COMPLAIN': string
+          [key: string]: unknown
+        }>
+        console.log('Prescriptions data fetched from Supabase for analytics')
+      } else {
+        throw new Error('No prescriptions data from Supabase')
+      }
+    } catch (supabaseError) {
+      console.error('Error getting prescriptions from Supabase for analytics:', supabaseError)
+
+      // Fallback to Excel
+      if (fs.existsSync(prescriptionsFilePath)) {
+        const workbook = XLSX.readFile(prescriptionsFilePath)
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        // Field names from Excel: Sno, DATE, RECEIPT NO, PATIENT ID, PATIENT NAME, etc.
+        const allPrescriptions: Array<{
+          DATE: string
+          'RECEIPT NO': string
+          'PATIENT ID': string
+          'PATIENT NAME': string
+          'AMOUNT RECEIVED': number
+          'PAID FOR': string
+          'TOTAL AMOUNT': number
+          'AMOUNT DUE': number
+          'PRESENT COMPLAIN': string
+          [key: string]: unknown
+        }> = XLSX.utils.sheet_to_json(worksheet)
+
+        // Filter prescriptions by date range
+        prescriptions = allPrescriptions.filter((prescription) => {
+          if (!prescription.DATE) return false
+          const prescriptionDate = new Date(prescription.DATE.toString())
+          return prescriptionDate >= start && prescriptionDate <= end
+        })
+        console.log('Falling back to Excel for prescriptions analytics data')
+      }
+    }
+
+    if (prescriptions.length > 0) {
+      // Filter prescriptions by date range (for Excel fallback)
+      const filteredPrescriptions = prescriptions
 
       analyticsData.receiptStats.total = filteredPrescriptions.length
       analyticsData.receiptStats.completed = filteredPrescriptions.filter((prescription) => {
@@ -3360,25 +4118,78 @@ async function generateAnalyticsData(
       )
     }
 
-    // Get medicine dispense records
-    if (fs.existsSync(medicineDispenseFilePath)) {
-      const workbook = XLSX.readFile(medicineDispenseFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      const dispenseRecords: Array<{
-        dispensedDate: string
-        medicineName: string
-        quantity: number
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
+    // Get medicine dispense records - try Supabase first, fallback to Excel
+    let dispenseRecords: Array<{
+      dispensedDate: string
+      medicineName: string
+      quantity: number
+      [key: string]: unknown
+    }> = []
+    let medicineRecords: Array<{ name: string; price: number; [key: string]: unknown }> = []
 
-      //get medicine records
-      const workbook2 = XLSX.readFile(medicinesFilePath)
-      const sheetName2 = workbook2.SheetNames[0]
-      const worksheet2 = workbook2.Sheets[sheetName2]
-      const medicineRecords: Array<{ name: string; price: number; [key: string]: unknown }> =
-        XLSX.utils.sheet_to_json(worksheet2)
+    try {
+      // Try to get medicine dispense records from Supabase first
+      const { data: supabaseDispenseRecords, error: dispenseError } = await supabase
+        .from('medicine_dispense_records')
+        .select('*')
+        .gte('dispensedDate', start.toISOString().split('T')[0])
+        .lte('dispensedDate', end.toISOString().split('T')[0])
+        .order('dispensedDate', { ascending: false })
 
+      if (dispenseError) {
+        throw new Error(`Supabase dispense error: ${dispenseError.message}`)
+      }
+
+      // Get medicine records from Supabase
+      const { data: supabaseMedicineRecords, error: medicineError } = await supabase
+        .from('medicines')
+        .select('name, price')
+
+      if (medicineError) {
+        throw new Error(`Supabase medicine error: ${medicineError.message}`)
+      }
+
+      if (supabaseDispenseRecords && supabaseDispenseRecords.length > 0) {
+        dispenseRecords = supabaseDispenseRecords as Array<{
+          dispensedDate: string
+          medicineName: string
+          quantity: number
+          [key: string]: unknown
+        }>
+        medicineRecords = (supabaseMedicineRecords || []) as Array<{
+          name: string
+          price: number
+          [key: string]: unknown
+        }>
+        console.log('Medicine dispense records fetched from Supabase for analytics')
+      } else {
+        throw new Error('No medicine dispense records from Supabase')
+      }
+    } catch (supabaseError) {
+      console.error(
+        'Error getting medicine dispense records from Supabase for analytics:',
+        supabaseError
+      )
+
+      // Fallback to Excel
+      if (fs.existsSync(medicineDispenseFilePath)) {
+        const workbook = XLSX.readFile(medicineDispenseFilePath)
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        dispenseRecords = XLSX.utils.sheet_to_json(worksheet)
+
+        //get medicine records
+        if (fs.existsSync(medicinesFilePath)) {
+          const workbook2 = XLSX.readFile(medicinesFilePath)
+          const sheetName2 = workbook2.SheetNames[0]
+          const worksheet2 = workbook2.Sheets[sheetName2]
+          medicineRecords = XLSX.utils.sheet_to_json(worksheet2)
+        }
+        console.log('Falling back to Excel for medicine dispense analytics data')
+      }
+    }
+
+    if (dispenseRecords.length > 0) {
       // Format dates to DD/MM/YYYY
       const formattedRecords = dispenseRecords.map((record) => ({
         ...record,
@@ -3470,22 +4281,61 @@ async function generateAnalyticsData(
       }
     }
 
-    // Get optical dispense records
-    if (fs.existsSync(opticalDispenseFilePath)) {
-      const workbook = XLSX.readFile(opticalDispenseFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      const dispenseRecords: Array<{
-        dispensedAt: string
-        opticalType: string
-        brand: string
-        quantity: number
-        price: number
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
+    // Get optical dispense records - try Supabase first, fallback to Excel
+    let opticalDispenseRecords: Array<{
+      dispensedAt: string
+      opticalType: string
+      brand: string
+      quantity: number
+      price: number
+      [key: string]: unknown
+    }> = []
 
+    try {
+      // Try to get optical dispense records from Supabase first
+      const { data: supabaseOpticalRecords, error } = await supabase
+        .from('optical_dispense_records')
+        .select('*')
+        .gte('dispensedAt', start.toISOString().split('T')[0])
+        .lte('dispensedAt', end.toISOString().split('T')[0])
+        .order('dispensedAt', { ascending: false })
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      if (supabaseOpticalRecords && supabaseOpticalRecords.length > 0) {
+        opticalDispenseRecords = supabaseOpticalRecords as Array<{
+          dispensedAt: string
+          opticalType: string
+          brand: string
+          quantity: number
+          price: number
+          [key: string]: unknown
+        }>
+        console.log('Optical dispense records fetched from Supabase for analytics')
+      } else {
+        throw new Error('No optical dispense records from Supabase')
+      }
+    } catch (supabaseError) {
+      console.error(
+        'Error getting optical dispense records from Supabase for analytics:',
+        supabaseError
+      )
+
+      // Fallback to Excel
+      if (fs.existsSync(opticalDispenseFilePath)) {
+        const workbook = XLSX.readFile(opticalDispenseFilePath)
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        opticalDispenseRecords = XLSX.utils.sheet_to_json(worksheet)
+        console.log('Falling back to Excel for optical dispense analytics data')
+      }
+    }
+
+    if (opticalDispenseRecords.length > 0) {
       //formated records
-      const formattedRecords = dispenseRecords.map((record) => ({
+      const formattedRecords = opticalDispenseRecords.map((record) => ({
         ...record,
         dispensedAt: new Date(record.dispensedAt).toISOString().split('T')[0]
       }))
@@ -3537,32 +4387,78 @@ async function generateAnalyticsData(
         .slice(0, 5)
     }
 
-    // Get operations data
-    if (fs.existsSync(operationsFilePath)) {
-      const workbook = XLSX.readFile(operationsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      // Field names from Excel: patientId, patientName, dateOfAdmit, timeOfAdmit, dateOfOperation, timeOfOperation,
-      // dateOfDischarge, timeOfDischarge, operationDetails, operationProcedure, provisionDiagnosis, reviewOn, operatedBy, id
-      const operations: Array<{
-        patientId: string
-        patientName: string
-        dateOfAdmit: string
-        timeOfAdmit: string
-        dateOfOperation: string
-        timeOfOperation: string
-        dateOfDischarge: string
-        timeOfDischarge: string
-        operationDetails: string
-        operationProcedure: string
-        provisionDiagnosis: string
-        reviewOn: string
-        operatedBy: string
-        totalAmount: number
-        id: string
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
+    // Get operations data - try Supabase first, fallback to Excel
+    let operations: Array<{
+      patientId: string
+      patientName: string
+      dateOfAdmit: string
+      timeOfAdmit: string
+      dateOfOperation: string
+      timeOfOperation: string
+      dateOfDischarge: string
+      timeOfDischarge: string
+      operationDetails: string
+      operationProcedure: string
+      provisionDiagnosis: string
+      reviewOn: string
+      operatedBy: string
+      totalAmount: number
+      id: string
+      [key: string]: unknown
+    }> = []
 
+    try {
+      // Try to get operations from Supabase first
+      const { data: supabaseOperations, error } = await supabase
+        .from('operations')
+        .select('*')
+        .gte('dateOfAdmit', start.toISOString().split('T')[0])
+        .lte('dateOfAdmit', end.toISOString().split('T')[0])
+        .order('dateOfAdmit', { ascending: false })
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      if (supabaseOperations && supabaseOperations.length > 0) {
+        operations = supabaseOperations as Array<{
+          patientId: string
+          patientName: string
+          dateOfAdmit: string
+          timeOfAdmit: string
+          dateOfOperation: string
+          timeOfOperation: string
+          dateOfDischarge: string
+          timeOfDischarge: string
+          operationDetails: string
+          operationProcedure: string
+          provisionDiagnosis: string
+          reviewOn: string
+          operatedBy: string
+          totalAmount: number
+          id: string
+          [key: string]: unknown
+        }>
+        console.log('Operations data fetched from Supabase for analytics')
+      } else {
+        throw new Error('No operations data from Supabase')
+      }
+    } catch (supabaseError) {
+      console.error('Error getting operations from Supabase for analytics:', supabaseError)
+
+      // Fallback to Excel
+      if (fs.existsSync(operationsFilePath)) {
+        const workbook = XLSX.readFile(operationsFilePath)
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        // Field names from Excel: patientId, patientName, dateOfAdmit, timeOfAdmit, dateOfOperation, timeOfOperation,
+        // dateOfDischarge, timeOfDischarge, operationDetails, operationProcedure, provisionDiagnosis, reviewOn, operatedBy, id
+        operations = XLSX.utils.sheet_to_json(worksheet)
+        console.log('Falling back to Excel for operations analytics data')
+      }
+    }
+
+    if (operations.length > 0) {
       // Filter operations by date range
       const filteredOperations = operations.filter((operation) => {
         if (!operation.dateOfAdmit) return false
@@ -3635,150 +4531,86 @@ async function generateAnalyticsData(
       opticalSalesByDate.set(dateString, 0)
     })
 
-    // Calculate patient counts by date
-    if (fs.existsSync(patientsFilePath)) {
-      const workbook = XLSX.readFile(patientsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      const patients: Array<{
-        id: string
-        date: string
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
-
-      patients.forEach((patient) => {
-        if (patient.date) {
-          const patientDate = new Date(patient.date)
-          if (patientDate >= start && patientDate <= end) {
-            const dateString = patientDate.toISOString().split('T')[0]
-            const currentCount = patientCountByDate.get(dateString) || 0
-            patientCountByDate.set(dateString, currentCount + 1)
-          }
+    // Calculate patient counts by date using already fetched data
+    patients.forEach((patient) => {
+      if (patient.date) {
+        const patientDate = new Date(patient.date)
+        if (patientDate >= start && patientDate <= end) {
+          const dateString = patientDate.toISOString().split('T')[0]
+          const currentCount = patientCountByDate.get(dateString) || 0
+          patientCountByDate.set(dateString, currentCount + 1)
         }
-      })
-    }
+      }
+    })
 
-    // Calculate revenue by date from prescriptions
-    if (fs.existsSync(prescriptionsFilePath)) {
-      const workbook = XLSX.readFile(prescriptionsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      const prescriptions: Array<{
-        DATE: string
-        'AMOUNT RECEIVED': number
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
+    // Calculate revenue by date from prescriptions using already fetched data
+    prescriptions.forEach((prescription) => {
+      if (prescription.DATE) {
+        const prescriptionDate = new Date(prescription.DATE.toString())
+        if (prescriptionDate >= start && prescriptionDate <= end) {
+          const dateString = prescriptionDate.toISOString().split('T')[0]
+          const amount = Number(prescription['AMOUNT RECEIVED']) || 0
+          const currentRevenue = revenueByDate.get(dateString) || 0
+          revenueByDate.set(dateString, currentRevenue + amount)
+        }
+      }
+    })
 
-      prescriptions.forEach((prescription) => {
-        if (prescription.DATE) {
-          const prescriptionDate = new Date(prescription.DATE.toString())
-          if (prescriptionDate >= start && prescriptionDate <= end) {
-            const dateString = prescriptionDate.toISOString().split('T')[0]
-            const amount = Number(prescription['AMOUNT RECEIVED']) || 0
+    // Calculate medicine dispense by date using already fetched data
+    dispenseRecords.forEach((record) => {
+      if (record.dispensedDate) {
+        const recordDate = new Date(record.dispensedDate)
+        if (recordDate >= start && recordDate <= end) {
+          const dateString = recordDate.toISOString().split('T')[0]
+          // Update medicine dispense count
+          const quantity = Number(record.quantity) || 0
+          const currentDispense = medicineDispenseByDate.get(dateString) || 0
+          medicineDispenseByDate.set(dateString, currentDispense + quantity)
+          // Update revenue from medicine sales
+          const medicineName = record.medicineName?.toString()
+          const medicine = medicineName
+            ? medicineRecords.find((m) => m.name === medicineName)
+            : null
+          if (medicine) {
+            const medicineRevenue = (medicine.price || 0) * quantity
             const currentRevenue = revenueByDate.get(dateString) || 0
-            revenueByDate.set(dateString, currentRevenue + amount)
+            revenueByDate.set(dateString, currentRevenue + medicineRevenue)
           }
         }
-      })
-    }
+      }
+    })
 
-    // Calculate medicine dispense by date
-    if (fs.existsSync(medicineDispenseFilePath)) {
-      const workbook = XLSX.readFile(medicineDispenseFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      const dispenseRecords: Array<{
-        dispensedDate: string
-        quantity: number
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
-
-      // Get medicine prices
-      const medicineWorkbook = XLSX.readFile(medicinesFilePath)
-      const medicineSheetName = medicineWorkbook.SheetNames[0]
-      const medicineWorksheet = medicineWorkbook.Sheets[medicineSheetName]
-      const medicines: Array<{
-        name: string
-        price: number
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(medicineWorksheet)
-
-      dispenseRecords.forEach((record) => {
-        if (record.dispensedDate) {
-          const recordDate = new Date(record.dispensedDate)
-          if (recordDate >= start && recordDate <= end) {
-            const dateString = recordDate.toISOString().split('T')[0]
-            // Update medicine dispense count
-            const quantity = Number(record.quantity) || 0
-            const currentDispense = medicineDispenseByDate.get(dateString) || 0
-            medicineDispenseByDate.set(dateString, currentDispense + quantity)
-            // Update revenue from medicine sales
-            const medicineName = record.medicineName?.toString()
-            const medicine = medicineName ? medicines.find((m) => m.name === medicineName) : null
-            if (medicine) {
-              const medicineRevenue = (medicine.price || 0) * quantity
-              const currentRevenue = revenueByDate.get(dateString) || 0
-              revenueByDate.set(dateString, currentRevenue + medicineRevenue)
-            }
-          }
+    // Calculate optical sales by date using already fetched data
+    opticalDispenseRecords.forEach((record) => {
+      if (record.dispensedAt) {
+        const recordDate = new Date(record.dispensedAt)
+        if (recordDate >= start && recordDate <= end) {
+          const dateString = recordDate.toISOString().split('T')[0]
+          // Update optical sales count
+          const quantity = Number(record.quantity) || 0
+          const currentSales = opticalSalesByDate.get(dateString) || 0
+          opticalSalesByDate.set(dateString, currentSales + quantity)
+          // Update revenue from optical sales
+          const price = Number(record.price) || 0
+          const opticalRevenue = price * quantity
+          const currentRevenue = revenueByDate.get(dateString) || 0
+          revenueByDate.set(dateString, currentRevenue + opticalRevenue)
         }
-      })
-    }
+      }
+    })
 
-    // Calculate optical sales by date
-    if (fs.existsSync(opticalDispenseFilePath)) {
-      const workbook = XLSX.readFile(opticalDispenseFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      const dispenseRecords: Array<{
-        dispensedAt: string
-        quantity: number
-        price: number
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
-
-      dispenseRecords.forEach((record) => {
-        if (record.dispensedAt) {
-          const recordDate = new Date(record.dispensedAt)
-          if (recordDate >= start && recordDate <= end) {
-            const dateString = recordDate.toISOString().split('T')[0]
-            // Update optical sales count
-            const quantity = Number(record.quantity) || 0
-            const currentSales = opticalSalesByDate.get(dateString) || 0
-            opticalSalesByDate.set(dateString, currentSales + quantity)
-            // Update revenue from optical sales
-            const price = Number(record.price) || 0
-            const opticalRevenue = price * quantity
-            const currentRevenue = revenueByDate.get(dateString) || 0
-            revenueByDate.set(dateString, currentRevenue + opticalRevenue)
-          }
+    // Add operations revenue to the revenue by date using already fetched data
+    operations.forEach((operation) => {
+      if (operation.dateOfAdmit) {
+        const operationDate = new Date(operation.dateOfAdmit.toString())
+        if (operationDate >= start && operationDate <= end) {
+          const dateString = operationDate.toISOString().split('T')[0]
+          const amount = Number(operation.totalAmount) || 0
+          const currentRevenue = revenueByDate.get(dateString) || 0
+          revenueByDate.set(dateString, currentRevenue + amount)
         }
-      })
-    }
-
-    // Add operations revenue to the revenue by date
-    if (fs.existsSync(operationsFilePath)) {
-      const workbook = XLSX.readFile(operationsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      const operations: Array<{
-        dateOfAdmit: string
-        totalAmount: number
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
-
-      operations.forEach((operation) => {
-        if (operation.dateOfAdmit) {
-          const operationDate = new Date(operation.dateOfAdmit.toString())
-          if (operationDate >= start && operationDate <= end) {
-            const dateString = operationDate.toISOString().split('T')[0]
-            const amount = Number(operation.totalAmount) || 0
-            const currentRevenue = revenueByDate.get(dateString) || 0
-            revenueByDate.set(dateString, currentRevenue + amount)
-          }
-        }
-      })
-    }
+      }
+    })
 
     // Populate time series data from the maps
     dateArray.forEach((date) => {

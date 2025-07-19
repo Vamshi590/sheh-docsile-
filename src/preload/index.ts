@@ -179,7 +179,8 @@ const api = {
     ipcRenderer.invoke('getOpticalItemsByType', type),
 
   // Optical Dispense Management
-  getOpticalDispenseRecords: () => ipcRenderer.invoke('getOpticalDispenseRecords'),
+  getOpticalDispenseRecords: (page: number, pageSize: number) =>
+    ipcRenderer.invoke('getOpticalDispenseRecords', page, pageSize),
 
   getOpticalDispenseRecordsByPatient: (patientId: string) =>
     ipcRenderer.invoke('getOpticalDispenseRecordsByPatient', patientId),
@@ -187,8 +188,13 @@ const api = {
   getOpticalDispenseRecordsByOptical: (opticalId: string) =>
     ipcRenderer.invoke('getOpticalDispenseRecordsByOptical', opticalId),
 
-  dispenseOptical: (id: string, quantity: number, patientName: string, patientId?: string) =>
-    ipcRenderer.invoke('dispenseOptical', id, quantity, patientName, patientId),
+  dispenseOptical: (
+    id: string,
+    quantity: number,
+    patientName: string,
+    patientId?: string,
+    dispensedBy?: string
+  ) => ipcRenderer.invoke('dispenseOptical', id, quantity, patientName, patientId, dispensedBy),
 
   // Analytics Management
   getAnalyticsData: (startDate: string, endDate: string) =>

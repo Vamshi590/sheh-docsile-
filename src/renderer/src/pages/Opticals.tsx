@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import OpticalForm from '../components/opticals/OpticalForm'
 import OpticalTable from '../components/opticals/OpticalTable'
 import OpticalEditModal from '../components/opticals/OpticalEditModal'
@@ -28,6 +28,7 @@ interface OpticalDispenseRecord {
   patientName: string
   patientId?: string
   dispensedAt: string
+  dispensedBy: string
 }
 
 const Opticals: React.FC = () => {
@@ -37,7 +38,9 @@ const Opticals: React.FC = () => {
   const [editingOptical, setEditingOptical] = useState<Optical | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'out_of_stock'>('available')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'out_of_stock'>(
+    'available'
+  )
   const [typeFilter, setTypeFilter] = useState<'all' | 'frame' | 'lens'>('all')
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -48,6 +51,47 @@ const Opticals: React.FC = () => {
   const [dispenseRecords, setDispenseRecords] = useState<OpticalDispenseRecord[]>([]) // Used to track and display dispense history
   const [loadingRecords, setLoadingRecords] = useState(false)
   const [recordsError, setRecordsError] = useState('')
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(10)
+  const [totalCount, setTotalCount] = useState(0)
+
+  // Dispense form state
+  const [showDispenseForm, setShowDispenseForm] = useState(false)
+  const [patientId, setPatientId] = useState('')
+  const [patientName, setPatientName] = useState('')
+  const [dispensedBy, setDispensedBy] = useState('')
+  interface SelectedOptical {
+    id: string
+    type: 'frame' | 'lens'
+    brand: string
+    model: string
+    quantity: number
+    price: number
+  }
+  const [selectedOpticals, setSelectedOpticals] = useState<SelectedOptical[]>([])
+  const [totalAmount, setTotalAmount] = useState(0)
+  const [loadingPatient, setLoadingPatient] = useState(false)
+
+  // Function to calculate total amount
+  const calculateTotalAmount = useCallback((): void => {
+    if (selectedOpticals.length === 0) {
+      setTotalAmount(0)
+      return
+    }
+
+    const total = selectedOpticals.reduce((sum, optical) => {
+      return sum + optical.price * optical.quantity
+    }, 0)
+
+    // Ensure we're setting a valid number
+    setTotalAmount(isNaN(total) ? 0 : total)
+  }, [selectedOpticals])
+
+  // Use effect to recalculate total amount whenever selectedOpticals changes
+  useEffect(() => {
+    calculateTotalAmount()
+  }, [selectedOpticals, calculateTotalAmount])
 
   // Load opticals on component mount
   useEffect(() => {
@@ -71,28 +115,55 @@ const Opticals: React.FC = () => {
     fetchData()
   }, [])
 
+  // Function to fetch optical dispense records with pagination
+  const fetchDispenseRecords = useCallback(
+    async (page = currentPage): Promise<void> => {
+      try {
+        setLoadingRecords(true)
+        const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
+        const response = await api.getOpticalDispenseRecords(page, pageSize)
+
+        // The response now includes data, totalCount, page, and pageSize
+        if (response && typeof response === 'object' && 'data' in response) {
+          const { data, totalCount: total } = response as {
+            data: OpticalDispenseRecord[]
+            totalCount: number
+            page: number
+            pageSize: number
+          }
+          setDispenseRecords(data)
+          setTotalCount(total)
+          setCurrentPage(page)
+          setRecordsError('')
+        } else {
+          // Fallback for unexpected response format
+          setDispenseRecords(response as OpticalDispenseRecord[])
+          setRecordsError('')
+        }
+      } catch (err) {
+        console.error('Error fetching dispense records:', err)
+        setRecordsError('Failed to load dispensing records')
+      } finally {
+        setLoadingRecords(false)
+      }
+    },
+    [currentPage, pageSize]
+  )
+
+  // Function to handle page change in dispense history
+  const handlePageChange = useCallback(
+    (page: number) => {
+      fetchDispenseRecords(page)
+    },
+    [fetchDispenseRecords]
+  )
+
   // Load dispensing records when activeTab changes to dispensing-history
   useEffect(() => {
     if (activeTab === 'dispensing-history') {
       fetchDispenseRecords()
     }
-  }, [activeTab])
-
-  // Function to fetch optical dispense records
-  const fetchDispenseRecords = async (): Promise<void> => {
-    try {
-      setLoadingRecords(true)
-      const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
-      const records = await api.getOpticalDispenseRecords()
-      setDispenseRecords(records as OpticalDispenseRecord[])
-      setRecordsError('')
-    } catch (err) {
-      console.error('Error fetching dispense records:', err)
-      setRecordsError('Failed to load dispensing records')
-    } finally {
-      setLoadingRecords(false)
-    }
-  }
+  }, [activeTab, fetchDispenseRecords])
 
   // Function to handle adding a new optical
   const handleAddOptical = async (optical: Omit<Optical, 'id'>): Promise<void> => {
@@ -262,13 +333,195 @@ const Opticals: React.FC = () => {
     setIsDispenseModalOpen(true)
   }
 
+  // Function to handle patient search by ID
+  const handlePatientSearch = async (): Promise<void> => {
+    if (!patientId.trim()) return
+
+    try {
+      setLoadingPatient(true)
+      // Use type assertion for API calls with more specific types
+      const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
+      // Get all patients and find the one with matching ID
+      const patients = (await api.getPatients()) as Array<{ patientId: string; name: string }>
+      const patient = patients.find((p) => p.patientId === patientId)
+
+      if (patient) {
+        setPatientName(patient.name)
+      } else {
+        setPatientName('')
+        setError('Patient not found')
+      }
+    } catch (err) {
+      console.error('Error searching for patient:', err)
+      setError('Failed to search for patient')
+      setPatientName('')
+    } finally {
+      setLoadingPatient(false)
+    }
+  }
+
+  // Function to add optical to dispense list
+  const addOpticalToDispense = (optical: Optical, quantity: number): void => {
+    // Check if the optical is already in the list
+    const existingIndex = selectedOpticals.findIndex((item) => item.id === optical.id)
+
+    if (existingIndex >= 0) {
+      // Update quantity if already in the list
+      const updatedOpticals = [...selectedOpticals]
+      updatedOpticals[existingIndex].quantity += quantity
+      setSelectedOpticals(updatedOpticals)
+    } else {
+      // Add new optical to the list
+      setSelectedOpticals([
+        ...selectedOpticals,
+        {
+          id: optical.id,
+          type: optical.type,
+          brand: optical.brand,
+          model: optical.model,
+          quantity,
+          price: optical.price
+        }
+      ])
+    }
+
+    // Update the original optical's quantity in the main list
+    const updatedOpticals = opticals.map((item) => {
+      if (item.id === optical.id) {
+        return {
+          ...item,
+          quantity: item.quantity - quantity
+        }
+      }
+      return item
+    })
+    setOpticals(updatedOpticals)
+
+    // Calculate total amount after adding optical
+    calculateTotalAmount()
+  }
+
+  // Function to remove optical from dispense list
+  const removeOpticalFromDispense = (id: string): void => {
+    // Find the optical being removed to get its quantity
+    const opticalToRemove = selectedOpticals.find((optical) => optical.id === id)
+    if (opticalToRemove) {
+      // Update the original optical's quantity in the main list by adding back the quantity
+      const updatedOpticals = opticals.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            quantity: item.quantity + opticalToRemove.quantity
+          }
+        }
+        return item
+      })
+      setOpticals(updatedOpticals)
+    }
+
+    // Remove the optical from the selected list
+    setSelectedOpticals(selectedOpticals.filter((optical) => optical.id !== id))
+
+    // Calculate total amount after removing optical
+    calculateTotalAmount()
+  }
+
+  // Function to toggle dispense form
+  const toggleDispenseForm = (): void => {
+    if (showDispenseForm) {
+      // Reset form when closing
+      setPatientId('')
+      setPatientName('')
+      setDispensedBy('')
+      setSelectedOpticals([])
+      setTotalAmount(0)
+    } else {
+      // When opening the form, set the dispensed by value from localStorage
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}')
+        if (currentUser && currentUser.fullName) {
+          setDispensedBy(currentUser.fullName)
+        }
+      } catch (err) {
+        console.error('Error getting user from localStorage:', err)
+      }
+    }
+    setShowDispenseForm(!showDispenseForm)
+  }
+
+  // Function to handle save dispense
+  const handleSaveDispense = async (shouldPrint = false): Promise<void> => {
+    if (!patientName || selectedOpticals.length === 0) {
+      setError('Please fill all required fields and add at least one optical item')
+      return
+    }
+
+    // Always get the current user from localStorage to ensure dispensedBy is correct
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}')
+      if (currentUser && currentUser.fullName) {
+        // Update the dispensedBy state with the current user's name
+        setDispensedBy(currentUser.fullName)
+      }
+    } catch (err) {
+      console.error('Error getting user from localStorage:', err)
+    }
+
+    try {
+      setLoading(true)
+      const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
+
+      // Create dispense records for each optical item
+      const dispenseDate = new Date().toISOString()
+
+      // Process each optical item individually using dispenseOptical
+      for (const optical of selectedOpticals) {
+        // Call dispenseOptical for each item
+        await api.dispenseOptical(optical.id, optical.quantity, patientName, patientId, dispensedBy)
+      }
+
+      // Refresh opticals list
+      const opticalData = await api.getOpticalItemsByStatus(statusFilter)
+      setOpticals(opticalData as Optical[])
+
+      // Reset form
+      setPatientId('')
+      setPatientName('')
+      setDispensedBy('')
+      setSelectedOpticals([])
+      setTotalAmount(0)
+      setShowDispenseForm(false)
+
+      // Print receipt if requested
+      if (shouldPrint) {
+        await api.printOpticalDispenseReceipt({
+          patientName,
+          patientId,
+          dispensedBy, // Use the dispensedBy state which is already set from localStorage
+          dispensedAt: dispenseDate,
+          items: selectedOpticals,
+          totalAmount
+        })
+      }
+
+      setError('')
+      // Show success message
+      alert('Optical items dispensed successfully')
+    } catch (err) {
+      console.error('Error dispensing optical items:', err)
+      setError('Failed to dispense optical items')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Filter opticals based on search term and status filter
   const filteredOpticals = opticals.filter((optical) => {
     // First apply status filter if not 'all'
     if (statusFilter !== 'all' && optical.status !== statusFilter) {
       return false
     }
-    
+
     // Then apply search term filter if present
     if (searchTerm) {
       return (
@@ -276,7 +529,7 @@ const Opticals: React.FC = () => {
         optical.model.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
-    
+
     return true
   })
 
@@ -291,13 +544,13 @@ const Opticals: React.FC = () => {
           <div className="flex items-center space-x-4 mt-4">
             <div className="flex border-b border-gray-200">
               <button
-                className={`px-4 py-2 font-medium ${activeTab === 'inventory' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-4 py-2 cursor-pointer font-medium ${activeTab === 'inventory' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                 onClick={() => setActiveTab('inventory')}
               >
                 Inventory
               </button>
               <button
-                className={`px-4 py-2 font-medium ${activeTab === 'dispensing-history' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-4 py-2 cursor-pointer font-medium ${activeTab === 'dispensing-history' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                 onClick={() => setActiveTab('dispensing-history')}
               >
                 Dispensing History
@@ -434,14 +687,178 @@ const Opticals: React.FC = () => {
                   </svg>
                   Optical Inventory
                 </h2>
-                <div className="text-sm text-gray-500">
-                  {!loading && opticals.length > 0 && (
-                    <span>
-                      {opticals.length} {opticals.length === 1 ? 'item' : 'items'} found
-                    </span>
-                  )}
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-500">
+                    {!loading && opticals.length > 0 && (
+                      <span>
+                        {opticals.length} {opticals.length === 1 ? 'item' : 'items'} found
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* Dispensing Form */}
+              {showDispenseForm && (
+                <div className="bg-white shadow-md rounded-lg p-6 mb-6 border border-blue-100">
+                  <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-2 text-blue-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      />
+                    </svg>
+                    Dispense Optical Items
+                  </h3>
+
+                  {/* Patient Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Patient ID
+                      </label>
+                      <div className="flex">
+                        <input
+                          type="text"
+                          value={patientId}
+                          onChange={(e) => setPatientId(e.target.value)}
+                          className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="Enter patient ID"
+                        />
+                        <button
+                          onClick={handlePatientSearch}
+                          disabled={loadingPatient}
+                          className="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 focus:outline-none"
+                        >
+                          {loadingPatient ? '...' : 'Search'}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Patient Name
+                      </label>
+                      <input
+                        type="text"
+                        value={patientName}
+                        onChange={(e) => setPatientName(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Patient name"
+                        readOnly={loadingPatient}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Dispensed By
+                      </label>
+                      <input
+                        type="text"
+                        value={dispensedBy}
+                        onChange={(e) => setDispensedBy(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Your name"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Selected Items for Dispensing */}
+                  {selectedOpticals.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-md font-medium text-gray-700 mb-2">Selected Items</h4>
+                      <div className="bg-gray-50 rounded-md p-4 max-h-60 overflow-y-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead>
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Type
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Brand
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Model
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Quantity
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Price
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Subtotal
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Action
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {selectedOpticals.map((optical) => (
+                              <tr key={optical.id}>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                  {optical.type}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                  {optical.brand}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                  {optical.model}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                  {optical.quantity}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                  ₹{optical.price}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                  ₹{optical.price * optical.quantity}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                  <button
+                                    onClick={() => removeOpticalFromDispense(optical.id)}
+                                    className="text-red-500 hover:text-red-700"
+                                  >
+                                    Remove
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="mt-4 flex justify-between items-center">
+                        <div className="text-lg font-medium">
+                          Total Amount: <span className="text-blue-600">₹{totalAmount}</span>
+                        </div>
+                        <div className="space-x-2">
+                          <button
+                            onClick={() => handleSaveDispense(false)}
+                            disabled={loading}
+                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none"
+                          >
+                            {loading ? 'Processing...' : 'Save Dispense'}
+                          </button>
+                          <button
+                            onClick={() => handleSaveDispense(true)}
+                            disabled={loading}
+                            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none"
+                          >
+                            {loading ? 'Processing...' : 'Save & Print'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex flex-wrap gap-2">
@@ -515,7 +932,13 @@ const Opticals: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex w-full sm:w-auto mt-4 sm:mt-0">
+                <div className="flex w-full space-x-4 sm:w-auto mt-4 sm:mt-0">
+                  <button
+                    onClick={toggleDispenseForm}
+                    className={`px-4 py-2 rounded-md text-sm font-medium ${showDispenseForm ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+                  >
+                    {showDispenseForm ? 'Cancel Dispensing' : 'Dispense Opticals'}
+                  </button>
                   <input
                     type="text"
                     placeholder="Search opticals..."
@@ -618,6 +1041,8 @@ const Opticals: React.FC = () => {
                       opticals={filteredOpticals}
                       onEdit={openEditModal}
                       onDispense={openDispenseModal}
+                      onAddToDispense={addOpticalToDispense}
+                      showDispenseControls={showDispenseForm}
                     />
                   </div>
                 )
@@ -658,6 +1083,10 @@ const Opticals: React.FC = () => {
                 records={dispenseRecords}
                 loading={loadingRecords}
                 error={recordsError}
+                onPageChange={handlePageChange}
+                totalCount={totalCount}
+                currentPage={currentPage}
+                pageSize={pageSize}
               />
             </>
           )}

@@ -16,9 +16,18 @@ interface OpticalTableProps {
   opticals: Optical[]
   onEdit: (optical: Optical) => void
   onDispense: (optical: Optical) => void
+  onAddToDispense?: (optical: Optical, quantity: number) => void
+  showDispenseControls?: boolean
 }
 
-const OpticalTable: React.FC<OpticalTableProps> = ({ opticals, onEdit, onDispense }) => {
+const OpticalTable: React.FC<OpticalTableProps> = ({
+  opticals,
+  onEdit,
+  onDispense,
+  onAddToDispense,
+  showDispenseControls = false
+}) => {
+  const [quantities, setQuantities] = React.useState<Record<string, number>>({})
   // Function to get status badge class
   const getStatusBadgeClass = (status: string): string => {
     switch (status) {
@@ -104,6 +113,14 @@ const OpticalTable: React.FC<OpticalTableProps> = ({ opticals, onEdit, onDispens
           >
             Actions
           </th>
+          {showDispenseControls && (
+            <th
+              scope="col"
+              className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Dispense Quantity
+            </th>
+          )}
         </tr>
       </thead>
       <tbody className="bg-white divide-y divide-gray-200">
@@ -180,6 +197,59 @@ const OpticalTable: React.FC<OpticalTableProps> = ({ opticals, onEdit, onDispens
                 </button>
               </div>
             </td>
+            {showDispenseControls && (
+              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div className="flex items-center justify-end space-x-2">
+                  <button
+                    onClick={() => {
+                      const currentQty = quantities[optical.id] || 0
+                      if (currentQty > 0) {
+                        setQuantities({
+                          ...quantities,
+                          [optical.id]: currentQty - 1
+                        })
+                      }
+                    }}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded"
+                    disabled={!quantities[optical.id]}
+                  >
+                    -
+                  </button>
+                  <span className="w-8 text-center">{quantities[optical.id] || 0}</span>
+                  <button
+                    onClick={() => {
+                      const currentQty = quantities[optical.id] || 0
+                      if (currentQty < optical.quantity) {
+                        setQuantities({
+                          ...quantities,
+                          [optical.id]: currentQty + 1
+                        })
+                      }
+                    }}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded"
+                    disabled={quantities[optical.id] >= optical.quantity}
+                  >
+                    +
+                  </button>
+                  <button
+                    onClick={() => {
+                      const quantity = quantities[optical.id] || 0
+                      if (quantity > 0 && onAddToDispense) {
+                        onAddToDispense(optical, quantity)
+                        setQuantities({
+                          ...quantities,
+                          [optical.id]: 0
+                        })
+                      }
+                    }}
+                    className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
+                    disabled={!quantities[optical.id]}
+                  >
+                    Add
+                  </button>
+                </div>
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
