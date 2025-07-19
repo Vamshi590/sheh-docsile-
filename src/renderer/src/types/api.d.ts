@@ -85,6 +85,9 @@ interface API {
   getDropdownOptions: (
     fieldName: string
   ) => Promise<{ success: boolean; options?: string[]; error?: string }>
+
+  // PDF Management
+  openPdfInWindow: (pdfBuffer: Uint8Array) => Promise<{ success: boolean; error?: string }>
 }
 
 declare global {

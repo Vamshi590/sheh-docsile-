@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { jsPDF } from 'jspdf'
+// No need for jsPDF, using pdf-lib for both WhatsApp and print functions
 import html2canvas from 'html2canvas'
 import ReceiptViewer from '../reports/ReceiptViewer'
 import { saveAs } from 'file-saver'
@@ -87,141 +87,64 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
       return
     }
     try {
-      if (!receiptRef.current) {
-        alert('Receipt content not found')
+      const receiptEl =
+        (receiptRef.current?.querySelector('[id^="receipt-"]') as HTMLElement | null) ||
+        (receiptRef.current as HTMLElement | null)
+      if (!receiptEl) {
+        alert('Receipt element not found')
         return
       }
+      // Clone and clean oklch colors
+      const clone = receiptEl.cloneNode(true) as HTMLElement
+      stripOKLCH(clone)
+      clone.style.width = '794px'
+      clone.style.height = '1123px'
+      clone.style.backgroundColor = '#ffffff'
+      document.body.appendChild(clone)
 
-      // Apply a temporary style to replace OKLCH colors with RGB
-      const tempStyle = document.createElement('style')
-      tempStyle.setAttribute('data-temp-style', 'true')
-      tempStyle.innerHTML = `
-        * {
-          color: black !important;
-          background-color: white !important;
-          border-color: black !important;
-        }
-        .receipt-viewer {
-          color: black !important;
-          background-color: white !important;
-        }
-      `
-      document.head.appendChild(tempStyle)
-
-      // Add debug log to check receipt element dimensions
-      console.log('Print receipt element dimensions:', {
-        width: receiptRef.current.offsetWidth,
-        height: receiptRef.current.offsetHeight
-      })
-
-      // Create a canvas from the receipt element
-      const canvas = await html2canvas(receiptRef.current, {
-        scale: 3, // Higher scale for better quality
-        logging: true,
-        useCORS: true,
+      const canvas = await html2canvas(clone, {
+        scale: 2,
         backgroundColor: '#ffffff',
-        width: receiptRef.current.offsetWidth,
-        height: receiptRef.current.offsetHeight,
-        ignoreElements: (element) => {
-          // Skip elements with complex CSS that might use OKLCH
-          return element.classList.contains('ignore-in-pdf') || false
-        }
+        useCORS: true
       })
-
-      // Log canvas dimensions for debugging
-      console.log('Print canvas dimensions:', {
-        width: canvas.width,
-        height: canvas.height
-      })
-      // Create PDF
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      })
-
-      // Add image to PDF with proper margins and scaling
+      document.body.removeChild(clone)
       const imgData = canvas.toDataURL('image/png')
-      const pageWidth = 210 // A4 width in mm
-      const pageHeight = 297 // A4 height in mm
-      const margin = 5 // margin in mm
 
-      // Calculate dimensions for both width-based and height-based scaling
-      // to determine which one utilizes more of the page
-      const availableWidth = pageWidth - margin
-      const availableHeight = pageHeight - margin
+      // Create PDF with A4 dimensions (points)
+      const pdfDoc = await PDFDocument.create()
+      const PAGE_WIDTH = 595.28
+      const PAGE_HEIGHT = 841.89
+      const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+      const pngImage = await pdfDoc.embedPng(imgData)
 
-      // Width-based scaling (fit to page width)
-      const widthBasedImgWidth = availableWidth
-      const widthBasedImgHeight = (canvas.height * widthBasedImgWidth) / canvas.width
-      const widthBasedArea = widthBasedImgWidth * widthBasedImgHeight
+      // Scale the image so it always fits inside the page while preserving aspect ratio
+      const imgWidth = pngImage.width
+      const imgHeight = pngImage.height
+      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
+      const drawWidth = imgWidth * scale
+      const drawHeight = imgHeight * scale
+      const x = (PAGE_WIDTH - drawWidth) / 2
+      const y = (PAGE_HEIGHT - drawHeight) / 2
 
-      // Height-based scaling (fit to page height)
-      const heightBasedImgHeight = availableHeight
-      const heightBasedImgWidth = (canvas.width * heightBasedImgHeight) / canvas.height
-      const heightBasedArea = heightBasedImgWidth * heightBasedImgHeight
-
-      // Log calculated dimensions for both approaches
-      console.log('Print PDF dimensions calculation:', {
-        pageWidth,
-        pageHeight,
-        widthBased: {
-          width: widthBasedImgWidth,
-          height: widthBasedImgHeight,
-          area: widthBasedArea
-        },
-        heightBased: {
-          width: heightBasedImgWidth,
-          height: heightBasedImgHeight,
-          area: heightBasedArea
-        },
-        aspectRatio: canvas.width / canvas.height
+      page.drawImage(pngImage, {
+        x,
+        y,
+        width: drawWidth,
+        height: drawHeight
       })
+      const pdfBytes = await pdfDoc.save()
 
-      // Always use the approach that maximizes the area used on the page
-      const useHeightBased = heightBasedArea > widthBasedArea
+      // Use Electron's IPC to open the PDF in a native window
+      // This is the Electron-specific approach that works better than browser blob URLs
+      const result = await window.api.openPdfInWindow(pdfBytes)
 
-      // Set minimal margins
-      const yPosition = margin / 2
-
-      if (useHeightBased) {
-        // Use height-based scaling to maximize page usage
-        const xPos = (pageWidth - heightBasedImgWidth) / 2
-        pdf.addImage(imgData, 'PNG', xPos, yPosition, heightBasedImgWidth, heightBasedImgHeight)
-      } else {
-        // Use width-based scaling
-        const xPosition = margin / 2
-        pdf.addImage(imgData, 'PNG', xPosition, yPosition, widthBasedImgWidth, widthBasedImgHeight)
-      }
-      // Open PDF in a new window for printing
-      const pdfBlob = pdf.output('blob')
-      const pdfUrl = URL.createObjectURL(pdfBlob)
-      const printWindow = window.open(pdfUrl)
-      if (printWindow) {
-        printWindow.onload = () => {
-          setTimeout(() => {
-            printWindow.print()
-          }, 500)
-        }
-      } else {
-        // If popup blocked, offer direct download
-        const downloadLink = document.createElement('a')
-        downloadLink.href = pdfUrl
-        downloadLink.download = `receipt-${selectedPrescription.id}.pdf`
-        document.body.appendChild(downloadLink)
-        downloadLink.click()
-        document.body.removeChild(downloadLink)
-        alert('Print popup was blocked. PDF has been downloaded instead.')
+      if (!result.success) {
+        console.error('Failed to open PDF in window:', result.error)
+        alert('Failed to open PDF preview. Please try again.')
       }
     } catch (error) {
-      console.error('Error printing:', error)
-      alert('Failed to print. Please try again.')
-    } finally {
-      // Remove the temporary style
-      const tempStyle = document.querySelector('style[data-temp-style="true"]')
-      if (tempStyle) {
-        document.head.removeChild(tempStyle)
-      }
+      console.error('Error generating PDF for preview:', error)
+      alert('Failed to generate PDF preview. Please try again.')
     }
   }
 
@@ -292,15 +215,29 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
       })
       const pdfBytes = await pdfDoc.save()
 
-      // Save locally so the user can attach it in WhatsApp Web
+      // Save locally so the user can attach it in WhatsApp
       // Build filename as patientNAME_date.pdf  (e.g., John_Doe_2025-07-16.pdf)
-      const dateStr = new Date().toISOString().slice(0, 10)
-      let patientName = 'Receipt'
-      const nameNode = receiptEl.querySelector('[data-patient-name]') as HTMLElement | null
-      if (nameNode?.textContent) {
-        patientName = nameNode.textContent.trim().replace(/\s+/g, '_')
+      const dateStr = new Date().toISOString().slice(0, 19)
+
+      // Extract patient name directly from the prescription data
+      let patientName = ''
+      if (selectedPrescription?.patientName) {
+        patientName = String(selectedPrescription.patientName).trim().replace(/\s+/g, '_')
+      } else if (selectedPrescription?.['PATIENT NAME']) {
+        patientName = String(selectedPrescription['PATIENT NAME']).trim().replace(/\s+/g, '_')
+      } else {
+        // Try to find it in the DOM as fallback
+        const patientNameDiv = receiptEl.querySelector(
+          'div:has(> div.font-bold:contains("PATIENT NAME")) > div:last-child'
+        ) as HTMLElement | null
+        if (patientNameDiv?.textContent) {
+          patientName = patientNameDiv.textContent.trim().replace(/\s+/g, '_')
+        } else {
+          patientName = 'Receipt' // Last resort fallback
+        }
       }
-      const fileName = `${patientName}_${dateStr}.pdf`
+
+      const fileName = `${patientName}_${selectedReceiptType}_${dateStr}.pdf`
 
       // Attempt silent save if Node fs API is available (Electron renderer with contextIsolation disabled)
       let savedSilently = false
@@ -311,12 +248,14 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
           const fs = _require('fs') as typeof import('fs')
           const path = _require('path') as typeof import('path')
           const os = _require('os') as typeof import('os')
-          const dest = path.join(os.homedir(), 'Downloads', fileName)
+          // Save to Desktop instead of Downloads
+          const dest = path.join(os.homedir(), 'Desktop', fileName)
           fs.writeFileSync(dest, Buffer.from(pdfBytes), { encoding: 'binary' })
           savedSilently = true
+          console.log(`File saved to: ${dest}`)
         }
-      } catch {
-        /* ignore */
+      } catch (err) {
+        console.error('Failed to save file silently:', err)
       }
 
       if (!savedSilently) {
@@ -324,17 +263,43 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
         saveAs(blob, fileName)
       }
 
+      // Small delay to ensure file is saved before opening WhatsApp
+      await new Promise((resolve) => setTimeout(resolve, 4500))
+
       // Build patient phone
       let patientPhone = String(
         selectedPrescription?.['PHONE NUMBER'] || selectedPrescription?.phone || ''
       ).replace(/\D/g, '')
-      if (patientPhone.startsWith('91')) {
-        patientPhone = patientPhone.slice(2)
-      }
       patientPhone = `91${patientPhone}`
 
-      // Open WhatsApp Web with chat to patient number
-      window.open(`https://web.whatsapp.com/send?phone=${patientPhone}`, '_blank')
+      // Create appropriate message based on receipt type
+      let whatsAppMessage = ''
+
+      switch (selectedReceiptType) {
+        case 'cash':
+          whatsAppMessage = `Dear ${patientName.replace(/_/g, ' ')}, thank you for your payment at Sri Harsha Eye Hospital. Your receipt is attached.`
+          break
+        case 'prescription':
+          whatsAppMessage = `Dear ${patientName.replace(/_/g, ' ')}, here is your prescription from Sri Harsha Eye Hospital. Please follow the instructions carefully.`
+          break
+        case 'readings':
+          whatsAppMessage = `Dear ${patientName.replace(/_/g, ' ')}, here are your eye examination results from Sri Harsha Eye Hospital.`
+          break
+        case 'operation':
+          whatsAppMessage = `Dear ${patientName.replace(/_/g, ' ')}, here is your operation receipt from Sri Harsha Eye Hospital.`
+          break
+        case 'clinical':
+          whatsAppMessage = `Dear ${patientName.replace(/_/g, ' ')}, here are your clinical findings from Sri Harsha Eye Hospital.`
+          break
+        default:
+          whatsAppMessage = `Dear ${patientName.replace(/_/g, ' ')}, here is your receipt from Sri Harsha Eye Hospital.`
+      }
+
+      // Encode the message for URL
+      const encodedMessage = encodeURIComponent(whatsAppMessage)
+
+      // Open WhatsApp in system app with chat to patient number and pre-filled message
+      window.open(`whatsapp://send?phone=${patientPhone}&text=${encodedMessage}`, '_blank')
     } catch (err) {
       console.error('Failed to create/send PDF:', err)
       alert('Failed to share via WhatsApp')

@@ -1,8 +1,10 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import fs from 'fs'
 import { promisify } from 'util'
 import { exec } from 'child_process'
 import bcrypt from 'bcryptjs'
@@ -5091,5 +5093,54 @@ ipcMain.handle('getDropdownOptions', async (_, fieldName: string) => {
   } catch (error) {
     console.error('Error getting dropdown options:', error)
     return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+})
+
+// Open PDF in a new BrowserWindow
+ipcMain.handle('openPdfInWindow', async (_, pdfBuffer: Uint8Array) => {
+  try {
+    // Create a temporary file path
+    const tempDir = path.join(os.tmpdir(), 'sheh-docsile-pdf')
+
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true })
+    }
+
+    // Generate a unique filename
+    const tempFile = path.join(tempDir, `receipt-${Date.now()}.pdf`)
+
+    // Write the PDF buffer to the temporary file
+    fs.writeFileSync(tempFile, Buffer.from(pdfBuffer))
+
+    // Create a new browser window
+    const pdfWindow = new BrowserWindow({
+      width: 800,
+      height: 1000,
+      title: 'Prescription Receipt',
+      autoHideMenuBar: true
+    })
+
+    // Load the PDF file
+    await pdfWindow.loadURL(`file://${tempFile}`)
+
+    // Clean up the file when the window is closed
+    pdfWindow.on('closed', () => {
+      try {
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile)
+        }
+      } catch (error) {
+        console.error('Error deleting temporary PDF file:', error)
+      }
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error opening PDF in window:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    }
   }
 })

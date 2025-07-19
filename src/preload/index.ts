@@ -212,7 +212,10 @@ const api = {
   // Dropdown Options Management
   addDropdownOption: (fieldName: string, newValue: string) =>
     ipcRenderer.invoke('addDropdownOption', fieldName, newValue),
-  getDropdownOptions: (fieldName: string) => ipcRenderer.invoke('getDropdownOptions', fieldName)
+  getDropdownOptions: (fieldName: string) => ipcRenderer.invoke('getDropdownOptions', fieldName),
+
+  // PDF Management
+  openPdfInWindow: (pdfBuffer: Uint8Array) => ipcRenderer.invoke('openPdfInWindow', pdfBuffer)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

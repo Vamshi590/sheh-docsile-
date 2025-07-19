@@ -38,6 +38,7 @@ declare global {
       getTodaysPrescriptions: () => Promise<Prescription[]>
       getDropdownOptions: (fieldName: string) => Promise<string[]>
       addDropdownOption: (fieldName: string, value: string) => Promise<void>
+      openPdfInWindow: (pdfBuffer: Uint8Array) => Promise<{ success: boolean; error?: string }>
     }
   }
 }
