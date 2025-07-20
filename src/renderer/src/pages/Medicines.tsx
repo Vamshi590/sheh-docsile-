@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import MedicineForm from '../components/medicines/MedicineForm'
 import MedicineTable from '../components/medicines/MedicineTable'
 import MedicineEditModal from '../components/medicines/MedicineEditModal'
 import MedicineDispenseModal from '../components/medicines/MedicineDispenseModal'
 import MedicineDispenseHistory from '../components/medicines/MedicineDispenseHistory'
+import MedicalReceipt from '../components/reciepts/MedicalReceipt'
+import html2canvas from 'html2canvas'
+import { PDFDocument } from 'pdf-lib'
 
 interface Medicine {
   id: string
@@ -28,6 +31,24 @@ interface MedicineDispenseRecord {
   patientId?: string
 }
 
+// Function to strip OKLCH colors from elements (needed for PDF generation)
+const stripOKLCH = (el: HTMLElement): void => {
+  // Process the element itself
+  const styles = window.getComputedStyle(el)
+  ;['color', 'backgroundColor', 'borderColor'].forEach((prop) => {
+    const val = styles.getPropertyValue(prop)
+    if (val && val.includes('oklch')) {
+      el.style.setProperty(prop, '#000')
+    }
+  })
+
+  // Process all child elements recursively
+  for (let i = 0; i < el.children.length; i++) {
+    const child = el.children[i] as HTMLElement
+    stripOKLCH(child)
+  }
+}
+
 const Medicines: React.FC = () => {
   const [medicines, setMedicines] = useState<Medicine[]>([])
   const [loading, setLoading] = useState(true)
@@ -38,6 +59,7 @@ const Medicines: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'out_of_stock'>(
     'available'
   )
+  const medicalReceiptRef = useRef<HTMLDivElement>(null)
   const [searchTerm, setSearchTerm] = useState('')
 
   // Dispensing related state
@@ -63,6 +85,7 @@ const Medicines: React.FC = () => {
   >([])
   const [totalAmount, setTotalAmount] = useState(0)
   const [loadingPatient, setLoadingPatient] = useState(false)
+  const [patient, setPatient] = useState({})
 
   // Function to calculate total amount
   const calculateTotalAmount = useCallback((): void => {
@@ -340,6 +363,7 @@ const Medicines: React.FC = () => {
       const patient = patients.find((p) => p.patientId == patientId)
       if (patient) {
         setPatientName(patient.name || '')
+        setPatient(patient)
       } else {
         setPatientName('')
         alert('Patient not found')
@@ -405,51 +429,8 @@ const Medicines: React.FC = () => {
     calculateTotalAmount()
   }
 
-  // This function is now defined above using useCallback
-
-  // Function to handle save dispense
-  const handleSaveDispense = async (shouldPrint = false): Promise<void> => {
-    try {
-      if (!patientId || selectedMedicines.length === 0) {
-        alert('Please enter patient ID and add medicines to dispense')
-        return
-      }
-
-      // Save each medicine dispense record
-      for (const medicine of selectedMedicines) {
-        await handleDispenseMedicine({
-          ...medicine,
-          patientId,
-          dispensedBy,
-          price: medicine.price
-        })
-      }
-
-      // Reset form
-      setPatientId('')
-      setPatientName('')
-      setSelectedMedicines([])
-      setTotalAmount(0)
-      setShowDispenseForm(false)
-
-      // If print is requested, handle printing logic here
-      if (shouldPrint) {
-        // Implement printing logic
-        console.log('Printing dispense receipt')
-      }
-
-      alert('Medicines dispensed successfully')
-    } catch (err) {
-      console.error('Error dispensing medicines:', err)
-      alert('Failed to dispense medicines')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   // Function to toggle dispense form
   const toggleDispenseForm = (): void => {
-    // Load current user from localStorage when opening the form
     if (!showDispenseForm) {
       try {
         const currentUserStr = localStorage.getItem('currentUser')
@@ -470,6 +451,145 @@ const Medicines: React.FC = () => {
       setPatientName('')
       setSelectedMedicines([])
       setTotalAmount(0)
+    }
+  }
+  // Function to handle save dispense
+  const handleSaveDispense = async (shouldPrint = false): Promise<void> => {
+    try {
+      if (!patientId || selectedMedicines.length === 0) {
+        alert('Please enter patient ID and add medicines to dispense')
+        return
+      }
+
+      // Save each medicine dispense record
+      for (const medicine of selectedMedicines) {
+        await handleDispenseMedicine({
+          ...medicine,
+          patientId,
+          dispensedBy,
+          price: medicine.price
+        })
+      }
+
+      // If print is requested, handle printing logic here
+      if (shouldPrint) {
+        await handlePrintReceipt()
+      }
+
+      // Reset form
+      setPatientId('')
+      setPatientName('')
+      setSelectedMedicines([])
+      setTotalAmount(0)
+      setShowDispenseForm(false)
+    } catch (err) {
+      console.error('Error dispensing medicines:', err)
+      alert('Failed to dispense medicines')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Function to handle print receipt
+  const handlePrintReceipt = async (): Promise<void> => {
+    try {
+      // Check if we have the necessary data
+      if (!patientId || selectedMedicines.length === 0) {
+        alert('Please enter patient ID and add medicines to dispense')
+        return
+      }
+      const receiptEl = medicalReceiptRef.current
+      if (!receiptEl) {
+        alert('Receipt element not found')
+        return
+      }
+
+      // Create a container with proper centering and alignment
+      const container = document.createElement('div')
+      container.style.position = 'absolute'
+      container.style.top = '0'
+      container.style.left = '0'
+      container.style.width = '100%'
+      container.style.height = '100%'
+      container.style.display = 'flex'
+      container.style.justifyContent = 'center'
+      container.style.alignItems = 'center'
+      container.style.backgroundColor = '#ffffff'
+      container.style.padding = '0'
+      container.style.margin = '0'
+      container.style.overflow = 'hidden'
+      container.style.zIndex = '-9999' // Hide from view
+
+      // Clone and clean oklch colors
+      const clone = receiptEl.cloneNode(true) as HTMLElement
+      stripOKLCH(clone)
+
+      // Set exact A4 dimensions and center content
+      clone.style.width = '794px' // A4 width in pixels
+      clone.style.height = '1123px' // A4 height in pixels
+      clone.style.backgroundColor = '#ffffff'
+      clone.style.margin = '0 auto' // Center horizontally
+      clone.style.position = 'relative' // Ensure proper positioning
+      clone.style.transform = 'none' // Remove any transforms that might cause tilting
+
+      // Add the clone to the container
+      container.appendChild(clone)
+      document.body.appendChild(container)
+
+      // Use html2canvas with improved settings
+      const canvas = await html2canvas(clone, {
+        scale: 2, // Higher scale for better quality
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        imageTimeout: 0,
+        removeContainer: false // We'll handle removal ourselves
+      })
+
+      // Clean up the DOM
+      document.body.removeChild(container)
+
+      const imgData = canvas.toDataURL('image/png')
+
+      // Create PDF with A4 dimensions (points)
+      const pdfDoc = await PDFDocument.create()
+      const PAGE_WIDTH = 595.28
+      const PAGE_HEIGHT = 841.89
+      const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+      const pngImage = await pdfDoc.embedPng(imgData)
+
+      // Calculate dimensions to perfectly center the image
+      const imgWidth = pngImage.width
+      const imgHeight = pngImage.height
+      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight) * 0.98 // 98% of max size for small margin
+      const drawWidth = imgWidth * scale
+      const drawHeight = imgHeight * scale
+
+      // Precisely center the image on the page
+      const x = (PAGE_WIDTH - drawWidth) / 2
+      const y = (PAGE_HEIGHT - drawHeight) / 2
+
+      // Draw the image with exact positioning
+      page.drawImage(pngImage, {
+        x,
+        y,
+        width: drawWidth,
+        height: drawHeight
+      })
+
+      const pdfBytes = await pdfDoc.save()
+
+      // Use Electron's IPC to open the PDF in a native window
+      const result = await window.api.openPdfInWindow(pdfBytes)
+
+      if (!result.success) {
+        console.error('Failed to open PDF in window:', result.error)
+        alert('Failed to open PDF preview. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error generating PDF for preview:', error)
+      alert('Failed to generate PDF preview. Please try again.')
     }
   }
 
@@ -1161,6 +1281,51 @@ const Medicines: React.FC = () => {
           </p>
         </div>
       </footer>
+
+      {/* Hidden MedicalReceipt component for PDF generation */}
+      <div style={{ display: 'none' }}>
+        <div ref={medicalReceiptRef}>
+          <MedicalReceipt
+            data={{
+              businessInfo: {
+                name: 'SRI MEHER MEDICALS',
+                address:
+                  'Near Mancherial Chowrasta, Ambedkarnagar,Choppadandi Road, KARIMNAGAR-505001',
+                dlNo: 'TS/KNR/2021/7329',
+                gstin: '36ATWPC8813C1ZK',
+                phone1: '+91 98850 29367',
+                phone2: '+91 94943 62719'
+              },
+              patientInfo: {
+                billNumber: `MED-${new Date().getTime().toString().slice(-6)}`,
+                patientId: patientId || '',
+                patientName: patientName || '',
+                guardianName: patient['guardian'] || '',
+                address: patient['address'] || '',
+                date: new Date().toLocaleDateString(),
+                gender: patient['gender'] || '',
+                age: patient['age'] || 0,
+                mobile: patient['phone'] || '',
+                dept: patient['department'] || '',
+                doctorName: patient['doctorName'] || ''
+              },
+              items: selectedMedicines.map((med) => ({
+                particulars: med.name,
+                qty: med.quantity,
+                rate: med.price,
+                amount: med.price * med.quantity
+              })),
+              totals: {
+                totalAmount: totalAmount,
+                advancePaid: 0,
+                amtReceived: totalAmount,
+                discount: 0,
+                balance: 0
+              }
+            }}
+          />
+        </div>
+      </div>
     </div>
   )
 }

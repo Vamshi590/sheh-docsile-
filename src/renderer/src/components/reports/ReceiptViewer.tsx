@@ -43,6 +43,7 @@ interface Operation {
   operationProcedure?: string
   provisionDiagnosis?: string
   operatedBy?: string
+  billNumber?: string
   [key: string]: unknown
 }
 
@@ -196,6 +197,9 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
         report.dateOfOperation ||
         report['DATE_OF_OPERATION'] ||
         ''
+    ),
+    billNumber: String(
+      selectedOperation?.billNumber || report.billNumber || report.BILL_NUMBER || ''
     )
   }
 
@@ -432,6 +436,7 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
               operationDetails={`${operationData.operationType} - ${operationData.operationDate}`}
               operationProcedure={operationData.procedure}
               diagnosis={operationData.findings}
+              billNumber={operationData.billNumber}
               billingItems={billingItems}
               billingData={operationBillingData}
               authorizedSignatory={operationData.surgeon}

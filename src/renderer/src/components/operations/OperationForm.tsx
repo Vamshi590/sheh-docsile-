@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import {
-  doctorOptions,
-  operationDetailsOptions,
-  operationProcedureOptions,
-  provisionDiagnosisOptions,
-  partOptions
-} from '../../utils/dropdownOptions'
+import { partOptions } from '../../utils/dropdownOptions'
+import EditableCombobox from '../common/EditableCombobox'
+import PrescriptionForm from '../prescriptions/PrescriptionForm'
+import Modal from '../common/Modal' // This import is correct, but TypeScript might not find it
 
 // Define the Patient type
 type Patient = {
@@ -75,13 +72,19 @@ type Operation = {
   amountReceived?: number
   amountDue?: number
   operatedBy?: string
+  billNumber?: string
+  createdBy?: string
+  updatedBy?: string
   [key: string]: unknown
 }
 
 interface OperationFormProps {
   patient: Patient
   operation: Operation | null
-  onSave: (operation: Operation | Omit<Operation, 'id'>) => Promise<void>
+  onSave: (
+    operation: Operation | Omit<Operation, 'id'>,
+    prescriptionData?: string | null
+  ) => Promise<void>
   onCancel: () => void
 }
 
@@ -100,6 +103,9 @@ const partRates: Record<string, number> = {
 }
 
 const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSave, onCancel }) => {
+  // State for prescription modal
+  const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false)
+  const [prescriptionData, setPrescriptionData] = useState<Record<string, unknown> | null>(null)
   // Helper to convert partN/daysN/amountN fields into parts array
   const buildPartsFromFields = (
     op?: Operation | null
@@ -133,6 +139,9 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
   const [formData, setFormData] = useState<Partial<Operation>>(() => {
     // Initialize with patient data and default values
     const initialData: Partial<Operation> = {
+      billNumber: operation?.billNumber || '',
+      createdBy: operation?.createdBy || '',
+      updatedBy: operation?.updatedBy || '',
       patientId: patient.patientId,
       patientName: patient.name,
       dateOfAdmit: operation?.dateOfAdmit || new Date().toISOString().split('T')[0],
@@ -411,7 +420,57 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
     }
   }
 
+  // Handle prescription form submission
+  const handlePrescriptionSubmit = async (prescription: Record<string, unknown>): Promise<void> => {
+    try {
+      // Add patient information to prescription
+      const prescriptionWithPatient = {
+        ...prescription,
+        'PATIENT ID': patient.patientId,
+        'PATIENT NAME': patient.name,
+        'GUARDIAN NAME': patient.guardianName || '',
+        'PHONE NUMBER': patient.phone || '',
+        AGE: patient.age || '',
+        GENDER: patient.gender || '',
+        ADDRESS: patient.address || ''
+      }
+
+      // Store prescription data for later use with the operation
+      // No longer saving to prescriptions table separately
+      setPrescriptionData(prescriptionWithPatient)
+
+      // Close modal
+      setIsPrescriptionModalOpen(false)
+      // Show success message
+      setSubmitMessage({
+        type: 'success',
+        message: 'Prescription added to operation!'
+      })
+    } catch (error) {
+      console.error('Error processing prescription:', error)
+      setSubmitMessage({
+        type: 'error',
+        message: `Error processing prescription: ${error}`
+      })
+    }
+  }
+
   // Handle form submission
+  // Helper function to get current user from localStorage
+  const getCurrentUser = (): string => {
+    try {
+      const currentUser = localStorage.getItem('currentUser')
+      if (currentUser) {
+        const user = JSON.parse(currentUser)
+        return user.fullName || user.username || 'Unknown User'
+      }
+      return 'Unknown User'
+    } catch (error) {
+      console.error('Error getting current user:', error)
+      return 'Unknown User'
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -475,23 +534,58 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
         amountReceived: formData.amountReceived,
         amountDue: formData.amountDue,
         discount: formData.discount,
-        modeOfPayment: formData.modeOfPayment
+        modeOfPayment: formData.modeOfPayment,
+        // Handle bill number, createdBy and updatedBy fields
+        billNumber: formData.billNumber || '', // Will be generated on backend if empty
+        updatedBy: getCurrentUser() // Always set updatedBy to current user
       }
 
-      // Log the patient ID being used for debugging
-      console.log('Using patient ID for operation:', patient.patientId)
+      // For new operations, set createdBy
+      if (!operation?.id) {
+        operationData.createdBy = getCurrentUser()
+      }
 
       // Save operation using the appropriate method
       if (operation?.id) {
         // Update existing operation
-        await onSave({
-          ...operationData,
-          id: operation.id
-        } as Operation)
+        await onSave(
+          {
+            ...operationData,
+            id: operation.id
+          } as Operation,
+          prescriptionData ? JSON.stringify(prescriptionData) : null
+        )
       } else {
         // Add new operation
-        await onSave(operationData as Omit<Operation, 'id'>)
+        await onSave(
+          operationData as Omit<Operation, 'id'>,
+          prescriptionData ? JSON.stringify(prescriptionData) : null
+        )
       }
+
+      // Reset form state
+      setFormData({
+        patientId: patient.patientId,
+        patientName: patient.name,
+        dateOfAdmit: new Date().toISOString().split('T')[0],
+        timeOfAdmit: '',
+        dateOfOperation: new Date().toISOString().split('T')[0],
+        timeOfOperation: '',
+        dateOfDischarge: '',
+        timeOfDischarge: '',
+        operationDetails: '',
+        operationProcedure: '',
+        provisionDiagnosis: '',
+        totalAmount: 0,
+        modeOfPayment: 'Cash',
+        discount: 0,
+        amountReceived: 0,
+        amountDue: 0,
+        reviewOn: '',
+        operatedBy: 'Dr Srilatha ch'
+      })
+      setParts([{ part: '', days: 0, amount: 0 }])
+      setPrescriptionData(null)
 
       // Show success message
       setSubmitMessage({
@@ -509,8 +603,82 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
     }
   }
 
+  // Dynamic dropdown options state
+  const [dynamicOperationDetailsOptions, setDynamicOperationDetailsOptions] = useState<string[]>([])
+  const [dynamicOperationProcedureOptions, setDynamicOperationProcedureOptions] = useState<
+    string[]
+  >([])
+  const [dynamicProvisionDiagnosisOptions, setDynamicProvisionDiagnosisOptions] = useState<
+    string[]
+  >([])
+  const [dynamicDoctorOptions, setDynamicDoctorOptions] = useState<string[]>([])
+
+  // Helper function to fetch dropdown options from backend
+  const fetchDropdownOptions = async (): Promise<void> => {
+    try {
+      const [doctorOpts, provisionDiagnosisOpts, operationDetailsOpts, operationProcedureOpts] =
+        await Promise.all([
+          window.api.getDropdownOptions('doctorName'),
+          window.api.getDropdownOptions('provisionDiagnosisOptions'),
+          window.api.getDropdownOptions('operationDetailsOptions'),
+          window.api.getDropdownOptions('operationProcedureOptions')
+        ])
+      console.log(
+        'Dropdown options:',
+        doctorOpts,
+        provisionDiagnosisOpts,
+        operationDetailsOpts,
+        operationProcedureOpts
+      )
+
+      // Set dynamic options - API returns { success: boolean, options?: string[], error?: string }
+      const doctorOptions = (doctorOpts as { options?: string[] })?.options || []
+      const provisionDiagnosisOptions =
+        (provisionDiagnosisOpts as { options?: string[] })?.options || []
+      const operationDetailsOptions =
+        (operationDetailsOpts as { options?: string[] })?.options || []
+      const operationProcedureOptions =
+        (operationProcedureOpts as { options?: string[] })?.options || []
+
+      console.log(
+        'Doctor options:',
+        doctorOptions,
+        'Provision Diagnosis options:',
+        provisionDiagnosisOptions,
+        'Operation Details options:',
+        operationDetailsOptions,
+        'Operation Procedure options:',
+        operationProcedureOptions
+      )
+
+      setDynamicDoctorOptions([...new Set(doctorOptions as string[])])
+      setDynamicProvisionDiagnosisOptions([...new Set(provisionDiagnosisOptions as string[])])
+      setDynamicOperationDetailsOptions([...new Set(operationDetailsOptions as string[])])
+      setDynamicOperationProcedureOptions([...new Set(operationProcedureOptions as string[])])
+    } catch (error) {
+      console.error('Error fetching dropdown options:', error)
+    }
+  }
+
+  // Function to add a new option permanently
+  const addNewOptionPermanently = async (fieldName: string, value: string): Promise<void> => {
+    try {
+      const response = await window.api.addDropdownOption(fieldName, value)
+      console.log('Response:', response)
+      // Refresh options from backend
+      await fetchDropdownOptions()
+    } catch (err) {
+      console.error('Error adding option:', err)
+    }
+  }
+
+  // Fetch dropdown options on component mount
+  useEffect(() => {
+    fetchDropdownOptions()
+  }, [])
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm">
+    <div className="bg-white p-6 rounded-lg">
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Patient Information (Read-only) */}
@@ -618,7 +786,18 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Operation Details *
             </label>
-            <div className="relative">
+            <EditableCombobox
+              id="operationDetails"
+              name="operationDetails"
+              value={(formData['operationDetails'] as string) || ''}
+              options={dynamicOperationDetailsOptions}
+              onChange={handleInputChange}
+              onAddNewOption={(_, value) =>
+                addNewOptionPermanently('operationDetailsOptions', value)
+              }
+              placeholder="Select or type previous history..."
+            />
+            {/* <div className="relative">
               <input
                 type="text"
                 name="operationDetails"
@@ -634,30 +813,24 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                   <option key={index} value={option} />
                 ))}
               </datalist>
-            </div>
+            </div> */}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Operation Procedure *
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                name="operationProcedure"
-                id="operationProcedure"
-                list="operationProcedureList"
-                value={formData.operationProcedure || ''}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <datalist id="operationProcedureList">
-                {operationProcedureOptions.map((option, index) => (
-                  <option key={index} value={option} />
-                ))}
-              </datalist>
-            </div>
+            <EditableCombobox
+              id="operationProcedure"
+              name="operationProcedure"
+              value={(formData['operationProcedure'] as string) || ''}
+              options={dynamicOperationProcedureOptions}
+              onChange={handleInputChange}
+              onAddNewOption={(_, value) =>
+                addNewOptionPermanently('operationProcedureOptions', value)
+              }
+              placeholder="Select or type previous history..."
+            />
           </div>
 
           {/* Provision Diagnosis */}
@@ -665,45 +838,31 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Provision Diagnosis *
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                name="provisionDiagnosis"
-                id="provisionDiagnosis"
-                list="provisionDiagnosisList"
-                value={formData.provisionDiagnosis || ''}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <datalist id="provisionDiagnosisList">
-                {provisionDiagnosisOptions.map((option, index) => (
-                  <option key={index} value={option} />
-                ))}
-              </datalist>
-            </div>
+            <EditableCombobox
+              id="provisionDiagnosis"
+              name="provisionDiagnosis"
+              value={(formData['provisionDiagnosis'] as string) || ''}
+              options={dynamicProvisionDiagnosisOptions}
+              onChange={handleInputChange}
+              onAddNewOption={(_, value) =>
+                addNewOptionPermanently('provisionDiagnosisOptions', value)
+              }
+              placeholder="Select or type previous history..."
+            />
           </div>
 
           {/* Operated By */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Operated By *</label>
-            <div className="relative">
-              <input
-                type="text"
-                name="operatedBy"
-                id="operatedBy"
-                list="operatedByList"
-                value={formData.operatedBy || ''}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <datalist className="bg-white" id="operatedByList">
-                {doctorOptions.map((option, index) => (
-                  <option className="bg-white text-black" key={index} value={option} />
-                ))}
-              </datalist>
-            </div>
+            <EditableCombobox
+              id="operatedBy"
+              name="operatedBy"
+              value={(formData['operatedBy'] as string) || ''}
+              options={dynamicDoctorOptions}
+              onChange={handleInputChange}
+              onAddNewOption={(_, value) => addNewOptionPermanently('doctorName', value)}
+              placeholder="Select or type previous history..."
+            />
           </div>
 
           {/* Parts and Amounts */}
@@ -726,7 +885,15 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                     >
                       Part/Service {index + 1}
                     </label>
-                    <div className="relative">
+                    <EditableCombobox
+                      id={`part ${index + 1}`}
+                      name={`part ${index + 1}`}
+                      value={(formData[`part ${index + 1}`] as string) || ''}
+                      options={partOptions}
+                      onChange={(e) => handlePartChange(index, e.target.value)}
+                      placeholder="Select or type medicine name, dosage..."
+                    />
+                    {/* <div className="relative">
                       <input
                         type="text"
                         id={`part-${index}`}
@@ -743,7 +910,7 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
                           <option key={i} value={option} />
                         ))}
                       </datalist>
-                    </div>
+                    </div> */}
                   </div>
 
                   <div>
@@ -925,6 +1092,14 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
             Cancel
           </button>
           <button
+            type="button"
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 mr-2"
+            onClick={() => setIsPrescriptionModalOpen(true)}
+            disabled={isSubmitting}
+          >
+            Add Prescription
+          </button>
+          <button
             type="submit"
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             disabled={isSubmitting}
@@ -946,6 +1121,31 @@ const OperationForm: React.FC<OperationFormProps> = ({ patient, operation, onSav
           </div>
         )}
       </form>
+
+      {/* Prescription Modal */}
+      {isPrescriptionModalOpen && (
+        <Modal
+          isOpen={isPrescriptionModalOpen}
+          onClose={() => setIsPrescriptionModalOpen(false)}
+          title="Add Prescription"
+          size="lg"
+        >
+          <PrescriptionForm
+            onSubmit={handlePrescriptionSubmit}
+            onCancel={() => setIsPrescriptionModalOpen(false)}
+            prescriptionCount={0}
+            selectedPatient={{
+              'PATIENT ID': patient.patientId,
+              'GUARDIAN NAME': patient.name,
+              DOB: '',
+              AGE: Number(patient.age) || 0,
+              GENDER: patient.gender || '',
+              'PHONE NUMBER': patient.phone || '',
+              ADDRESS: patient.address || ''
+            }}
+          />
+        </Modal>
+      )}
     </div>
   )
 }

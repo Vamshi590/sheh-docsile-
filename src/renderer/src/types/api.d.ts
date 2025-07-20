@@ -50,6 +50,7 @@ export interface Operation {
   provisionDiagnosis?: string
   operatedBy?: string
   reviewOn?: string
+  prescriptionData?: string
 }
 
 interface API {

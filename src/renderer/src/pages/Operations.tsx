@@ -5,6 +5,7 @@ import OperationTableWithReceipts from '../components/operations/OperationTableW
 // Define Operation interface to match OperationForm component's type
 interface Operation {
   id: string
+  billNumber?: string
   patientId: string
   patientName: string
   dateOfAdmit?: string
@@ -63,6 +64,7 @@ interface Operation {
   surgeon?: string
   preOpDiagnosis?: string
   procedure?: string
+  prescriptionData?: string
   [key: string]: unknown
 }
 
@@ -121,6 +123,7 @@ const Operations: React.FC = () => {
   const [allOperations, setAllOperations] = useState<Operation[]>([])
   const [selectedOperation, setSelectedOperation] = useState<Operation | null>(null)
   const [showOperationForm, setShowOperationForm] = useState(false)
+  // Track where the operation form should be displayed
 
   // Filter operations to only include those still admitted, future discharge, or added today
   const todayDateStr = new Date().toISOString().split('T')[0]
@@ -262,18 +265,24 @@ const Operations: React.FC = () => {
 
   // Handle operation save (both add and update)
   const handleOperationSave = async (
-    operation: Operation | Omit<Operation, 'id'>
+    operation: Operation | Omit<Operation, 'id'>,
+    prescriptionData?: string | null
   ): Promise<void> => {
     try {
       if ('id' in operation && operation.id) {
         // It's an update operation with a valid ID
-        await handleUpdateOperation(operation as Operation)
+        await handleUpdateOperation(operation as Operation, prescriptionData)
       } else {
         // It's a new operation or has an invalid ID
         // Create a new operation without the ID to ensure we're adding a new operation
         const operationData = { ...operation } as Partial<Operation>
         // Delete any existing ID to force creation of a new operation
         delete operationData.id
+        // Include prescription data if available
+        if (prescriptionData) {
+          // Store prescription data as a JSON string to ensure proper serialization
+          operationData.prescriptionData = JSON.stringify(prescriptionData)
+        }
         await handleAddOperation(operationData as Omit<Operation, 'id'>)
       }
     } catch (err) {
@@ -330,6 +339,9 @@ const Operations: React.FC = () => {
         }
         setShowOperationForm(false)
         setSelectedOperation(null)
+        setFoundPatient(null)
+        setSelectedPatient(null)
+        setPatientOperations([])
       } else {
         console.error('addOperation method is not available')
         setError('Failed to add operation: API method not available')
@@ -343,7 +355,15 @@ const Operations: React.FC = () => {
   }
 
   // Handle updating an existing operation
-  const handleUpdateOperation = async (operationData: Operation): Promise<void> => {
+  const handleUpdateOperation = async (
+    operationData: Operation,
+    prescriptionData?: string | null
+  ): Promise<void> => {
+    // Include prescription data in operation if available
+    if (prescriptionData) {
+      // Store prescription data as a JSON string to ensure proper serialization
+      operationData.prescriptionData = JSON.stringify(prescriptionData)
+    }
     try {
       setLoading(true)
       setError('')
@@ -363,6 +383,9 @@ const Operations: React.FC = () => {
         }
         setShowOperationForm(false)
         setSelectedOperation(null)
+        setFoundPatient(null)
+        setSelectedPatient(null)
+        setPatientOperations([])
       } else {
         console.error('updateOperation method is not available')
         setError('Failed to update operation: API method not available')
@@ -716,7 +739,9 @@ const Operations: React.FC = () => {
                   Previous Operations
                 </h2>
                 <button
-                  onClick={() => setShowOperationForm(true)}
+                  onClick={() => {
+                    setShowOperationForm(true)
+                  }}
                   className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors shadow-sm flex items-center space-x-1.5"
                 >
                   <svg
@@ -912,11 +937,13 @@ const Operations: React.FC = () => {
           )}
 
           {/* Show Add New Operation button if patient is selected but no operations exist */}
-          {selectedPatient && patientOperations.length === 0 && !loading && (
+          {selectedPatient && patientOperations.length === 0 && !loading && !showOperationForm && (
             <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border border-gray-100 text-center">
               <p className="text-gray-500 mb-4">No previous operations found for this patient.</p>
               <button
-                onClick={() => setShowOperationForm(true)}
+                onClick={() => {
+                  setShowOperationForm(true)
+                }}
                 className="px-4 py-2 bg-green-500 cursor-pointer hover:bg-green-600 text-white rounded-md transition-colors shadow-sm flex items-center space-x-1.5 mx-auto"
               >
                 <svg
@@ -935,53 +962,67 @@ const Operations: React.FC = () => {
               </button>
             </div>
           )}
-
-          {/* Operation Form - Only show when showOperationForm is true */}
-          {selectedPatient && showOperationForm && (
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          {/* Inline Operation Form */}
+          {showOperationForm && (
+            <div className="mt-6 mb-6 bg-white rounded-lg shadow-md p-6 border border-gray-200">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-medium text-gray-800">
-                  {selectedOperation ? 'Edit' : 'Add'} Operation for{' '}
-                  {selectedPatient['PATIENT NAME'] || selectedPatient.name || 'Patient'}
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {selectedOperation ? 'Edit Operation' : 'New Operation'}
                 </h2>
                 <button
-                  onClick={() => setShowOperationForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  onClick={() => {
+                    setShowOperationForm(false)
+                    setSelectedOperation(null)
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
                     <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
                 </button>
               </div>
-              <OperationForm
-                patient={{
-                  patientId: String(selectedPatient?.['PATIENT ID'] || ''),
-                  name: String(selectedPatient?.['PATIENT NAME'] || selectedPatient?.name || ''),
-                  guardianName: String(selectedPatient?.['GUARDIAN NAME'] || ''),
-                  phone: String(selectedPatient?.['PHONE NUMBER'] || selectedPatient?.phone || ''),
-                  age: selectedPatient?.AGE || '',
-                  gender: String(selectedPatient?.GENDER || ''),
-                  address: String(selectedPatient?.ADDRESS || '')
-                }}
-                operation={selectedOperation}
-                onSave={handleOperationSave}
-                onCancel={() => {
-                  setShowOperationForm(false)
-                  setSelectedOperation(null)
-                }}
-              />
+
+              {selectedPatient && (
+                <OperationForm
+                  patient={convertToFormPatient(selectedPatient)}
+                  operation={selectedOperation}
+                  onSave={handleOperationSave}
+                  onCancel={() => {
+                    setShowOperationForm(false)
+                    setSelectedOperation(null)
+                  }}
+                />
+              )}
+
+              {!selectedPatient && (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-4">
+                    Please select a patient first to add an operation.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowOperationForm(false)
+                      setSelectedOperation(null)
+                    }}
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
             </div>
           )}
-
           {/* All Operations Records Section */}
           <div className="bg-white p-6  rounded-lg shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-6">
@@ -1055,26 +1096,8 @@ const Operations: React.FC = () => {
                 </svg>
                 <p className="text-gray-600 text-lg mb-2">No operations found</p>
                 <p className="text-gray-500 mb-6">
-                  Click the &quot;New Entry&quot; button to create your first operation record
+                  Search for the &quot;Patient&quot; to add new operation record
                 </p>
-                <button
-                  onClick={() => setShowOperationForm(true)}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-1.5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  New Entry
-                </button>
               </div>
             ) : (
               !loading && (
@@ -1088,72 +1111,6 @@ const Operations: React.FC = () => {
           </div>
         </div>
       </main>
-
-      {/* Operation Form Modal */}
-      {showOperationForm && (
-        <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {selectedOperation ? 'Edit Operation' : 'New Operation'}
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowOperationForm(false)
-                    setSelectedOperation(null)
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              {selectedPatient && (
-                <OperationForm
-                  patient={convertToFormPatient(selectedPatient)}
-                  operation={selectedOperation}
-                  onSave={handleOperationSave}
-                  onCancel={() => {
-                    setShowOperationForm(false)
-                    setSelectedOperation(null)
-                  }}
-                />
-              )}
-
-              {!selectedPatient && (
-                <div className="text-center py-8">
-                  <p className="text-gray-600 mb-4">
-                    Please select a patient first to add an operation.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setShowOperationForm(false)
-                      setSelectedOperation(null)
-                    }}
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
-                  >
-                    Close
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -39,6 +39,7 @@ interface BillingReceiptProps {
   patientData: PatientData
   diagnosis?: string
   operationProcedure?: string
+  billNumber?: string
   operationDetails?: string
   billingItems?: BillingItem[]
   billingData?: BillingData
@@ -49,6 +50,7 @@ export default function BillingReceipt({
   patientData,
   diagnosis = '',
   operationProcedure = '',
+  billNumber = '',
   operationDetails = '',
   billingItems = [],
   billingData,
@@ -125,6 +127,10 @@ export default function BillingReceipt({
           <h3 className="text-xs font-bold mb-3">PATIENT INFORMATION</h3>
           {/* grid-based layout */}
           <div className="text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
+            <div>
+              <div className="font-bold">BILL NO</div>
+              <div>{billNumber}</div>
+            </div>
             {/* Patient ID */}
             <div>
               <div className="font-bold">PATIENT ID</div>
@@ -247,7 +253,7 @@ export default function BillingReceipt({
               ))}
 
               {/* Empty rows for additional items */}
-              {Array.from({ length: Math.max(0, 5 - billingItems.length) }).map((_, index) => (
+              {Array.from({ length: Math.max(0, 4 - billingItems.length) }).map((_, index) => (
                 <tr key={`empty-${index}`}>
                   <td className="border border-[#000000] p-2 h-8"></td>
                   <td className="border border-[#000000] p-2 h-8"></td>
@@ -332,7 +338,7 @@ export default function BillingReceipt({
           </div>
 
           {/* Bottom Disclaimer */}
-          <div className="border-t border-[#000000] pt-2 text-center text-[9px] text-[#000000]">
+          <div className="border-t border-[#000000] pt-2 text-center mt-2 text-[9px] text-[#000000]">
             <div className="flex justify-between items-center">
               <span>
                 This is a computer generated receipt. Please preserve this for your records.

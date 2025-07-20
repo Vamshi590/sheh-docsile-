@@ -44,7 +44,7 @@ const MedicineTable: React.FC<MedicineTableProps> = ({
     const expiry = new Date(expiryDate)
     const diffTime = expiry.getTime() - today.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays <= 30 && diffDays > 0
+    return diffDays <= 90 && diffDays > 0
   }
 
   // Function to check if medicine is expired

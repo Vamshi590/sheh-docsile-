@@ -1765,8 +1765,26 @@ ipcMain.handle('getPatientOperations', async (_, patientId) => {
 // Add a new operation
 ipcMain.handle('addOperation', async (_, operation) => {
   try {
-    // Generate a unique ID for the operation
+    // Generate a unique ID for the operation and bill number if not provided
     const operationWithId = { ...operation, id: uuidv4() }
+
+    // Generate bill number if not provided
+    if (!operationWithId.billNumber) {
+      try {
+        // Get the count of existing operations to generate bill number
+        const { count } = await supabase.from('operations').select('id', { count: 'exact' })
+
+        // Generate bill number in format 'O' followed by 4 digits
+        const nextNumber = (count || 0) + 1
+        operationWithId.billNumber = `O${String(nextNumber).padStart(4, '0')}`
+        console.log('Generated bill number:', operationWithId.billNumber)
+      } catch (error) {
+        console.error('Error generating bill number:', error)
+        // Fallback to a timestamp-based bill number if count fails
+        const timestamp = new Date().getTime() % 10000
+        operationWithId.billNumber = `O${String(timestamp).padStart(4, '0')}`
+      }
+    }
 
     // Insert operation into Supabase
     try {
@@ -1841,11 +1859,39 @@ ipcMain.handle('addOperation', async (_, operation) => {
 // Update an existing operation
 ipcMain.handle('updateOperation', async (_, id, updatedOperation) => {
   try {
+    // Ensure we don't overwrite the bill number or createdBy fields
+    const operationToUpdate = { ...updatedOperation }
+
+    // If billNumber is empty, we should preserve the existing one
+    if (!operationToUpdate.billNumber) {
+      try {
+        const { data: existingOperation, error: fetchError } = await supabase
+          .from('operations')
+          .select('billNumber, createdBy')
+          .eq('id', id)
+          .single()
+
+        if (!fetchError && existingOperation) {
+          // Preserve the existing bill number
+          if (existingOperation.billNumber) {
+            operationToUpdate.billNumber = existingOperation.billNumber
+          }
+
+          // Preserve the createdBy field
+          if (existingOperation.createdBy) {
+            operationToUpdate.createdBy = existingOperation.createdBy
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching existing operation data:', error)
+      }
+    }
+
     // Update operation in Supabase first
     try {
       const { data, error } = await supabase
         .from('operations')
-        .update({ ...updatedOperation })
+        .update({ ...operationToUpdate })
         .eq('id', id)
         .select()
 
@@ -4999,7 +5045,10 @@ ipcMain.handle('addDropdownOption', async (_, fieldName: string, newValue: strin
       'presentComplainOptions',
       'previousHistoryOptions',
       'othersOptions',
-      'others1Options'
+      'others1Options',
+      'operationDetailsOptions',
+      'operationProcedureOptions',
+      'provisionDiagnosisOptions'
     ]
     if (!validFields.includes(fieldName)) {
       return { success: false, error: 'Invalid field name' }
@@ -5058,7 +5107,10 @@ ipcMain.handle('getDropdownOptions', async (_, fieldName: string) => {
       'presentComplainOptions',
       'previousHistoryOptions',
       'othersOptions',
-      'others1Options'
+      'others1Options',
+      'operationDetailsOptions',
+      'operationProcedureOptions',
+      'provisionDiagnosisOptions'
     ]
     if (!validFields.includes(fieldName)) {
       return { success: false, error: 'Invalid field name' }

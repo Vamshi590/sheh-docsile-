@@ -301,6 +301,11 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     'PDE-LE-OPTIC BLOOD VESSELS': '',
     'PDE-LE-PR': '',
 
+    'CREATED BY': '',
+    'UPDATED BY': '',
+    'CREATED AT': '',
+    'UPDATED AT': '',
+
     // Add patient information if a patient is selected
     ...(selectedPatient
       ? {
@@ -327,6 +332,10 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     useState<string[]>(paymentModeOptions)
   const paymentModeRef = useRef<HTMLDivElement>(null)
 
+  const getCurrentUser = (): string => {
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}')
+    return user.fullName || user.username || 'Unknown User'
+  }
   // // Doctor information autocomplete states
   // const [showDoctorDropdown, setShowDoctorDropdown] = useState(false)
   // const [filteredDoctorOptions, setFilteredDoctorOptions] = useState<string[]>(doctorOptions)
@@ -506,7 +515,11 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
       MODE: formData.MODE || 'Cash',
       'DOCTOR NAME': selectedPatient?.doctorName || 'Dr. Srilatha ch',
       DEPARTMENT: selectedPatient?.department || 'Opthalmology',
-      'REFFERED BY': selectedPatient?.referredBy || 'Self'
+      'REFFERED BY': selectedPatient?.referredBy || 'Self',
+      'CREATED BY': getCurrentUser(),
+      'UPDATED BY': '',
+      'CREATED AT': new Date().toISOString(),
+      'UPDATED AT': ''
     }
 
     console.log('Submitting form with final data:', submissionData)

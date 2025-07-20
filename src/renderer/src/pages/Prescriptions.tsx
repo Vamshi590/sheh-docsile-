@@ -79,6 +79,10 @@ const Prescriptions: React.FC = () => {
     loadPatients()
   }, [])
 
+  const getCurrentUser = (): string => {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}')
+    return currentUser.fullName || currentUser.username || 'Unknown User'
+  }
   // Function to add a toast notification
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success'): void => {
     const id = Math.random().toString(36).substring(2, 9)
@@ -527,6 +531,11 @@ const Prescriptions: React.FC = () => {
     try {
       setLoading(true)
       const id = prescription.id
+      prescription = {
+        ...prescription,
+        'UPDATED BY': getCurrentUser(),
+        'UPDATED AT': new Date().toISOString()
+      }
       const updatedPrescription = await window.api.updatePrescription(id, prescription)
       setPrescriptions(prescriptions.map((p) => (p.id === id ? updatedPrescription : p)))
       setIsModalOpen(false)
@@ -548,6 +557,11 @@ const Prescriptions: React.FC = () => {
     try {
       setLoading(true)
       const id = eyeReading.id
+      eyeReading = {
+        ...eyeReading,
+        'UPDATED BY': getCurrentUser(),
+        'UPDATED AT': new Date().toISOString()
+      }
       const updatedEyeReading = await window.api.updatePrescription(id, eyeReading)
       setPrescriptions(prescriptions.map((p) => (p.id === id ? updatedEyeReading : p)))
 

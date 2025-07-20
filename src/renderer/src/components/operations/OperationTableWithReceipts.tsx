@@ -1,7 +1,18 @@
-import React, { useState, useRef } from 'react'
-import { jsPDF } from 'jspdf'
+import React, { useState, useRef, useEffect } from 'react'
 import html2canvas from 'html2canvas'
+import { PDFDocument } from 'pdf-lib'
+import { saveAs } from 'file-saver'
 import ReceiptViewer from '../reports/ReceiptViewer'
+
+// Define Prescription interface to match the expected structure
+interface Prescription {
+  id: string
+  patientId?: string // Make patientId optional to match actual data structure
+  date?: string
+  patientName?: string
+  doctorName?: string
+  [key: string]: unknown // Use unknown instead of any for better type safety
+}
 
 // Operation type – keep flexible with index signature so extra props don\'t break TS
 export interface Operation {
@@ -25,6 +36,7 @@ export interface Operation {
   operatedBy?: string
   totalAmount?: number
   reviewOn?: string
+  prescriptionData?: string
   [key: string]: unknown
 }
 
@@ -40,8 +52,12 @@ const OperationTableWithReceipts: React.FC<OperationTableWithReceiptsProps> = ({
   onDeleteOperation
 }) => {
   const [selectedOperation, setSelectedOperation] = useState<Operation | null>(null)
-  // single receipt type for operations
-  const receiptRef = useRef<HTMLDivElement>(null)
+  const [relatedPrescription, setRelatedPrescription] = useState<Prescription | null>(null)
+
+  // Refs for both receipts
+  const operationReceiptRef = useRef<HTMLDivElement>(null)
+  const prescriptionReceiptRef = useRef<HTMLDivElement>(null)
+
   console.log(operations)
   console.log('selectedOperation', selectedOperation)
 
@@ -54,87 +70,314 @@ const OperationTableWithReceipts: React.FC<OperationTableWithReceiptsProps> = ({
     }
   }
 
-  // --- Print helper (re-used from prescriptions) ---
-  const generatePdf = async (): Promise<Blob | null> => {
-    if (!receiptRef.current) return null
+  // Effect to fetch related prescription when operation is selected
+  useEffect(() => {
+    if (!selectedOperation) {
+      setRelatedPrescription(null)
+      return
+    }
 
-    const tempStyle = document.createElement('style')
-    tempStyle.setAttribute('data-temp-style', 'true')
-    tempStyle.innerHTML = `*{color:black!important;background:white!important;border-color:black!important}`
-    document.head.appendChild(tempStyle)
-
-    try {
-      const canvas = await html2canvas(receiptRef.current, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-      })
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-      const imgData = canvas.toDataURL('image/png')
-      const pageWidth = 210
-      const pageHeight = 297
-      const margin = 5
-      // pick best scaling option
-      const availW = pageWidth - margin
-      const availH = pageHeight - margin
-      const wFitH = (canvas.height * availW) / canvas.width
-      const hFitW = (canvas.width * availH) / canvas.height
-      const useHeight = availW * wFitH < hFitW * availH // choose larger area
-      if (useHeight) {
-        const imgW = hFitW
-        const imgH = availH
-        pdf.addImage(imgData, 'PNG', (pageWidth - imgW) / 2, margin / 2, imgW, imgH)
-      } else {
-        const imgW = availW
-        const imgH = wFitH
-        pdf.addImage(imgData, 'PNG', margin / 2, margin / 2, imgW, imgH)
+    // If operation has prescription data, use it directly
+    if (selectedOperation.prescriptionData) {
+      try {
+        console.log('selectedOperation.prescriptionData', selectedOperation.prescriptionData)
+        // Parse the JSON string to get the prescription object
+        const parsedPrescription = JSON.parse(selectedOperation.prescriptionData as string)
+        setRelatedPrescription(parsedPrescription)
+      } catch (error) {
+        console.error('Error parsing prescription data:', error)
+        setRelatedPrescription(null)
       }
-      return pdf.output('blob')
-    } finally {
-      const style = document.querySelector('style[data-temp-style="true"]')
-      if (style) document.head.removeChild(style)
+    } else {
+      setRelatedPrescription(null)
+    }
+  }, [selectedOperation])
+
+  // Helper function to clean OKLCH colors
+  const stripOKLCH = (root: HTMLElement): void => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
+    while (walker.nextNode()) {
+      const el = walker.currentNode as HTMLElement
+      const inline = el.getAttribute('style')
+      if (inline && inline.includes('oklch')) {
+        el.setAttribute('style', inline.replace(/oklch\([^)]*\)/g, '#000'))
+      }
+      const styles = window.getComputedStyle(el)
+      ;['color', 'backgroundColor', 'borderColor'].forEach((prop) => {
+        const val = styles.getPropertyValue(prop)
+        if (val && val.includes('oklch')) {
+          el.style.setProperty(prop, '#000')
+        }
+      })
     }
   }
 
+  // Handle print button click with proper preview
   const handlePrint = async (): Promise<void> => {
     if (!selectedOperation) {
       alert('Please select an operation first')
       return
     }
-    const blob = await generatePdf()
-    if (!blob) return
-    const url = URL.createObjectURL(blob)
-    const win = window.open(url)
-    if (win) {
-      win.onload = () => setTimeout(() => win.print(), 500)
-    }
-  }
-
-  const handleWhatsAppShare = async (): Promise<void> => {
-    if (!selectedOperation) return
-    const phoneNumber = '' // No phone number on operation – adapt if available
-    if (!phoneNumber) {
-      alert('No phone number available for this patient')
-      return
-    }
-    const blob = await generatePdf()
-    if (!blob) return
-    const file = new File([blob], `operation-receipt-${selectedOperation.id}.pdf`, {
-      type: 'application/pdf'
-    })
-    const message = `Operation receipt for ${selectedOperation.patientName}`
-
-    if (navigator.share && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: 'Operation Receipt', text: message })
+    try {
+      const receiptEl = operationReceiptRef.current
+      if (!receiptEl) {
+        alert('Receipt element not found')
         return
-      } catch (err) {
-        console.error('Error sharing via Web Share API:', err)
       }
+      // Clone and clean oklch colors
+      const clone = receiptEl.cloneNode(true) as HTMLElement
+      stripOKLCH(clone)
+      clone.style.width = '794px'
+      clone.style.height = '1123px'
+      clone.style.backgroundColor = '#ffffff'
+      document.body.appendChild(clone)
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true
+      })
+      document.body.removeChild(clone)
+      const imgData = canvas.toDataURL('image/png')
+
+      // Create PDF with A4 dimensions (points)
+      const pdfDoc = await PDFDocument.create()
+      const PAGE_WIDTH = 595.28
+      const PAGE_HEIGHT = 841.89
+      const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+      const pngImage = await pdfDoc.embedPng(imgData)
+
+      // Scale the image so it always fits inside the page while preserving aspect ratio
+      const imgWidth = pngImage.width
+      const imgHeight = pngImage.height
+      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
+      const drawWidth = imgWidth * scale
+      const drawHeight = imgHeight * scale
+      const x = (PAGE_WIDTH - drawWidth) / 2
+      const y = (PAGE_HEIGHT - drawHeight) / 2
+
+      page.drawImage(pngImage, {
+        x,
+        y,
+        width: drawWidth,
+        height: drawHeight
+      })
+
+      // If prescription exists, add it as second page
+      if (prescriptionReceiptRef.current && relatedPrescription) {
+        const prescriptionClone = prescriptionReceiptRef.current.cloneNode(true) as HTMLElement
+        stripOKLCH(prescriptionClone)
+        prescriptionClone.style.width = '794px'
+        prescriptionClone.style.height = '1123px'
+        prescriptionClone.style.backgroundColor = '#ffffff'
+        document.body.appendChild(prescriptionClone)
+
+        const prescriptionCanvas = await html2canvas(prescriptionClone, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true
+        })
+        document.body.removeChild(prescriptionClone)
+        const prescriptionImgData = prescriptionCanvas.toDataURL('image/png')
+
+        const prescriptionPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+        const prescriptionPngImage = await pdfDoc.embedPng(prescriptionImgData)
+
+        const prescriptionImgWidth = prescriptionPngImage.width
+        const prescriptionImgHeight = prescriptionPngImage.height
+        const prescriptionScale = Math.min(
+          PAGE_WIDTH / prescriptionImgWidth,
+          PAGE_HEIGHT / prescriptionImgHeight
+        )
+        const prescriptionDrawWidth = prescriptionImgWidth * prescriptionScale
+        const prescriptionDrawHeight = prescriptionImgHeight * prescriptionScale
+        const prescriptionX = (PAGE_WIDTH - prescriptionDrawWidth) / 2
+        const prescriptionY = (PAGE_HEIGHT - prescriptionDrawHeight) / 2
+
+        prescriptionPage.drawImage(prescriptionPngImage, {
+          x: prescriptionX,
+          y: prescriptionY,
+          width: prescriptionDrawWidth,
+          height: prescriptionDrawHeight
+        })
+      }
+
+      const pdfBytes = await pdfDoc.save()
+
+      // Use Electron's IPC to open the PDF in a native window
+      // This is the Electron-specific approach that works better than browser blob URLs
+      const result = await window.api.openPdfInWindow(pdfBytes)
+
+      if (!result.success) {
+        console.error('Failed to open PDF in window:', result.error)
+        alert('Failed to open PDF preview. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error generating PDF for preview:', error)
+      alert('Failed to generate PDF preview. Please try again.')
     }
-    const encoded = encodeURIComponent(message)
-    window.open(`https://wa.me/${phoneNumber}?text=${encoded}`, '_blank')
   }
+
+  const sendWhatsAppMessage = async (): Promise<void> => {
+    try {
+      const receiptEl = operationReceiptRef.current
+      if (!receiptEl) {
+        alert('Receipt element not found')
+        return
+      }
+      // Clone and clean oklch colors
+      const clone = receiptEl.cloneNode(true) as HTMLElement
+      stripOKLCH(clone)
+      clone.style.width = '794px'
+      clone.style.height = '1123px'
+      clone.style.backgroundColor = '#ffffff'
+      document.body.appendChild(clone)
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true
+      })
+      document.body.removeChild(clone)
+      const imgData = canvas.toDataURL('image/png')
+
+      // Create PDF with A4 dimensions (points)
+      const pdfDoc = await PDFDocument.create()
+      const PAGE_WIDTH = 595.28
+      const PAGE_HEIGHT = 841.89
+      const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+      const pngImage = await pdfDoc.embedPng(imgData)
+
+      // Scale the image so it always fits inside the page while preserving aspect ratio
+      const imgWidth = pngImage.width
+      const imgHeight = pngImage.height
+      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
+      const drawWidth = imgWidth * scale
+      const drawHeight = imgHeight * scale
+      const x = (PAGE_WIDTH - drawWidth) / 2
+      const y = (PAGE_HEIGHT - drawHeight) / 2
+
+      page.drawImage(pngImage, {
+        x,
+        y,
+        width: drawWidth,
+        height: drawHeight
+      })
+
+      // If prescription exists, add it as second page
+      if (prescriptionReceiptRef.current && relatedPrescription) {
+        const prescriptionClone = prescriptionReceiptRef.current.cloneNode(true) as HTMLElement
+        stripOKLCH(prescriptionClone)
+        prescriptionClone.style.width = '794px'
+        prescriptionClone.style.height = '1123px'
+        prescriptionClone.style.backgroundColor = '#ffffff'
+        document.body.appendChild(prescriptionClone)
+
+        const prescriptionCanvas = await html2canvas(prescriptionClone, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true
+        })
+        document.body.removeChild(prescriptionClone)
+        const prescriptionImgData = prescriptionCanvas.toDataURL('image/png')
+
+        const prescriptionPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+        const prescriptionPngImage = await pdfDoc.embedPng(prescriptionImgData)
+
+        const prescriptionImgWidth = prescriptionPngImage.width
+        const prescriptionImgHeight = prescriptionPngImage.height
+        const prescriptionScale = Math.min(
+          PAGE_WIDTH / prescriptionImgWidth,
+          PAGE_HEIGHT / prescriptionImgHeight
+        )
+        const prescriptionDrawWidth = prescriptionImgWidth * prescriptionScale
+        const prescriptionDrawHeight = prescriptionImgHeight * prescriptionScale
+        const prescriptionX = (PAGE_WIDTH - prescriptionDrawWidth) / 2
+        const prescriptionY = (PAGE_HEIGHT - prescriptionDrawHeight) / 2
+
+        prescriptionPage.drawImage(prescriptionPngImage, {
+          x: prescriptionX,
+          y: prescriptionY,
+          width: prescriptionDrawWidth,
+          height: prescriptionDrawHeight
+        })
+      }
+
+      const pdfBytes = await pdfDoc.save()
+
+      // Save locally so the user can attach it in WhatsApp
+      // Build filename as patientNAME_date.pdf  (e.g., John_Doe_2025-07-16.pdf)
+      const dateStr = new Date().toISOString().slice(0, 19)
+
+      // Extract patient name directly from the operation data
+      let patientName = ''
+      if (selectedOperation?.patientName) {
+        patientName = String(selectedOperation.patientName).trim().replace(/\s+/g, '_')
+      } else if (selectedOperation?.['PATIENT NAME']) {
+        patientName = String(selectedOperation['PATIENT NAME']).trim().replace(/\s+/g, '_')
+      } else {
+        // Try to find it in the DOM as fallback
+        const patientNameDiv = receiptEl.querySelector(
+          'div:has(> div.font-bold:contains("PATIENT NAME")) > div:last-child'
+        ) as HTMLElement | null
+        if (patientNameDiv?.textContent) {
+          patientName = patientNameDiv.textContent.trim().replace(/\s+/g, '_')
+        } else {
+          patientName = 'Receipt' // Last resort fallback
+        }
+      }
+
+      const fileName = `${patientName}_operation_${dateStr}.pdf`
+
+      // Attempt silent save if Node fs API is available (Electron renderer with contextIsolation disabled)
+      let savedSilently = false
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const _require = (window as any).require
+        if (typeof _require === 'function') {
+          const fs = _require('fs') as typeof import('fs')
+          const path = _require('path') as typeof import('path')
+          const os = _require('os') as typeof import('os')
+          // Save to Desktop instead of Downloads
+          const dest = path.join(os.homedir(), 'Desktop', fileName)
+          fs.writeFileSync(dest, Buffer.from(pdfBytes), { encoding: 'binary' })
+          savedSilently = true
+          console.log(`File saved to: ${dest}`)
+        }
+      } catch (err) {
+        console.error('Failed to save file silently:', err)
+      }
+
+      if (!savedSilently) {
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+        saveAs(blob, fileName)
+      }
+
+      // Small delay to ensure file is saved before opening WhatsApp
+      await new Promise((resolve) => setTimeout(resolve, 4500))
+
+      // Build patient phone
+      let patientPhone = String(
+        selectedOperation?.['PHONE NUMBER'] || selectedOperation?.phone || ''
+      ).replace(/\D/g, '')
+      patientPhone = `91${patientPhone}`
+
+      // Create appropriate message for operation
+      const whatsAppMessage = `Dear ${patientName.replace(/_/g, ' ')}, here is your operation receipt from Sri Harsha Eye Hospital.`
+
+      // Encode the message for URL
+      const encodedMessage = encodeURIComponent(whatsAppMessage)
+
+      // Open WhatsApp in system app with chat to patient number and pre-filled message
+      window.open(`whatsapp://send?phone=${patientPhone}&text=${encodedMessage}`, '_blank')
+    } catch (err) {
+      console.error('Failed to create/send PDF:', err)
+      alert('Failed to share via WhatsApp')
+    }
+  }
+
+  // Alias for the WhatsApp function to maintain compatibility with existing code
+  const handleWhatsAppShare = sendWhatsAppMessage
 
   return (
     <div>
@@ -319,26 +562,44 @@ const OperationTableWithReceipts: React.FC<OperationTableWithReceiptsProps> = ({
         </table>
       </div>
 
-      {/* Receipt Viewer + Actions */}
+      {/* Receipt Viewers + Actions */}
       {selectedOperation && (
-        <div className="bg-white p-4 rounded-lg border border-gray-200" ref={receiptRef}>
-          <ReceiptViewer
-            report={selectedOperation}
-            receiptType="operation"
-            selectedOperation={selectedOperation}
-          />
-          <div className="flex justify-end gap-3 mt-3">
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          {/* Operation Receipt */}
+          <div ref={operationReceiptRef}>
+            <ReceiptViewer
+              report={selectedOperation}
+              receiptType="operation"
+              selectedOperation={selectedOperation}
+            />
+          </div>
+
+          {/* Prescription Receipt (if available) */}
+          {relatedPrescription ? (
+            <div className="mt-8" ref={prescriptionReceiptRef}>
+              <ReceiptViewer report={relatedPrescription} receiptType="prescription" />
+            </div>
+          ) : (
+            <div className="mt-8 p-4 border border-dashed border-gray-300 rounded-md">
+              <p className="text-gray-500 text-center">
+                No related prescription found for this operation
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 mt-6">
             <button
               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md"
               onClick={handlePrint}
             >
-              Print
+              Print {relatedPrescription ? 'Both Receipts' : 'Receipt'}
             </button>
             <button
               className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md"
               onClick={handleWhatsAppShare}
             >
-              WhatsApp
+              WhatsApp {relatedPrescription ? 'Both Receipts' : 'Receipt'}
             </button>
           </div>
         </div>
