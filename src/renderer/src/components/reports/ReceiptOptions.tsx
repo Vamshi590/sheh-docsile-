@@ -179,45 +179,100 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
     setShowOperationsModal(false)
   }
 
-  // Handle print action – render receipt in off-screen iframe to avoid about/blob prompts and preserve preview
-  const handlePrint = (): void => {
-    const receiptEl = document.querySelector('[id^="receipt-"]') as HTMLElement | null
-    if (!receiptEl) {
-      console.error('Receipt element not found for printing')
-      return
-    }
+  // Handle print button click with proper preview
+  const handlePrint = async (): Promise<void> => {
+    try {
+      const receiptEl = document.querySelector('[id^="receipt-"]') as HTMLElement | null
+      if (!receiptEl) {
+        alert('Receipt element not found')
+        return
+      }
+      // Clone and clean oklch colors
+      const clone = receiptEl.cloneNode(true) as HTMLElement
+      stripOKLCH(clone)
 
-    // Collect current page <style> and <link> tags so styles are preserved in preview
-    const styleTags = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map((node) => node.outerHTML)
-      .join('\n')
+      // Set exact A4 dimensions and center content
+      clone.style.width = '794px' // A4 width in pixels
+      clone.style.height = '1123px' // A4 height in pixels
+      clone.style.backgroundColor = '#ffffff'
+      clone.style.margin = '0 auto' // Center horizontally
+      clone.style.position = 'relative' // Ensure proper positioning
+      clone.style.transform = 'none' // Remove any transforms that might cause tilting
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">${styleTags}<style>@media print{body{margin:0}}</style></head><body>${receiptEl.outerHTML}</body></html>`
+      // Create a container with proper centering and alignment
+      const container = document.createElement('div')
+      container.style.position = 'absolute'
+      container.style.top = '0'
+      container.style.left = '0'
+      container.style.width = '100%'
+      container.style.height = '100%'
+      container.style.display = 'flex'
+      container.style.justifyContent = 'center'
+      container.style.alignItems = 'center'
+      container.style.backgroundColor = '#ffffff'
+      container.style.padding = '0'
+      container.style.margin = '0'
+      container.style.overflow = 'hidden'
+      container.style.zIndex = '-9999' // Hide from view
 
-    const iframe = document.createElement('iframe')
-    iframe.style.position = 'fixed'
-    iframe.style.right = '0'
-    iframe.style.bottom = '0'
-    iframe.style.width = '0'
-    iframe.style.height = '0'
-    iframe.style.border = '0'
-    document.body.appendChild(iframe)
+      // Add the clone to the container
+      container.appendChild(clone)
+      document.body.appendChild(container)
 
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
-    if (!iframeDoc) {
-      console.error('Unable to access iframe document for printing')
-      return
-    }
-    iframeDoc.open()
-    iframeDoc.write(html)
-    iframeDoc.close()
+      // Use html2canvas with improved settings
+      const canvas = await html2canvas(clone, {
+        scale: 2, // Higher scale for better quality
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        imageTimeout: 0,
+        removeContainer: false // We'll handle removal ourselves
+      })
 
-    iframe.onload = (): void => {
-      iframe.contentWindow?.focus()
-      iframe.contentWindow?.print()
-      setTimeout(() => {
-        document.body.removeChild(iframe)
-      }, 1000)
+      // Clean up the DOM
+      document.body.removeChild(container)
+
+      const imgData = canvas.toDataURL('image/png')
+
+      // Create PDF with A4 dimensions (points)
+      const pdfDoc = await PDFDocument.create()
+      const PAGE_WIDTH = 595.28
+      const PAGE_HEIGHT = 841.89
+      const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+      const pngImage = await pdfDoc.embedPng(imgData)
+
+      // Calculate dimensions to perfectly center the image
+      const imgWidth = pngImage.width
+      const imgHeight = pngImage.height
+      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight) * 0.98 // 98% of max size for small margin
+      const drawWidth = imgWidth * scale
+      const drawHeight = imgHeight * scale
+
+      // Precisely center the image on the page
+      const x = (PAGE_WIDTH - drawWidth) / 2
+      const y = (PAGE_HEIGHT - drawHeight) / 2
+
+      // Draw the image with exact positioning
+      page.drawImage(pngImage, {
+        x,
+        y,
+        width: drawWidth,
+        height: drawHeight
+      })
+
+      const pdfBytes = await pdfDoc.save()
+
+      // Use Electron's IPC to open the PDF in a native window
+      const result = await window.api.openPdfInWindow(pdfBytes)
+
+      if (!result.success) {
+        console.error('Failed to open PDF in window:', result.error)
+        alert('Failed to open PDF preview. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error generating PDF for preview:', error)
+      alert('Failed to generate PDF preview. Please try again.')
     }
   }
 
@@ -225,8 +280,6 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
   const handleWhatsAppShare = (): void => {
     setShowWhatsAppModal(true)
   }
-
-  // Send WhatsApp message – generate PDF and open WhatsApp Web
 
   // Helper to strip unsupported oklch() colors -> fallback #000
   const stripOKLCH = (root: HTMLElement): void => {
@@ -257,17 +310,49 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
       // Clone and clean oklch colors
       const clone = receiptEl.cloneNode(true) as HTMLElement
       stripOKLCH(clone)
-      clone.style.width = '794px'
-      clone.style.height = '1123px'
-      clone.style.backgroundColor = '#ffffff'
-      document.body.appendChild(clone)
 
+      // Set exact A4 dimensions and center content
+      clone.style.width = '794px' // A4 width in pixels
+      clone.style.height = '1123px' // A4 height in pixels
+      clone.style.backgroundColor = '#ffffff'
+      clone.style.margin = '0 auto' // Center horizontally
+      clone.style.position = 'relative' // Ensure proper positioning
+      clone.style.transform = 'none' // Remove any transforms that might cause tilting
+
+      // Create a container with proper centering and alignment
+      const container = document.createElement('div')
+      container.style.position = 'absolute'
+      container.style.top = '0'
+      container.style.left = '0'
+      container.style.width = '100%'
+      container.style.height = '100%'
+      container.style.display = 'flex'
+      container.style.justifyContent = 'center'
+      container.style.alignItems = 'center'
+      container.style.backgroundColor = '#ffffff'
+      container.style.padding = '0'
+      container.style.margin = '0'
+      container.style.overflow = 'hidden'
+      container.style.zIndex = '-9999' // Hide from view
+
+      // Add the clone to the container
+      container.appendChild(clone)
+      document.body.appendChild(container)
+
+      // Use html2canvas with improved settings
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: 2, // Higher scale for better quality
         backgroundColor: '#ffffff',
-        useCORS: true
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        imageTimeout: 0,
+        removeContainer: false // We'll handle removal ourselves
       })
-      document.body.removeChild(clone)
+
+      // Clean up the DOM
+      document.body.removeChild(container)
+
       const imgData = canvas.toDataURL('image/png')
 
       // Create PDF with A4 dimensions (points)
@@ -277,32 +362,37 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
       const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
       const pngImage = await pdfDoc.embedPng(imgData)
 
-      // Scale the image so it always fits inside the page while preserving aspect ratio
+      // Calculate dimensions to perfectly center the image
       const imgWidth = pngImage.width
       const imgHeight = pngImage.height
-      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
+      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight) * 0.98 // 98% of max size for small margin
       const drawWidth = imgWidth * scale
       const drawHeight = imgHeight * scale
+
+      // Precisely center the image on the page
       const x = (PAGE_WIDTH - drawWidth) / 2
       const y = (PAGE_HEIGHT - drawHeight) / 2
 
+      // Draw the image with exact positioning
       page.drawImage(pngImage, {
         x,
         y,
         width: drawWidth,
         height: drawHeight
       })
+
       const pdfBytes = await pdfDoc.save()
 
-      // Save locally so the user can attach it in WhatsApp Web
       // Build filename as patientNAME_date.pdf  (e.g., John_Doe_2025-07-16.pdf)
-      const dateStr = new Date().toISOString().slice(0, 10)
-      let patientName = 'Receipt'
+      const dateStr = new Date().toISOString().slice(0, 19)
+      // Get patient name from receipt element or use default
+      let patientNameValue = 'Receipt'
       const nameNode = receiptEl.querySelector('[data-patient-name]') as HTMLElement | null
       if (nameNode?.textContent) {
-        patientName = nameNode.textContent.trim().replace(/\s+/g, '_')
+        patientNameValue = nameNode.textContent.trim()
       }
-      const fileName = `${patientName}_${dateStr}.pdf`
+      patientNameValue = patientNameValue.replace(/\s+/g, '_')
+      const fileName = `${patientNameValue}_${reportType}_${dateStr}.pdf`
 
       // Attempt silent save if Node fs API is available (Electron renderer with contextIsolation disabled)
       let savedSilently = false
@@ -313,12 +403,14 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
           const fs = _require('fs') as typeof import('fs')
           const path = _require('path') as typeof import('path')
           const os = _require('os') as typeof import('os')
-          const dest = path.join(os.homedir(), 'Downloads', fileName)
+          // Save to Desktop instead of Downloads
+          const dest = path.join(os.homedir(), 'Desktop', fileName)
           fs.writeFileSync(dest, Buffer.from(pdfBytes), { encoding: 'binary' })
           savedSilently = true
+          console.log(`File saved to: ${dest}`)
         }
-      } catch {
-        /* ignore */
+      } catch (err) {
+        console.error('Failed to save file silently:', err)
       }
 
       if (!savedSilently) {
@@ -326,8 +418,24 @@ const ReceiptOptions: React.FC<ReceiptOptionsProps> = ({
         saveAs(blob, fileName)
       }
 
-      // Open WhatsApp Web (user can then attach the just-saved file)
-      window.open('https://web.whatsapp.com/', '_blank')
+      // Small delay to ensure file is saved before opening WhatsApp
+      await new Promise((resolve) => setTimeout(resolve, 4500))
+
+      // Build patient phone
+      let patientPhone = phoneNumber.replace(/\D/g, '')
+      if (!patientPhone.startsWith('91')) {
+        patientPhone = `91${patientPhone}`
+      }
+
+      // Create appropriate message based on receipt type
+      const whatsAppMessage =
+        message || `Dear ${patientNameValue.replace(/_/g, ' ')}, here is your receipt.`
+
+      // Encode the message for URL
+      const encodedMessage = encodeURIComponent(whatsAppMessage)
+
+      // Open WhatsApp in system app with chat to patient number and pre-filled message
+      window.open(`whatsapp://send?phone=${patientPhone}&text=${encodedMessage}`, '_blank')
 
       setShowWhatsAppModal(false)
     } catch (err) {

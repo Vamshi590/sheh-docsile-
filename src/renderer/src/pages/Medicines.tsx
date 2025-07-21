@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import MedicineForm from '../components/medicines/MedicineForm'
 import MedicineTable from '../components/medicines/MedicineTable'
 import MedicineEditModal from '../components/medicines/MedicineEditModal'
-import MedicineDispenseModal from '../components/medicines/MedicineDispenseModal'
 import MedicineDispenseHistory from '../components/medicines/MedicineDispenseHistory'
 import MedicalReceipt from '../components/reciepts/MedicalReceipt'
+import MedicalNon from '../components/reciepts/MedicalNon'
 import html2canvas from 'html2canvas'
 import { PDFDocument } from 'pdf-lib'
 
@@ -63,8 +63,6 @@ const Medicines: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
 
   // Dispensing related state
-  const [dispensingMedicine, setDispensingMedicine] = useState<Medicine | null>(null)
-  const [isDispenseModalOpen, setIsDispenseModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'inventory' | 'dispensing-history'>('inventory')
   const [dispenseRecords, setDispenseRecords] = useState<MedicineDispenseRecord[]>([])
   const [loadingRecords, setLoadingRecords] = useState(false)
@@ -77,11 +75,20 @@ const Medicines: React.FC = () => {
 
   // Dispense form state
   const [showDispenseForm, setShowDispenseForm] = useState(false)
+  const [showDispenseDropdown, setShowDispenseDropdown] = useState(false)
+  const [dispenseType, setDispenseType] = useState<'existing' | 'general'>('existing')
   const [patientId, setPatientId] = useState('')
   const [patientName, setPatientName] = useState('')
   const [dispensedBy, setDispensedBy] = useState('')
   const [selectedMedicines, setSelectedMedicines] = useState<
-    { id: string; name: string; quantity: number; price: number }[]
+    {
+      id: string
+      name: string
+      quantity: number
+      price: number
+      batchNumber?: string
+      expiryDate?: string
+    }[]
   >([])
   const [totalAmount, setTotalAmount] = useState(0)
   const [loadingPatient, setLoadingPatient] = useState(false)
@@ -207,6 +214,7 @@ const Medicines: React.FC = () => {
       setLoading(false)
     }
   }
+  console.log(dispenseType)
 
   // Function to handle deleting a medicine
   const handleDeleteMedicine = async (id: string): Promise<void> => {
@@ -297,12 +305,6 @@ const Medicines: React.FC = () => {
     setIsModalOpen(true)
   }
 
-  // Function to open the dispense modal
-  const openDispenseModal = (medicine: Medicine): void => {
-    setDispensingMedicine(medicine)
-    setIsDispenseModalOpen(true)
-  }
-
   // Function to handle dispensing medicine
   const handleDispenseMedicine = async (medicineData: {
     id: string
@@ -344,8 +346,6 @@ const Medicines: React.FC = () => {
       setError('Failed to dispense medicine')
     } finally {
       setLoading(false)
-      setIsDispenseModalOpen(false)
-      setDispensingMedicine(null)
     }
   }
 
@@ -429,35 +429,76 @@ const Medicines: React.FC = () => {
     calculateTotalAmount()
   }
 
-  // Function to toggle dispense form
-  const toggleDispenseForm = (): void => {
-    if (!showDispenseForm) {
-      try {
-        const currentUserStr = localStorage.getItem('currentUser')
-        if (currentUserStr) {
-          const currentUser = JSON.parse(currentUserStr)
-          setDispensedBy(currentUser.fullName || '')
-        }
-      } catch (err) {
-        console.error('Error loading current user:', err)
-      }
-    }
+  // Function to toggle dispense dropdown
+  const toggleDispenseDropdown = (): void => {
+    setShowDispenseDropdown(!showDispenseDropdown)
 
-    setShowDispenseForm(!showDispenseForm)
-
-    // Reset form when closing
-    if (showDispenseForm) {
-      setPatientId('')
-      setPatientName('')
-      setSelectedMedicines([])
-      setTotalAmount(0)
+    // Close the form if dropdown is closed
+    if (showDispenseForm && !showDispenseDropdown) {
+      setShowDispenseForm(false)
     }
   }
+
+  // Function to handle dispense type selection
+  const handleDispenseTypeSelect = (type: 'existing' | 'general'): void => {
+    setDispenseType(type)
+    setShowDispenseDropdown(false)
+
+    // Reset form fields
+    setPatientId('')
+    setPatientName('')
+    setSelectedMedicines([])
+    setTotalAmount(0)
+
+    try {
+      const currentUserStr = localStorage.getItem('currentUser')
+      if (currentUserStr) {
+        const currentUser = JSON.parse(currentUserStr)
+        setDispensedBy(currentUser.fullName || '')
+      }
+    } catch (err) {
+      console.error('Error loading current user:', err)
+    }
+
+    // Show the form
+    setShowDispenseForm(true)
+  }
+
+  // Function to handle clicks outside the dropdown
+  const handleClickOutside = (event: MouseEvent): void => {
+    const target = event.target as HTMLElement
+    if (!target.closest('.dispense-dropdown-container')) {
+      setShowDispenseDropdown(false)
+    }
+  }
+
+  // Add event listener for clicks outside the dropdown
+  useEffect(() => {
+    if (showDispenseDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showDispenseDropdown])
   // Function to handle save dispense
   const handleSaveDispense = async (shouldPrint = false): Promise<void> => {
     try {
-      if (!patientId || selectedMedicines.length === 0) {
-        alert('Please enter patient ID and add medicines to dispense')
+      // Validate based on dispense type
+      if (dispenseType === 'existing' && !patientId) {
+        alert('Please enter patient ID for existing patient')
+        return
+      }
+
+      if (dispenseType === 'general' && !patientName) {
+        alert('Please enter customer name')
+        return
+      }
+
+      if (selectedMedicines.length === 0) {
+        alert('Please add medicines to dispense')
         return
       }
 
@@ -493,9 +534,19 @@ const Medicines: React.FC = () => {
   // Function to handle print receipt
   const handlePrintReceipt = async (): Promise<void> => {
     try {
-      // Check if we have the necessary data
-      if (!patientId || selectedMedicines.length === 0) {
-        alert('Please enter patient ID and add medicines to dispense')
+      // Check if we have the necessary data based on dispense type
+      if (dispenseType === 'existing' && !patientId) {
+        alert('Please enter patient ID for existing patient')
+        return
+      }
+
+      if (dispenseType === 'general' && !patientName) {
+        alert('Please enter customer name')
+        return
+      }
+
+      if (selectedMedicines.length === 0) {
+        alert('Please add medicines to dispense')
         return
       }
       const receiptEl = medicalReceiptRef.current
@@ -811,10 +862,10 @@ const Medicines: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-center space-x-2">
-                  {/* Dispense Button */}
-                  <div className="ml-2">
+                  {/* Dispense Button with Dropdown */}
+                  <div className="ml-2 relative dispense-dropdown-container">
                     <button
-                      onClick={toggleDispenseForm}
+                      onClick={toggleDispenseDropdown}
                       className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center"
                     >
                       <svg
@@ -827,6 +878,23 @@ const Medicines: React.FC = () => {
                       </svg>
                       Dispense
                     </button>
+                    {/* Dropdown Menu */}
+                    {showDispenseDropdown && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1">
+                        <button
+                          onClick={() => handleDispenseTypeSelect('general')}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          General Customer
+                        </button>
+                        <button
+                          onClick={() => handleDispenseTypeSelect('existing')}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Existing Patient
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex w-full sm:w-auto">
@@ -864,75 +932,123 @@ const Medicines: React.FC = () => {
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Dispense Medicines</h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    {/* Patient ID */}
-                    <div>
-                      <label
-                        htmlFor="patientId"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Patient ID *
-                      </label>
-                      <div className="flex">
-                        <input
-                          type="text"
-                          id="patientId"
-                          value={patientId}
-                          onChange={(e) => setPatientId(e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-grow"
-                          placeholder="Enter patient ID"
-                        />
-                        <button
-                          onClick={handlePatientSearch}
-                          disabled={loadingPatient}
-                          className="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
-                        >
-                          {loadingPatient ? (
-                            <svg
-                              className="animate-spin h-5 w-5"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
+                    {/* Conditional fields based on dispense type */}
+                    {dispenseType === 'existing' ? (
+                      <>
+                        {/* Patient ID - Only for existing patients */}
+                        <div>
+                          <label
+                            htmlFor="patientId"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Patient ID *
+                          </label>
+                          <div className="flex">
+                            <input
+                              type="text"
+                              id="patientId"
+                              value={patientId}
+                              onChange={(e) => setPatientId(e.target.value)}
+                              className="px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-grow"
+                              placeholder="Enter patient ID"
+                            />
+                            <button
+                              onClick={handlePatientSearch}
+                              disabled={loadingPatient}
+                              className="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
                             >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                          ) : (
-                            'Search'
-                          )}
-                        </button>
-                      </div>
-                    </div>
+                              {loadingPatient ? (
+                                <svg
+                                  className="animate-spin h-5 w-5"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
+                                </svg>
+                              ) : (
+                                'Search'
+                              )}
+                            </button>
+                          </div>
+                        </div>
 
-                    {/* Patient Name */}
-                    <div>
-                      <label
-                        htmlFor="patientName"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Patient Name *
-                      </label>
-                      <input
-                        type="text"
-                        id="patientName"
-                        value={patientName}
-                        readOnly
-                        className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
-                        placeholder="Auto-filled after patient search"
-                      />
-                    </div>
+                        {/* Patient Name - Read-only for existing patients */}
+                        <div>
+                          <label
+                            htmlFor="patientName"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Patient Name *
+                          </label>
+                          <input
+                            type="text"
+                            id="patientName"
+                            value={patientName}
+                            readOnly
+                            className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                            placeholder="Auto-filled after patient search"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Customer Name - Editable for general customers */}
+                        <div>
+                          <label
+                            htmlFor="patientName"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Customer Name *
+                          </label>
+                          <input
+                            type="text"
+                            id="patientName"
+                            value={patientName}
+                            onChange={(e) => setPatientName(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                            placeholder="Enter customer name"
+                          />
+                        </div>
 
-                    {/* Dispensed By */}
+                        {/* Doctor Name - For general customers */}
+                        <div>
+                          <label
+                            htmlFor="doctorName"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Doctor Name
+                          </label>
+                          <input
+                            type="text"
+                            id="doctorName"
+                            value={patient['doctorName'] || ''}
+                            onChange={(e) => {
+                              setPatient((prev) => ({
+                                ...prev,
+                                doctorName: e.target.value
+                              }))
+                            }}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                            placeholder="Enter doctor name (optional)"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Dispensed By - For both types */}
                     <div>
                       <label
                         htmlFor="dispensedBy"
@@ -944,8 +1060,9 @@ const Medicines: React.FC = () => {
                         type="text"
                         id="dispensedBy"
                         value={dispensedBy}
-                        readOnly
-                        className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                        onChange={(e) => setDispensedBy(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                        placeholder="Enter dispenser name"
                       />
                     </div>
                   </div>
@@ -1046,15 +1163,15 @@ const Medicines: React.FC = () => {
                       Cancel
                     </button>
                     <button
-                      onClick={() => handleSaveDispense(false)}
-                      disabled={selectedMedicines.length === 0 || !patientId || !patientName}
                       className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
+                      onClick={() => handleSaveDispense(false)}
+                      disabled={loading}
                     >
                       Save
                     </button>
                     <button
                       onClick={() => handleSaveDispense(true)}
-                      disabled={selectedMedicines.length === 0 || !patientId || !patientName}
+                      disabled={loading}
                       className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-green-300"
                     >
                       Save & Print
@@ -1139,7 +1256,6 @@ const Medicines: React.FC = () => {
                       onEdit={openEditModal}
                       onDelete={handleDeleteMedicine}
                       onUpdateStatus={handleUpdateStatus}
-                      onDispense={openDispenseModal}
                       onAddToDispense={addMedicineToDispense}
                       showDispenseControls={showDispenseForm}
                     />
@@ -1262,18 +1378,6 @@ const Medicines: React.FC = () => {
         />
       )}
 
-      {isDispenseModalOpen && dispensingMedicine && (
-        <MedicineDispenseModal
-          medicine={dispensingMedicine}
-          isOpen={isDispenseModalOpen}
-          onClose={() => {
-            setIsDispenseModalOpen(false)
-            setDispensingMedicine(null)
-          }}
-          onDispense={handleDispenseMedicine}
-        />
-      )}
-
       <footer className="bg-white border-t border-gray-200 mt-auto py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-sm text-gray-500 text-center">
@@ -1282,48 +1386,79 @@ const Medicines: React.FC = () => {
         </div>
       </footer>
 
-      {/* Hidden MedicalReceipt component for PDF generation */}
+      {/* Hidden Receipt component for PDF generation */}
       <div style={{ display: 'none' }}>
         <div ref={medicalReceiptRef}>
-          <MedicalReceipt
-            data={{
-              businessInfo: {
-                name: 'SRI MEHER MEDICALS',
-                address:
-                  'Near Mancherial Chowrasta, Ambedkarnagar,Choppadandi Road, KARIMNAGAR-505001',
-                dlNo: 'TS/KNR/2021/7329',
-                gstin: '36ATWPC8813C1ZK',
-                phone1: '+91 98850 29367',
-                phone2: '+91 94943 62719'
-              },
-              patientInfo: {
+          {dispenseType === 'existing' ? (
+            <MedicalReceipt
+              data={{
+                businessInfo: {
+                  name: 'SRI MEHER MEDICALS',
+                  address:
+                    '# 6-6-650/1, Ambedkarnagar, Subhashnagar Road, Beside Honda Show Room, KARIMNAGAR-505001',
+                  dlNo: 'TS/KNR/2021/7329',
+                  gstin: '36AENPC8304C3ZS',
+                  phone1: '+91 94943 62719',
+                  phone2: ''
+                },
+                patientInfo: {
+                  billNumber: `MED-${new Date().getTime().toString().slice(-6)}`,
+                  patientId: patientId || '',
+                  patientName: patientName || '',
+                  guardianName: patient['guardian'] || '',
+                  address: patient['address'] || '',
+                  date: new Date().toLocaleDateString(),
+                  gender: patient['gender'] || '',
+                  age: patient['age'] || 0,
+                  mobile: patient['phone'] || '',
+                  dept: patient['department'] || '',
+                  doctorName: patient['doctorName'] || ''
+                },
+                items: selectedMedicines.map((med) => ({
+                  particulars: med.name,
+                  qty: med.quantity,
+                  rate: med.price,
+                  batchNumber: med.batchNumber,
+                  expiryDate: med.expiryDate,
+                  amount: med.price * med.quantity
+                })),
+                totals: {
+                  totalAmount: totalAmount,
+                  advancePaid: 0,
+                  amtReceived: totalAmount,
+                  discount: 0,
+                  balance: 0
+                }
+              }}
+            />
+          ) : (
+            <MedicalNon
+              data={{
+                businessInfo: {
+                  name: 'SRI MEHER MEDICALS',
+                  address:
+                    '# 6-6-650/1, Ambedkarnagar, Subhashnagar Road, Beside Honda Show Room, KARIMNAGAR-505001',
+                  dlNo: 'TS/KNR/2021/7329',
+                  gstin: '36AENPC8304C3ZS',
+                  phone1: '+91 94943 62719',
+                  phone2: ''
+                },
                 billNumber: `MED-${new Date().getTime().toString().slice(-6)}`,
-                patientId: patientId || '',
                 patientName: patientName || '',
-                guardianName: patient['guardian'] || '',
-                address: patient['address'] || '',
                 date: new Date().toLocaleDateString(),
-                gender: patient['gender'] || '',
-                age: patient['age'] || 0,
-                mobile: patient['phone'] || '',
-                dept: patient['department'] || '',
-                doctorName: patient['doctorName'] || ''
-              },
-              items: selectedMedicines.map((med) => ({
-                particulars: med.name,
-                qty: med.quantity,
-                rate: med.price,
-                amount: med.price * med.quantity
-              })),
-              totals: {
-                totalAmount: totalAmount,
-                advancePaid: 0,
-                amtReceived: totalAmount,
-                discount: 0,
-                balance: 0
-              }
-            }}
-          />
+                doctorName: '',
+                items: selectedMedicines.map((med) => ({
+                  particulars: med.name,
+                  qty: med.quantity,
+                  rate: med.price,
+                  batchNumber: med.batchNumber,
+                  expiryDate: med.expiryDate,
+                  amount: med.price * med.quantity
+                })),
+                totalAmount: totalAmount
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

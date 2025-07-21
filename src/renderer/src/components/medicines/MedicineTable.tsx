@@ -15,7 +15,6 @@ interface MedicineTableProps {
   onEdit: (medicine: Medicine) => void
   onDelete: (id: string) => Promise<void>
   onUpdateStatus: (id: string, status: 'available' | 'completed' | 'out_of_stock') => Promise<void>
-  onDispense: (medicine: Medicine) => void
   onAddToDispense?: (medicine: Medicine, quantity: number) => void
   showDispenseControls?: boolean
 }
@@ -23,7 +22,6 @@ interface MedicineTableProps {
 const MedicineTable: React.FC<MedicineTableProps> = ({
   medicines,
   onEdit,
-  onDispense,
   onAddToDispense,
   showDispenseControls = false
 }) => {
@@ -192,25 +190,6 @@ const MedicineTable: React.FC<MedicineTableProps> = ({
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                   </svg>
                 </button>
-
-                {/* Dispense button - only show for available medicines with quantity > 0 */}
-                {medicine.status === 'available' && medicine.quantity > 0 && (
-                  <button
-                    onClick={() => onDispense(medicine)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
-                    title="Dispense Medicine"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-1"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M11 17a1 1 0 001.447.894l4-2A1 1 0 0017 15V9.236a1 1 0 00-1.447-.894l-4 2a1 1 0 00-.553.894V17zM15.211 6.276a1 1 0 000-1.788l-4.764-2.382a1 1 0 00-.894 0L4.789 4.488a1 1 0 000 1.788l4.764 2.382a1 1 0 00.894 0l4.764-2.382zM4.447 8.342A1 1 0 003 9.236V15a1 1 0 00.553.894l4 2A1 1 0 009 17v-5.764a1 1 0 00-.553-.894l-4-2z" />
-                    </svg>
-                    Dispense
-                  </button>
-                )}
               </div>
             </td>
             {showDispenseControls && (

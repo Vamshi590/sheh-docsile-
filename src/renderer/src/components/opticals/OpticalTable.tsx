@@ -15,7 +15,6 @@ interface Optical {
 interface OpticalTableProps {
   opticals: Optical[]
   onEdit: (optical: Optical) => void
-  onDispense: (optical: Optical) => void
   onAddToDispense?: (optical: Optical, quantity: number) => void
   showDispenseControls?: boolean
 }
@@ -23,7 +22,6 @@ interface OpticalTableProps {
 const OpticalTable: React.FC<OpticalTableProps> = ({
   opticals,
   onEdit,
-  onDispense,
   onAddToDispense,
   showDispenseControls = false
 }) => {
@@ -170,16 +168,6 @@ const OpticalTable: React.FC<OpticalTableProps> = ({
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
               <div className="flex justify-end space-x-2">
-                {/* Dispense button - only shown for available items with quantity > 0 */}
-                {optical.status === 'available' && optical.quantity > 0 && (
-                  <button
-                    onClick={() => onDispense(optical)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium"
-                    title="Dispense Optical Item"
-                  >
-                    Dispense
-                  </button>
-                )}
                 {/* Edit button */}
                 <button
                   onClick={() => onEdit(optical)}

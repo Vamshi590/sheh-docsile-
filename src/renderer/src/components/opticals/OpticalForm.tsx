@@ -60,19 +60,19 @@ const OpticalForm: React.FC<OpticalFormProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof Optical, string>> = {}
 
-    if (!formData.brand.trim()) {
+    if (!formData.brand || typeof formData.brand !== 'string' || !formData.brand.trim()) {
       newErrors.brand = 'Brand is required'
     }
 
-    if (!formData.model.trim()) {
+    if (!formData.model || typeof formData.model !== 'string' || !formData.model.trim()) {
       newErrors.model = 'Model is required'
     }
 
-    if (!formData.size.trim()) {
+    if (!formData.size || typeof formData.size !== 'string' || !formData.size.trim()) {
       newErrors.size = 'Size is required'
     }
 
-    if (formData.type === 'lens' && !formData.power?.trim()) {
+    if (formData.type === 'lens' && (!formData.power || typeof formData.power !== 'string' || !formData.power.trim())) {
       newErrors.power = 'Power is required for lenses'
     }
 
