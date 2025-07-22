@@ -36,8 +36,6 @@ declare global {
       deleteLab: (id: string) => Promise<boolean>
       searchLabs: (patientId: string) => Promise<Lab[]>
       getTodaysLabs: () => Promise<Lab[]>
-      getLabTestOptions: () => Promise<string[]>
-      addLabTestOption: (value: string) => Promise<boolean>
       getPatients: () => Promise<Patient[]>
       getPrescriptions: () => Promise<Prescription[]>
       addPrescription: (prescription: Omit<Prescription, 'id'>) => Promise<Prescription>
@@ -89,6 +87,16 @@ const LabForm: React.FC<LabFormProps> = ({
       'AMOUNT 4': '',
       'LAB TEST 5': '',
       'AMOUNT 5': '',
+      'LAB TEST 6': '',
+      'AMOUNT 6': '',
+      'LAB TEST 7': '',
+      'AMOUNT 7': '',
+      'LAB TEST 8': '',
+      'AMOUNT 8': '',
+      'LAB TEST 9': '',
+      'AMOUNT 9': '',
+      'LAB TEST 10': '',
+      'AMOUNT 10': '',
 
       // Billing fields
       'TOTAL AMOUNT': 0,
@@ -99,12 +107,14 @@ const LabForm: React.FC<LabFormProps> = ({
       // Add patient information if a patient is selected
       ...(selectedPatient
         ? {
-            'PATIENT ID': selectedPatient['PATIENT ID'],
-            'PATIENT NAME': selectedPatient['GUARDIAN NAME'], // Using guardian name as patient name
-            'PHONE NUMBER': selectedPatient['PHONE NUMBER'],
-            AGE: selectedPatient.AGE,
-            GENDER: selectedPatient.GENDER,
-            ADDRESS: selectedPatient.ADDRESS
+            'PATIENT ID': selectedPatient['patientId'],
+            'PATIENT NAME': selectedPatient['name'], // Using guardian name as patient name
+            'PHONE NUMBER': selectedPatient['phone'],
+            AGE: selectedPatient['age'],
+            GENDER: selectedPatient['gender'],
+            ADDRESS: selectedPatient['address'],
+            DOB: selectedPatient['dob'],
+            'GUARDIAN NAME': selectedPatient['guardian']
           }
         : {}),
       ...initialData,
@@ -129,7 +139,7 @@ const LabForm: React.FC<LabFormProps> = ({
   const fetchDropdownOptions = async (): Promise<void> => {
     try {
       // Fetch lab test options
-      const labTestOptions = await window.api.getLabTestOptions()
+      const labTestOptions = await window.api.getDropdownOptions('labTestOptions')
       if (labTestOptions && labTestOptions.length > 0) {
         setDynamicLabTestOptions(labTestOptions)
       }
@@ -141,13 +151,9 @@ const LabForm: React.FC<LabFormProps> = ({
   // Helper function to add new option permanently
   const addNewOptionPermanently = async (fieldName: string, value: string): Promise<void> => {
     try {
-      if (fieldName === 'labTestOptions') {
-        // Use the lab-specific API method
-        await window.api.addLabTestOption(value)
-      } else {
-        // Use the general dropdown API method
-        await window.api.addDropdownOption(fieldName, value)
-      }
+      // Use the general dropdown API method
+      await window.api.addDropdownOption(fieldName, value)
+      await fetchDropdownOptions()
     } catch (error) {
       console.error(`Error adding new option to ${fieldName}:`, error)
     }
@@ -263,157 +269,6 @@ const LabForm: React.FC<LabFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Patient Information Section */}
-      <div className="bg-white p-4 rounded-md shadow">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Patient Information</h3>
-        <div className="grid grid-cols-3 gap-4">
-          {/* PATIENT ID */}
-          <div>
-            <label htmlFor="PATIENT ID" className="block text-sm font-medium text-gray-700">
-              Patient ID
-            </label>
-            <input
-              type="text"
-              name="PATIENT ID"
-              id="PATIENT ID"
-              value={(formData['PATIENT ID'] as string) || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100"
-              readOnly={!!selectedPatient}
-            />
-          </div>
-
-          {/* PATIENT NAME */}
-          <div>
-            <label htmlFor="PATIENT NAME" className="block text-sm font-medium text-gray-700">
-              Patient Name
-            </label>
-            <input
-              type="text"
-              name="PATIENT NAME"
-              id="PATIENT NAME"
-              value={(formData['PATIENT NAME'] as string) || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100"
-              readOnly={!!selectedPatient}
-            />
-          </div>
-
-          {/* AGE */}
-          <div>
-            <label htmlFor="AGE" className="block text-sm font-medium text-gray-700">
-              Age
-            </label>
-            <input
-              type="number"
-              name="AGE"
-              id="AGE"
-              value={(formData.AGE as number) || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100"
-              readOnly={!!selectedPatient}
-            />
-          </div>
-
-          {/* GENDER */}
-          <div>
-            <label htmlFor="GENDER" className="block text-sm font-medium text-gray-700">
-              Gender
-            </label>
-            <select
-              name="GENDER"
-              id="GENDER"
-              value={(formData.GENDER as string) || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100"
-              disabled={!!selectedPatient}
-            >
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-
-          {/* PHONE NUMBER */}
-          <div>
-            <label htmlFor="PHONE NUMBER" className="block text-sm font-medium text-gray-700">
-              Phone Number
-            </label>
-            <input
-              type="text"
-              name="PHONE NUMBER"
-              id="PHONE NUMBER"
-              value={(formData['PHONE NUMBER'] as string) || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100"
-              readOnly={!!selectedPatient}
-            />
-          </div>
-
-          {/* ADDRESS */}
-          <div>
-            <label htmlFor="ADDRESS" className="block text-sm font-medium text-gray-700">
-              Address
-            </label>
-            <input
-              type="text"
-              name="ADDRESS"
-              id="ADDRESS"
-              value={(formData.ADDRESS as string) || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100"
-              readOnly={!!selectedPatient}
-            />
-          </div>
-
-          {/* DOCTOR NAME */}
-          <div>
-            <label htmlFor="DOCTOR NAME" className="block text-sm font-medium text-gray-700">
-              Doctor Name
-            </label>
-            <input
-              type="text"
-              name="DOCTOR NAME"
-              id="DOCTOR NAME"
-              value={(formData['DOCTOR NAME'] as string) || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* DEPARTMENT */}
-          <div>
-            <label htmlFor="DEPARTMENT" className="block text-sm font-medium text-gray-700">
-              Department
-            </label>
-            <input
-              type="text"
-              name="DEPARTMENT"
-              id="DEPARTMENT"
-              value={(formData.DEPARTMENT as string) || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* REFERRED BY */}
-          <div>
-            <label htmlFor="REFFERED BY" className="block text-sm font-medium text-gray-700">
-              Referred By
-            </label>
-            <input
-              type="text"
-              name="REFFERED BY"
-              id="REFFERED BY"
-              value={(formData['REFFERED BY'] as string) || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Lab Tests Section */}
       <div className="bg-white p-4 rounded-md shadow">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Lab Tests</h3>

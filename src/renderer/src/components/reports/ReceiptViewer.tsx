@@ -4,6 +4,7 @@ import PrescriptionReceipt from '../reciepts/PrescriptionReciept'
 import ReadingsReceipt from '../reciepts/ReadingsReciept'
 import OperationReceipt from '../reciepts/OperationReciept'
 import ClinicalFindingsReceipt from '../reciepts/ClinicalFindingsReciept'
+import LabReceipt from '../reciepts/LabReceipt'
 
 // Define the Prescription type
 type Prescription = {
@@ -64,9 +65,13 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
     billNumber: String(report.receiptId || report.id || '').substring(0, 8),
     patientId: String(report.patientId || report['PATIENT ID'] || ''),
     date: String(report.date || report.DATE || new Date().toISOString().split('T')[0]),
-    patientName: String(report.patientName || report['PATIENT NAME'] || ''),
+    patientName: String(
+      report.patientName || report['patientName'] || report['PATIENT NAME'] || ''
+    ),
     gender: String(report.gender || report.GENDER || ''),
-    guardianName: String(report.guardianName || report['GUARDIAN NAME'] || ''),
+    guardianName: String(
+      report.guardianName || report['guardian'] || report['GUARDIAN NAME'] || ''
+    ),
     age: String(report.age || report.AGE || ''),
     address: String(report.address || report.ADDRESS || ''),
     mobile: String(report.phone || report['PHONE NUMBER'] || ''),
@@ -374,6 +379,31 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
 
   // Render the appropriate receipt based on the type
   const renderReceipt = (): React.ReactElement => {
+    // Process lab test data from the report for lab receipts
+    const labTestData: { test: string; amount: string | number }[] = []
+
+    // Extract lab tests from report (LAB TEST 1 to LAB TEST 10)
+    if (receiptType === 'lab') {
+      for (let i = 1; i <= 10; i++) {
+        const testKey = `LAB TEST ${i}`
+        const amountKey = `AMOUNT ${i}`
+
+        if (report[testKey] && report[amountKey]) {
+          labTestData.push({
+            test: String(report[testKey] || ''),
+            amount: Number(report[amountKey] || 0)
+          })
+        }
+      }
+    }
+
+    // Create financial data object for lab receipts
+    const labFinancialData = {
+      totalAmount: Number(report['TOTAL AMOUNT'] || 0),
+      discountPercentage: Number(report['DISCOUNT PERCENTAGE'] || 0),
+      amountReceived: Number(report['AMOUNT RECEIVED'] || 0),
+      amountDue: Number(report['AMOUNT DUE'] || 0)
+    }
     switch (receiptType) {
       case 'cash':
         return (
@@ -482,6 +512,18 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
                 advised: String(report['CF-ADVICE'] || ''),
                 reviewDate: String(report['CF-REVIEW-DATE'] || '')
               }}
+            />
+          </div>
+        )
+      case 'lab':
+        return (
+          <div id={`receipt-${report.id}`}>
+            <LabReceipt
+              patientData={patientData}
+              labTestData={labTestData}
+              financialData={labFinancialData}
+              remarks={String(report['REMARKS'] || '')}
+              reportReadyDate={String(report['REPORT READY DATE'] || '')}
             />
           </div>
         )

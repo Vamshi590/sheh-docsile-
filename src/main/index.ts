@@ -12,7 +12,6 @@ import bcrypt from 'bcryptjs'
 import XLSX from 'xlsx'
 import { v4 as uuidv4 } from 'uuid'
 import crypto from 'crypto'
-import { registerLabHandlers } from './labs-handlers'
 
 // Define interfaces for better type safety
 interface StaffMember {
@@ -46,6 +45,12 @@ interface Patient {
   createdBy: string
 }
 
+// Define Lab interface
+interface Lab {
+  id: string
+  [key: string]: unknown
+}
+
 // Get the AppData path for storing user data
 const appDataPath = join(app.getPath('appData'), 'ShehData')
 
@@ -76,6 +81,17 @@ const opticalsFilePath = join(appDataPath, 'opticals.xlsx')
 
 // Path to the settings JSON file
 const settingsFilePath = join(appDataPath, 'settings.json')
+
+// Path to the labs Excel file
+const labsFilePath = join(appDataPath, 'labs.xlsx')
+
+if (!fs.existsSync(labsFilePath)) {
+  const workbook = XLSX.utils.book_new()
+  const worksheet = XLSX.utils.json_to_sheet([])
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Labs')
+  XLSX.writeFile(workbook, labsFilePath)
+  console.log('Created new labs file')
+}
 
 // Create settings file if it doesn't exist
 if (!fs.existsSync(settingsFilePath)) {
@@ -862,9 +878,6 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
-
-  // Register lab handlers
-  registerLabHandlers()
 
   createWindow()
 
@@ -5153,7 +5166,8 @@ ipcMain.handle('getDropdownOptions', async (_, fieldName: string) => {
       'others1Options',
       'operationDetailsOptions',
       'operationProcedureOptions',
-      'provisionDiagnosisOptions'
+      'provisionDiagnosisOptions',
+      'labTestOptions'
     ]
     if (!validFields.includes(fieldName)) {
       return { success: false, error: 'Invalid field name' }
@@ -5237,5 +5251,132 @@ ipcMain.handle('openPdfInWindow', async (_, pdfBuffer: Uint8Array) => {
       success: false,
       error: error instanceof Error ? error.message : String(error)
     }
+  }
+})
+
+// Get all labs
+ipcMain.handle('getLabs', async () => {
+  try {
+    const { data: labs, error } = await supabase
+      .from('labs')
+      .select('*')
+      .order('DATE', { ascending: false })
+
+    if (!error && labs) {
+      console.log('Labs fetched from Supabase successfully')
+      return labs
+    }
+    return labs
+  } catch (error) {
+    console.error('Error getting labs:', error)
+    return []
+  }
+})
+
+// Get today's labs
+ipcMain.handle('getTodaysLabs', async () => {
+  try {
+    // Get today's date in YYYY-MM-DD format
+    const todayDate = new Date().toISOString().split('T')[0]
+
+    const { data: labs, error } = await supabase.from('labs').select('*').eq('DATE', todayDate)
+
+    if (!error && labs) {
+      console.log("Today's labs fetched from Supabase successfully")
+      return labs
+    } else {
+      console.log("Today's labs fetched from Supabase failed", error)
+    }
+    return labs
+  } catch (error) {
+    console.error("Error getting today's labs:", error)
+    return []
+  }
+})
+// Add a new lab
+ipcMain.handle('addLab', async (_, labData: Omit<Lab, 'id'>) => {
+  try {
+    // Generate a unique ID for the new lab
+    const newLab = {
+      id: uuidv4(),
+      ...labData
+    }
+
+    const { data, error } = await supabase.from('labs').insert(newLab).select()
+
+    if (!error && data) {
+      console.log('Lab added to Supabase successfully')
+      return data[0]
+    } else {
+      console.log('Lab added to Supabase failed', error)
+    }
+
+    return newLab
+  } catch (error) {
+    console.error('Error adding lab:', error)
+    return null
+  }
+})
+
+// Update an existing lab
+ipcMain.handle('updateLab', async (_, labData: Lab) => {
+  try {
+    const { id } = labData
+
+    const { data, error } = await supabase.from('labs').update(labData).eq('id', id).select()
+
+    if (!error && data) {
+      console.log('Lab updated in Supabase successfully')
+      return data[0]
+    } else {
+      console.log('Lab updated in Supabase failed', error)
+    }
+
+    return labData
+  } catch (error) {
+    console.error('Error updating lab:', error)
+    return null
+  }
+})
+// Delete a lab
+ipcMain.handle('deleteLab', async (_, id: string) => {
+  try {
+    // Try to delete lab from Supabase first
+
+    const { error } = await supabase.from('labs').delete().eq('id', id)
+
+    if (!error) {
+      console.log('Lab deleted from Supabase successfully')
+      return true
+    } else {
+      console.log('Lab deleted from Supabase failed', error)
+      return false
+    }
+  } catch (error) {
+    console.error('Error deleting lab:', error)
+    return false
+  }
+})
+
+// Search labs by patient ID
+ipcMain.handle('searchLabs', async (_, patientId: string) => {
+  try {
+    const { data: labs, error } = await supabase
+      .from('labs')
+      .select('*')
+      .eq('PATIENT ID', patientId)
+      .order('DATE', { ascending: false })
+
+    if (!error && labs) {
+      console.log('Labs searched in Supabase successfully')
+      return labs
+    } else {
+      console.log('Labs searched in Supabase failed', error)
+    }
+
+    return labs
+  } catch (error) {
+    console.error('Error searching labs:', error)
+    return []
   }
 })

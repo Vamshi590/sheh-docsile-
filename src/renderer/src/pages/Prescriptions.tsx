@@ -52,8 +52,6 @@ declare global {
       deleteLab: (id: string) => Promise<boolean>
       searchLabs: (patientId: string) => Promise<Lab[]>
       getTodaysLabs: () => Promise<Lab[]>
-      getLabTestOptions: () => Promise<string[]>
-      addLabTestOption: (value: string) => Promise<boolean>
     }
   }
 }

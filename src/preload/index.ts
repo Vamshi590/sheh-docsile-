@@ -126,8 +126,6 @@ const api = {
   deleteLab: (id: string) => ipcRenderer.invoke('deleteLab', id),
   searchLabs: (patientId: string) => ipcRenderer.invoke('searchLabs', patientId),
   getTodaysLabs: () => ipcRenderer.invoke('getTodaysLabs'),
-  getLabTestOptions: () => ipcRenderer.invoke('getLabTestOptions'),
-  addLabTestOption: (value: string) => ipcRenderer.invoke('addLabTestOption', value),
 
   // Operations Management
   getOperations: () => ipcRenderer.invoke('getOperations'),
