@@ -1095,7 +1095,13 @@ ipcMain.handle('getLatestPrescriptionId', async () => {
     }
 
     console.log('Latest prescription id fetched from Supabase successfully')
-    return prescriptions[0].id || 0
+    // Check if prescriptions array exists and has items before accessing index 0
+    if (prescriptions && prescriptions.length > 0) {
+      return prescriptions[0].id || 0
+    } else {
+      // No prescriptions found, return 0 as default
+      return 0
+    }
   } catch (error) {
     console.error('Error getting latest prescription id from Supabase:', error)
     return 0
@@ -1106,20 +1112,21 @@ ipcMain.handle('getLatestPrescriptionId', async () => {
 ipcMain.handle('getTodaysPrescriptions', async () => {
   try {
     // First try Supabase - just get the count
-    const { count, error } = await supabase
+    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+    const { data: prescriptions, error } = await supabase
       .from('prescriptions')
-      .select('*', { count: 'exact', head: true })
+      .select('*')
+      .eq('DATE', today)
 
     if (error) {
       throw new Error(`Supabase error: ${error.message}`)
     }
 
-    // Return the count (frontend will format it with leading zeros)
-    console.log('Latest prescription count fetched from Supabase successfully:', count)
-    return count || 0
+    console.log('Prescriptions fetched from Supabase successfully')
+    return prescriptions || []
   } catch (error) {
     console.error('Error getting latest prescription ID from Supabase:', error)
-    return 0
+    return []
   }
 })
 
@@ -1147,9 +1154,19 @@ ipcMain.handle('addPrescription', async (_, prescription) => {
     }
 
     // Add the new prescription with Sno
+    let nextSno = 1 // Default to 1 if no previous prescriptions
+
+    if (highestSnoFromSupabase) {
+      const parsedSno = parseInt(highestSnoFromSupabase)
+      // Check if parsedSno is a valid number
+      if (!isNaN(parsedSno)) {
+        nextSno = parsedSno + 1
+      }
+    }
+
     const prescriptionWithSno = {
       ...prescriptionWithId,
-      Sno: parseInt(highestSnoFromSupabase) + 1
+      Sno: nextSno // Use the calculated next Sno value
     }
 
     // Add to Supabase

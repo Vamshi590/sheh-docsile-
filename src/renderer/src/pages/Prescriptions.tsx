@@ -597,32 +597,6 @@ const Prescriptions: React.FC = () => {
     }
   }
 
-  // Function to handle deleting a prescription
-  // const handleDeletePrescription = async (id: string): Promise<void> => {
-  //   if (window.confirm('Are you sure you want to delete this prescription?')) {
-  //     try {
-  //       setLoading(true)
-  //       await window.api.deletePrescription(id)
-  //       setPrescriptions(prescriptions.filter((p) => p.id !== id))
-  //       setError('')
-  //
-  //       // Show success toast
-  //       addToast('Prescription deleted successfully', 'success')
-  //     } catch (err) {
-  //       console.error('Error deleting prescription:', err)
-  //       setError('Failed to delete prescription')
-  //     } finally {
-  //       setLoading(false)
-  //     }
-  //   }
-  // }
-
-  // Function to open edit modal
-  // const openEditModal = (prescription: Prescription): void => {
-  //   setEditingPrescription(prescription)
-  //   setIsModalOpen(true)
-  // }
-
   // Function to find receipts for a patient
   const findReceiptsForPatient = (patientId: string): Prescription[] => {
     return prescriptions.filter((p) => p.patientId === patientId && p.TYPE === 'RECEIPT')

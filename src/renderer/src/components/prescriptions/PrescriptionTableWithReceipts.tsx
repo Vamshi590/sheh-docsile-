@@ -455,6 +455,8 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
     )
   }
 
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}')
+
   return (
     <div id="main-content" className="space-y-4">
       {/* Receipt Options - Only show when a prescription is selected */}
@@ -534,7 +536,7 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
                       Edit
                     </button>
                   )}
-                  {onDeletePrescription && (
+                  {currentUser.isAdmin && onDeletePrescription && (
                     <button
                       onClick={() => {
                         const patientName = selectedPrescription['PATIENT NAME'] || 'this patient'

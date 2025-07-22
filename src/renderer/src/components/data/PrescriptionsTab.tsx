@@ -155,6 +155,11 @@ const PrescriptionsTab: React.FC = () => {
   const [sortField, setSortField] = useState<string>('date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
+  // State for row actions
+  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null)
+  const [showActions, setShowActions] = useState(false)
+  const [actionPosition, setActionPosition] = useState({ top: 0, left: 0 })
+
   // Constants
   const ITEMS_PER_PAGE = 20
 
@@ -267,6 +272,70 @@ const PrescriptionsTab: React.FC = () => {
       maximumFractionDigits: 0
     }).format(numAmount)
   }
+
+  // Handle row click to show actions
+  const handleRowClick = (prescription: Prescription, event: React.MouseEvent): void => {
+    event.stopPropagation() // Prevent bubbling
+    setSelectedPrescription(prescription)
+    setActionPosition({ top: event.clientY, left: event.clientX })
+    setShowActions(true)
+  }
+
+  // Handle edit prescription
+  const handleEditPrescription = (): void => {
+    if (!selectedPrescription) return
+    // Here you would typically navigate to edit page or open edit modal
+    console.log('Edit prescription:', selectedPrescription)
+    // You can implement navigation or modal opening here
+    // For example: window.api.openPrescriptionEditForm(selectedPrescription.id)
+    setShowActions(false)
+  }
+
+  // Handle delete prescription
+  const handleDeletePrescription = async (): Promise<void> => {
+    if (!selectedPrescription) return
+
+    if (
+      confirm(
+        `Are you sure you want to delete this prescription for ${selectedPrescription['PATIENT NAME']}?`
+      )
+    ) {
+      try {
+        // Call the backend API to delete the prescription
+        await window.api.deletePrescription(selectedPrescription.id)
+
+        // Remove the deleted prescription from local state
+        setPrescriptions(prescriptions.filter((p) => p.id !== selectedPrescription.id))
+
+        // Update filtered prescriptions as well
+        setFilteredPrescriptions(
+          filteredPrescriptions.filter((p) => p.id !== selectedPrescription.id)
+        )
+
+        // Show success message
+        setError('')
+        // If you have a toast system, you can use it here instead of alert
+        alert('Prescription deleted successfully')
+      } catch (error) {
+        console.error('Error deleting prescription:', error)
+        setError('Failed to delete prescription')
+        alert('Failed to delete prescription')
+      }
+    }
+    setShowActions(false)
+  }
+
+  // Close action menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (): void => {
+      setShowActions(false)
+    }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [])
 
   return (
     <div className="space-y-4 " style={{ maxWidth: '100%', overflowY: 'hidden' }}>
@@ -669,7 +738,8 @@ const PrescriptionsTab: React.FC = () => {
                       ? lastPrescriptionElementRef
                       : null
                   }
-                  className="hover:bg-gray-50"
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={(e) => handleRowClick(prescription, e)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(prescription['DATE'] as string).toISOString().split('T')[0]}
@@ -869,6 +939,60 @@ const PrescriptionsTab: React.FC = () => {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
+        </div>
+      )}
+
+      {/* Action menu popup */}
+      {showActions && selectedPrescription && (
+        <div
+          className="absolute bg-white shadow-lg rounded-md py-2 z-50 border border-gray-200 w-48"
+          style={{
+            top: `${actionPosition.top}px`,
+            left: `${actionPosition.left}px`,
+            transform: 'translate(10px, 10px)'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center text-gray-700"
+            onClick={handleEditPrescription}
+          >
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+            Edit Prescription
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center text-red-600"
+            onClick={handleDeletePrescription}
+          >
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+            Delete Prescription
+          </button>
         </div>
       )}
     </div>

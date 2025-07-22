@@ -32,15 +32,17 @@ interface ReceiptFormProps {
   onCancel: () => void
   patients: Patient[]
   selectedPatient: Patient | null
+  initialData?: Record<string, unknown>
 }
 
 const ReceiptForm: React.FC<ReceiptFormProps> = ({
   onSubmit,
   onCancel,
   patients,
-  selectedPatient
+  selectedPatient,
+  initialData
 }) => {
-  // Initialize form data with default values and selected patient data if available
+  // Initialize form data with default values
   const [formData, setFormData] = useState<Omit<Prescription, 'id'>>({
     // Basic information
     Sno: '',
@@ -385,6 +387,16 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
       })
     }
   }, [selectedPatient])
+
+  // Update form data when initialData changes (for editing existing receipts)
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      setFormData((prevData) => ({
+        ...prevData,
+        ...initialData
+      }))
+    }
+  }, [initialData])
 
   // Handle form field changes
   const handleChange = (

@@ -219,36 +219,6 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   useEffect(() => {
     fetchDropdownOptions()
   }, [])
-
-  // Fetch the latest prescription ID and generate the next one
-  useEffect(() => {
-    const fetchLatestPrescriptionId = async (): Promise<void> => {
-      try {
-        // Only proceed if we're not in edit mode and don't have a prescription ID yet
-        if (!initialData && !formData.id) {
-          // Get the prescription count directly from the backend (more efficient)
-          const prescriptionCount = await window.api.getLatestPrescriptionId()
-
-          // Generate the next ID by incrementing the count
-          const nextNumericId = prescriptionCount + 1
-
-          // Format with leading zeros (4 digits)
-          const nextId = String(nextNumericId).padStart(4, '0')
-          setFormData((prev) => ({ ...prev, Sno: nextId }))
-        }
-      } catch (error) {
-        console.error('Error fetching latest prescription ID:', error)
-        // Fallback to the old method if API call fails
-        if (!initialData && prescriptionCount !== null && !formData.id) {
-          const nextId = String(prescriptionCount + 1).padStart(4, '0')
-          setFormData((prev) => ({ ...prev, Sno: nextId }))
-        }
-      }
-    }
-
-    fetchLatestPrescriptionId()
-  }, [initialData, formData.id, prescriptionCount])
-
   // Handle form input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
