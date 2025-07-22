@@ -43,6 +43,7 @@ declare global {
       deletePrescription: (id: string) => Promise<void>
       searchPrescriptions: (searchTerm: string) => Promise<Prescription[]>
       getTodaysPrescriptions: () => Promise<Prescription[]>
+      getLatestPrescriptionId: () => Promise<number>
       getDropdownOptions: (fieldName: string) => Promise<string[]>
       addDropdownOption: (fieldName: string, value: string) => Promise<void>
       openPdfInWindow: (pdfBuffer: Uint8Array) => Promise<{ success: boolean; error?: string }>
@@ -292,7 +293,7 @@ const LabForm: React.FC<LabFormProps> = ({
                     onChange={(e) => handleChange(e)}
                     options={dynamicLabTestOptions}
                     placeholder={`Enter lab test name ${testNumber}`}
-                    onAddNewOption={(fieldName, value) =>
+                    onAddNewOption={(_fieldName, value) =>
                       addNewOptionPermanently('labTestOptions', value)
                     }
                   />

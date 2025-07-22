@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import PatientForm from '../components/patients/PatientForm'
 import PatientTable from '../components/patients/PatientTable'
 import PatientEditModal from '../components/patients/PatientEditModal'
+import ToastContainer, { ToastMessage } from '../components/ui/ToastContainer'
 
 interface Patient {
   id: string
@@ -23,6 +24,7 @@ const Patients: React.FC = () => {
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [toasts, setToasts] = useState<ToastMessage[]>([])
 
   // Load today's patients on component mount
   useEffect(() => {
@@ -46,6 +48,17 @@ const Patients: React.FC = () => {
     fetchTodaysPatients()
   }, [])
 
+  // Function to add a toast notification
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success'): void => {
+    const id = Math.random().toString(36).substring(2, 9)
+    setToasts((prevToasts) => [...prevToasts, { id, message, type }])
+  }
+
+  // Function to remove a toast notification
+  const removeToast = (id: string): void => {
+    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id))
+  }
+
   // Function to handle adding a new patient
   const handleAddPatient = async (patient: Omit<Patient, 'id'>): Promise<void> => {
     try {
@@ -53,10 +66,13 @@ const Patients: React.FC = () => {
       // Use type assertion for API calls with more specific types
       const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
       const newPatient = await api.addPatient(patient)
-
-      setPatients([...patients, newPatient as Patient])
-      setShowAddForm(false)
-      setError('')
+      if (newPatient) {
+        setPatients([...patients, newPatient as Patient])
+        setShowAddForm(false)
+        setError('')
+        // Show success toast
+        addToast('Patient added successfully', 'success')
+      }
     } catch (err) {
       console.error('Error adding patient:', err)
       setError('Failed to add patient')
@@ -72,10 +88,14 @@ const Patients: React.FC = () => {
       // Use type assertion for API calls with more specific types
       const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
       const updatedPatient = await api.updatePatient(id, { ...patient, id })
-      setPatients(patients.map((p) => (p.id === id ? (updatedPatient as Patient) : p)))
-      setIsModalOpen(false)
-      setEditingPatient(null)
-      setError('')
+      if (updatedPatient) {
+        setPatients(patients.map((p) => (p.id === id ? (updatedPatient as Patient) : p)))
+        setIsModalOpen(false)
+        setEditingPatient(null)
+        setError('')
+        // Show success toast
+        addToast('Patient updated successfully', 'success')
+      }
     } catch (err) {
       console.error('Error updating patient:', err)
       setError('Failed to update patient')
@@ -91,9 +111,13 @@ const Patients: React.FC = () => {
         setLoading(true)
         // Use type assertion for API calls with more specific types
         const api = window.api as Record<string, (...args: unknown[]) => Promise<unknown>>
-        await api.deletePatient(id)
-        setPatients(patients.filter((p) => p.id !== id))
-        setError('')
+        const response = await api.deletePatient(id)
+        if (response) {
+          setPatients(patients.filter((p) => p.id !== id))
+          setError('')
+          // Show success toast
+          addToast('Patient deleted successfully', 'success')
+        }
       } catch (err) {
         console.error('Error deleting patient:', err)
         setError('Failed to delete patient')
@@ -325,6 +349,7 @@ const Patients: React.FC = () => {
           onSave={handleUpdatePatient}
         />
       )}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   )
 }

@@ -1,9 +1,9 @@
 {
-  "name": "sheh--docsile-",
+  "name": "sheh-docsile",
   "version": "1.0.0",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "Vamshidhar",
   "homepage": "https://electron-vite.org",
   "scripts": {
     "format": "prettier --write .",
@@ -64,5 +64,43 @@
     "react-dom": "^19.1.0",
     "typescript": "^5.8.3",
     "vite": "^6.2.6"
+  },
+  "build": {
+    "appId": "com.sheh.docsile",
+    "productName": "Sheh Docsile",
+    "copyright": "Copyright © 2025 ${author}",
+    "asar": true,
+    "directories": {
+      "output": "release/${version}"
+    },
+    "files": [
+      "out",
+      "resources"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "resources/icon.icns"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "resources/icon.png"
+    }
   }
 }

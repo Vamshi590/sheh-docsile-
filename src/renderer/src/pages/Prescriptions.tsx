@@ -492,8 +492,11 @@ const Prescriptions: React.FC = () => {
         console.log('Updated receipt with reading data:', updatedReceipt)
 
         // Update the current receipt in state
-        setCurrentReceipt(updatedReceipt)
-        setHasEyeReading(true)
+        if (updatedReceipt) {
+          setCurrentReceipt(updatedReceipt)
+          setHasEyeReading(true)
+          addToast('Eye reading added successfully', 'success')
+        }
       } else if (foundPatient) {
         // Create a new receipt with patient details and reading data
         const receiptData = {
@@ -509,8 +512,11 @@ const Prescriptions: React.FC = () => {
         console.log('Created new receipt with patient details and reading data:', newReceipt)
 
         // Set this as the current receipt
-        setCurrentReceipt(newReceipt)
-        setHasEyeReading(true)
+        if (newReceipt) {
+          setCurrentReceipt(newReceipt)
+          setHasEyeReading(true)
+          addToast('Eye reading added successfully', 'success')
+        }
       } else {
         // Create a new receipt with just the reading data
         const receiptData = {
@@ -524,14 +530,15 @@ const Prescriptions: React.FC = () => {
         console.log('Created new receipt with reading data only:', newReceipt)
 
         // Set this as the current receipt
-        setCurrentReceipt(newReceipt)
-        setHasEyeReading(true)
+        if (newReceipt) {
+          setCurrentReceipt(newReceipt)
+          setHasEyeReading(true)
+          addToast('Eye reading added successfully', 'success')
+        }
       }
 
       await loadPrescriptions()
       setShowReadingForm(false)
-      // Show success toast
-      addToast('Eye reading added successfully', 'success')
     } catch (err) {
       console.error('Error adding reading:', err)
       setError('Failed to add reading')
@@ -551,13 +558,15 @@ const Prescriptions: React.FC = () => {
         'UPDATED AT': new Date().toISOString()
       }
       const updatedPrescription = await window.api.updatePrescription(id, prescription)
-      setPrescriptions(prescriptions.map((p) => (p.id === id ? updatedPrescription : p)))
-      setIsModalOpen(false)
-      setEditingPrescription(null)
-      setShowAddForm(false)
-      setError('')
-      // Show success toast
-      addToast('Prescription updated successfully', 'success')
+      if (updatedPrescription) {
+        setPrescriptions(prescriptions.map((p) => (p.id === id ? updatedPrescription : p)))
+        setIsModalOpen(false)
+        setEditingPrescription(null)
+        setShowAddForm(false)
+        setError('')
+        // Show success toast
+        addToast('Prescription updated successfully', 'success')
+      }
     } catch (err) {
       console.error('Error updating prescription:', err)
       setError('Failed to update prescription')
@@ -577,18 +586,19 @@ const Prescriptions: React.FC = () => {
         'UPDATED AT': new Date().toISOString()
       }
       const updatedEyeReading = await window.api.updatePrescription(id, eyeReading)
-      setPrescriptions(prescriptions.map((p) => (p.id === id ? updatedEyeReading : p)))
+      if (updatedEyeReading) {
+        setPrescriptions(prescriptions.map((p) => (p.id === id ? updatedEyeReading : p)))
 
-      // If this is the current receipt, update it
-      if (currentReceipt && currentReceipt.id === id) {
-        setCurrentReceipt(updatedEyeReading)
+        // If this is the current receipt, update it
+        if (currentReceipt && currentReceipt.id === id) {
+          setCurrentReceipt(updatedEyeReading)
+        }
+        setIsEyeReadingModalOpen(false)
+        setEditingEyeReading(null)
+        setError('')
+        // Show success toast
+        addToast('Eye reading updated successfully', 'success')
       }
-
-      setIsEyeReadingModalOpen(false)
-      setEditingEyeReading(null)
-      setError('')
-      // Show success toast
-      addToast('Eye reading updated successfully', 'success')
     } catch (err) {
       console.error('Error updating eye reading:', err)
       setError('Failed to update eye reading')

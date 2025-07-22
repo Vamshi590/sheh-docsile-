@@ -372,8 +372,8 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
               value={(formData['PRESENT COMPLAIN'] as string) || ''}
               options={dynamicPresentComplainOptions}
               onChange={handleChange}
-              onAddNewOption={(fieldName, value) =>
-                addNewOptionPermanently((fieldName = 'presentComplainOptions'), value)
+              onAddNewOption={(_fieldName, value) =>
+                addNewOptionPermanently('presentComplainOptions', value)
               }
               placeholder="Select or type present complain..."
             />
@@ -390,8 +390,8 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
               value={(formData['PREVIOUS HISTORY'] as string) || ''}
               options={dynamicPreviousHistoryOptions}
               onChange={handleChange}
-              onAddNewOption={(fieldName, value) =>
-                addNewOptionPermanently((fieldName = 'previousHistoryOptions'), value)
+              onAddNewOption={(_fieldName, value) =>
+                addNewOptionPermanently('previousHistoryOptions', value)
               }
               placeholder="Select or type previous history..."
             />
@@ -408,8 +408,8 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
               value={(formData['OTHERS'] as string) || ''}
               options={dynamicOthersOptions}
               onChange={handleChange}
-              onAddNewOption={(fieldName, value) =>
-                addNewOptionPermanently((fieldName = 'othersOptions'), value)
+              onAddNewOption={(_fieldName, value) =>
+                addNewOptionPermanently('othersOptions', value)
               }
               placeholder="Select or type other information..."
             />
@@ -426,8 +426,8 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
               value={(formData['OTHERS1'] as string) || ''}
               options={dynamicOthersOptions}
               onChange={handleChange}
-              onAddNewOption={(fieldName, value) =>
-                addNewOptionPermanently((fieldName = 'othersOptions'), value)
+              onAddNewOption={(_fieldName, value) =>
+                addNewOptionPermanently('othersOptions', value)
               }
               placeholder="Select or type additional information..."
             />

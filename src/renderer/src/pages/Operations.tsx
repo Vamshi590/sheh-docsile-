@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import OperationForm from '../components/operations/OperationForm'
 import OperationTableWithReceipts from '../components/operations/OperationTableWithReceipts'
+import ToastContainer, { ToastMessage } from '../components/ui/ToastContainer'
 
 // Define Operation interface to match OperationForm component's type
 interface Operation {
@@ -123,6 +124,7 @@ const Operations: React.FC = () => {
   const [allOperations, setAllOperations] = useState<Operation[]>([])
   const [selectedOperation, setSelectedOperation] = useState<Operation | null>(null)
   const [showOperationForm, setShowOperationForm] = useState(false)
+  const [toasts, setToasts] = useState<ToastMessage[]>([])
   // Track where the operation form should be displayed
 
   // Filter operations to only include those still admitted, future discharge, or added today
@@ -202,6 +204,17 @@ const Operations: React.FC = () => {
     }
   }
 
+  // Function to add a toast notification
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success'): void => {
+    const id = Math.random().toString(36).substring(2, 9)
+    setToasts((prevToasts) => [...prevToasts, { id, message, type }])
+  }
+
+  // Function to remove a toast notification
+  const removeToast = (id: string): void => {
+    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id))
+  }
+
   // Function to load all operations
   const loadAllOperations = async (): Promise<void> => {
     try {
@@ -209,7 +222,11 @@ const Operations: React.FC = () => {
       const api = window.api as API
       if (api.getOperations) {
         const operations = await api.getOperations()
-        setAllOperations(operations)
+        if (operations) {
+          setAllOperations(operations)
+        } else {
+          setError('No operations found')
+        }
       } else {
         console.error('getOperations method is not available')
         setError('Failed to load operations: API method not available')
@@ -299,6 +316,7 @@ const Operations: React.FC = () => {
       const api = window.api as API
       if (api.deleteOperation) {
         await api.deleteOperation(operationId)
+        addToast('Operation deleted successfully')
         setAllOperations(allOperations.filter((op) => op.id !== operationId))
         setPatientOperations(patientOperations.filter((op) => op.id !== operationId))
         setSelectedOperation(null)
@@ -330,18 +348,21 @@ const Operations: React.FC = () => {
       const api = window.api as API
       if (api.addOperation) {
         const newOperation = await api.addOperation(operationData)
-        setAllOperations([...allOperations, newOperation])
-        if (
-          selectedPatient &&
-          operationData.patientId === (selectedPatient['PATIENT ID'] || selectedPatient.id)
-        ) {
-          setPatientOperations([...patientOperations, newOperation])
+        if (newOperation) {
+          addToast('Operation added successfully')
+          setAllOperations([...allOperations, newOperation])
+          if (
+            selectedPatient &&
+            operationData.patientId === (selectedPatient['PATIENT ID'] || selectedPatient.id)
+          ) {
+            setPatientOperations([...patientOperations, newOperation])
+          }
+          setShowOperationForm(false)
+          setSelectedOperation(null)
+          setFoundPatient(null)
+          setSelectedPatient(null)
+          setPatientOperations([])
         }
-        setShowOperationForm(false)
-        setSelectedOperation(null)
-        setFoundPatient(null)
-        setSelectedPatient(null)
-        setPatientOperations([])
       } else {
         console.error('addOperation method is not available')
         setError('Failed to add operation: API method not available')
@@ -370,22 +391,25 @@ const Operations: React.FC = () => {
       const api = window.api as API
       if (api.updateOperation) {
         const updatedOperation = await api.updateOperation(operationData.id, operationData)
-        setAllOperations(
-          allOperations.map((op) => (op.id === updatedOperation.id ? updatedOperation : op))
-        )
-        if (
-          selectedPatient &&
-          operationData.patientId === (selectedPatient['PATIENT ID'] || selectedPatient.id)
-        ) {
-          setPatientOperations(
-            patientOperations.map((op) => (op.id === updatedOperation.id ? updatedOperation : op))
+        if (updatedOperation) {
+          addToast('Operation updated successfully')
+          setAllOperations(
+            allOperations.map((op) => (op.id === updatedOperation.id ? updatedOperation : op))
           )
+          if (
+            selectedPatient &&
+            operationData.patientId === (selectedPatient['PATIENT ID'] || selectedPatient.id)
+          ) {
+            setPatientOperations(
+              patientOperations.map((op) => (op.id === updatedOperation.id ? updatedOperation : op))
+            )
+          }
+          setShowOperationForm(false)
+          setSelectedOperation(null)
+          setFoundPatient(null)
+          setSelectedPatient(null)
+          setPatientOperations([])
         }
-        setShowOperationForm(false)
-        setSelectedOperation(null)
-        setFoundPatient(null)
-        setSelectedPatient(null)
-        setPatientOperations([])
       } else {
         console.error('updateOperation method is not available')
         setError('Failed to update operation: API method not available')
@@ -407,7 +431,10 @@ const Operations: React.FC = () => {
       const api = window.api as API
       if (api.getPatientOperations) {
         const operations = await api.getPatientOperations(patientId)
-        setPatientOperations(operations)
+        if (operations) {
+          addToast('Patient operations loaded successfully')
+          setPatientOperations(operations)
+        }
       } else {
         console.error('getPatientOperations method is not available')
         setError('Failed to load patient operations: API method not available')
@@ -1111,6 +1138,7 @@ const Operations: React.FC = () => {
           </div>
         </div>
       </main>
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   )
 }

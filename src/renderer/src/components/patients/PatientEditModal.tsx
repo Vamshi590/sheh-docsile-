@@ -16,6 +16,7 @@ interface Patient {
   doctorName?: string
   department?: string
   referredBy?: string
+  createdBy?: string
 }
 
 interface PatientEditModalProps {
@@ -75,7 +76,8 @@ const PatientEditModal = ({
               status: patient.status || '',
               doctorName: patient.doctorName || '',
               department: patient.department || '',
-              referredBy: patient.referredBy || ''
+              referredBy: patient.referredBy || '',
+              createdBy: patient.createdBy || ''
             }}
             onSubmit={handleSubmit}
           />

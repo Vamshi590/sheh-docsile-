@@ -1356,23 +1356,7 @@ ipcMain.handle('getOperations', async () => {
     return operations || []
   } catch (supabaseError) {
     console.error('Error getting operations from Supabase:', supabaseError)
-
-    // Fallback to local Excel file if Supabase fails
-    try {
-      if (!fs.existsSync(operationsFilePath)) {
-        return []
-      }
-
-      const workbook = XLSX.readFile(operationsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-
-      console.log('Falling back to local Excel file for operations data')
-      return XLSX.utils.sheet_to_json(worksheet)
-    } catch (excelError) {
-      console.error('Error reading from Excel file:', excelError)
-      return []
-    }
+    return false
   }
 })
 
@@ -1393,25 +1377,7 @@ ipcMain.handle('getPatientOperations', async (_, patientId) => {
     return operations || []
   } catch (supabaseError) {
     console.error('Error getting patient operations from Supabase:', supabaseError)
-
-    // Fallback to local Excel file if Supabase fails
-    try {
-      if (!fs.existsSync(operationsFilePath)) {
-        return []
-      }
-
-      const workbook = XLSX.readFile(operationsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      const operations = XLSX.utils.sheet_to_json(worksheet) as Array<{ patientId: string }>
-
-      // Filter operations for the specific patient
-      console.log('Falling back to local Excel file for patient operations data')
-      return operations.filter((operation) => operation.patientId === patientId)
-    } catch (excelError) {
-      console.error('Error reading from Excel file:', excelError)
-      return []
-    }
+    return false
   }
 })
 
@@ -1449,60 +1415,12 @@ ipcMain.handle('addOperation', async (_, operation) => {
 
       console.log('Operation added to Supabase:', data)
 
-      // If Supabase insert was successful, also update local Excel file
-      try {
-        // Read existing operations
-        let operations: Array<{ id: string; [key: string]: unknown }> = []
-        if (fs.existsSync(operationsFilePath)) {
-          const workbook = XLSX.readFile(operationsFilePath)
-          const sheetName = workbook.SheetNames[0]
-          const worksheet = workbook.Sheets[sheetName]
-          operations = XLSX.utils.sheet_to_json(worksheet)
-        }
-
-        // Add the new operation
-        operations.push(operationWithId)
-
-        // Write back to Excel file
-        const newWorkbook = XLSX.utils.book_new()
-        const newWorksheet = XLSX.utils.json_to_sheet(operations)
-        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
-        XLSX.writeFile(newWorkbook, operationsFilePath)
-
-        console.log('Operation also added to Excel file')
-      } catch (excelError) {
-        console.error('Error updating Excel file:', excelError)
-        // Return Supabase data even if Excel update fails
-        return data[0]
-      }
-
       return data[0]
     } catch (supabaseError) {
       console.error('Error adding operation to Supabase:', supabaseError)
       // Fall back to Excel-only operation if Supabase fails
+      return false
     }
-
-    // Fallback to Excel-only add
-    // Read existing operations
-    let operations: Array<{ id: string; [key: string]: unknown }> = []
-    if (fs.existsSync(operationsFilePath)) {
-      const workbook = XLSX.readFile(operationsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      operations = XLSX.utils.sheet_to_json(worksheet)
-    }
-
-    // Add the new operation
-    operations.push(operationWithId)
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(operations)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
-    XLSX.writeFile(newWorkbook, operationsFilePath)
-
-    console.log('Operation added to Excel file only (Supabase failed)')
-    return operationWithId
   } catch (error) {
     console.error('Error adding operation:', error)
     throw error
@@ -1554,80 +1472,12 @@ ipcMain.handle('updateOperation', async (_, id, updatedOperation) => {
 
       console.log('Operation updated in Supabase:', data)
 
-      // If Supabase update was successful, also update local Excel file
-      try {
-        // Read existing operations
-        if (!fs.existsSync(operationsFilePath)) {
-          // Return Supabase data if Excel file doesn't exist
-          return data[0]
-        }
-
-        const workbook = XLSX.readFile(operationsFilePath)
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        const operations: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-          worksheet
-        ) as Array<{ id: string; [key: string]: unknown }>
-
-        // Find and update the operation
-        const operationIndex = operations.findIndex((op) => op.id === id)
-
-        if (operationIndex === -1) {
-          // If operation not found in Excel, return Supabase data
-          return data[0]
-        }
-
-        operations[operationIndex] = { ...updatedOperation, id }
-
-        // Write back to Excel file
-        const newWorkbook = XLSX.utils.book_new()
-        const newWorksheet = XLSX.utils.json_to_sheet(operations)
-        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
-        XLSX.writeFile(newWorkbook, operationsFilePath)
-
-        console.log('Operation also updated in Excel file')
-      } catch (excelError) {
-        console.error('Error updating Excel file:', excelError)
-        // Return Supabase data even if Excel update fails
-        return data[0]
-      }
-
       return data[0]
     } catch (supabaseError) {
       console.error('Error updating operation in Supabase:', supabaseError)
       // Fall back to Excel-only update if Supabase fails
+      return false
     }
-
-    // Fallback to Excel-only update
-    // Read existing operations
-    if (!fs.existsSync(operationsFilePath)) {
-      throw new Error('Operations file does not exist')
-    }
-
-    const workbook = XLSX.readFile(operationsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const operations: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-      worksheet
-    ) as Array<{ id: string; [key: string]: unknown }>
-
-    // Find and update the operation
-    const operationIndex = operations.findIndex((op) => op.id === id)
-
-    if (operationIndex === -1) {
-      throw new Error('Operation not found')
-    }
-
-    operations[operationIndex] = { ...updatedOperation, id }
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(operations)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
-    XLSX.writeFile(newWorkbook, operationsFilePath)
-
-    console.log('Operation updated in Excel file only (Supabase failed)')
-    return operations[operationIndex]
   } catch (error) {
     console.error('Error updating operation:', error)
     throw error
@@ -1646,82 +1496,12 @@ ipcMain.handle('deleteOperation', async (_, id) => {
       }
 
       console.log('Operation deleted from Supabase')
-
-      // Also delete from local Excel file
-      try {
-        // Read existing operations
-        if (!fs.existsSync(operationsFilePath)) {
-          return { success: true } // Return success if Excel file doesn't exist
-        }
-
-        const workbook = XLSX.readFile(operationsFilePath)
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        let operations: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-          worksheet
-        ) as Array<{ id: string; [key: string]: unknown }>
-
-        // Find the operation to delete
-        const operationIndex = operations.findIndex((op) => op.id === id)
-
-        if (operationIndex === -1) {
-          // If operation not found in Excel, still return success
-          return { success: true }
-        }
-
-        // Remove the operation
-        operations = operations.filter((op) => op.id !== id)
-
-        // Write back to Excel file
-        const newWorkbook = XLSX.utils.book_new()
-        const newWorksheet = XLSX.utils.json_to_sheet(operations)
-        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
-        XLSX.writeFile(newWorkbook, operationsFilePath)
-
-        console.log('Operation also deleted from Excel file')
-      } catch (excelError) {
-        console.error('Error updating Excel file:', excelError)
-        // Return success even if Excel update fails
-        return { success: true }
-      }
-
-      return { success: true }
+      return true
     } catch (supabaseError) {
       console.error('Error deleting operation from Supabase:', supabaseError)
       // Fall back to Excel-only delete if Supabase fails
+      return false
     }
-
-    // Fallback to Excel-only delete
-    // Read existing operations
-    if (!fs.existsSync(operationsFilePath)) {
-      throw new Error('Operations file does not exist')
-    }
-
-    const workbook = XLSX.readFile(operationsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    let operations: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-      worksheet
-    ) as Array<{ id: string; [key: string]: unknown }>
-
-    // Find the operation to delete
-    const operationIndex = operations.findIndex((op) => op.id === id)
-
-    if (operationIndex === -1) {
-      throw new Error('Operation not found')
-    }
-
-    // Remove the operation
-    operations = operations.filter((op) => op.id !== id)
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(operations)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Operations')
-    XLSX.writeFile(newWorkbook, operationsFilePath)
-
-    console.log('Operation deleted from Excel file only (Supabase failed)')
-    return { success: true }
   } catch (error) {
     console.error('Error deleting operation:', error)
     throw error
@@ -1749,20 +1529,10 @@ ipcMain.handle('getMedicines', async () => {
       console.error('Error getting medicines from Supabase:', supabaseError)
       // Fall back to Excel if Supabase fails
     }
-
-    // Fallback to Excel
-    if (!fs.existsSync(medicinesFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(medicinesFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-
-    return XLSX.utils.sheet_to_json(worksheet)
+    return false
   } catch (error) {
     console.error('Error getting medicines:', error)
-    return []
+    return false
   }
 })
 
@@ -1799,34 +1569,15 @@ ipcMain.handle('searchMedicines', async (_, searchTerm) => {
           return data
         }
       }
+      return false
     } catch (supabaseError) {
       console.error('Error searching medicines from Supabase:', supabaseError)
       // Fall back to Excel if Supabase fails
+      return false
     }
-
-    // Fallback to Excel
-    if (!fs.existsSync(medicinesFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(medicinesFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const medicines: Array<{ id: string; name: string; [key: string]: unknown }> =
-      XLSX.utils.sheet_to_json(worksheet)
-
-    // Filter medicines based on search term
-    if (!searchTerm || searchTerm.trim() === '') {
-      return medicines
-    }
-
-    const searchTermLower = searchTerm.toLowerCase()
-    return medicines.filter(
-      (m) => m.name && m.name.toString().toLowerCase().includes(searchTermLower)
-    )
   } catch (error) {
     console.error('Error searching medicines:', error)
-    return []
+    return false
   }
 })
 
@@ -1843,62 +1594,12 @@ ipcMain.handle('addMedicine', async (_, medicine) => {
       if (error) {
         throw new Error(`Supabase error: ${error.message}`)
       }
-
-      console.log('Medicine added to Supabase')
-
-      // Also add to Excel for local backup
-      try {
-        // Read existing medicines
-        let medicines: Array<{ id: string; [key: string]: unknown }> = []
-        if (fs.existsSync(medicinesFilePath)) {
-          const workbook = XLSX.readFile(medicinesFilePath)
-          const sheetName = workbook.SheetNames[0]
-          const worksheet = workbook.Sheets[sheetName]
-          medicines = XLSX.utils.sheet_to_json(worksheet)
-        }
-
-        // Add the new medicine
-        medicines.push(medicineWithId)
-
-        // Write back to Excel file
-        const newWorkbook = XLSX.utils.book_new()
-        const newWorksheet = XLSX.utils.json_to_sheet(medicines)
-        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
-        XLSX.writeFile(newWorkbook, medicinesFilePath)
-
-        console.log('Medicine also added to Excel file')
-      } catch (excelError) {
-        console.error('Error updating Excel file:', excelError)
-        // Return success even if Excel update fails
-      }
-
       return data[0] || medicineWithId
     } catch (supabaseError) {
       console.error('Error adding medicine to Supabase:', supabaseError)
       // Fall back to Excel-only add if Supabase fails
+      return false
     }
-
-    // Fallback to Excel-only add
-    // Read existing medicines
-    let medicines: Array<{ id: string; [key: string]: unknown }> = []
-    if (fs.existsSync(medicinesFilePath)) {
-      const workbook = XLSX.readFile(medicinesFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      medicines = XLSX.utils.sheet_to_json(worksheet)
-    }
-
-    // Add the new medicine
-    medicines.push(medicineWithId)
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(medicines)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
-    XLSX.writeFile(newWorkbook, medicinesFilePath)
-
-    console.log('Medicine added to Excel file only (Supabase failed)')
-    return medicineWithId
   } catch (error) {
     console.error('Error adding medicine:', error)
     throw error
@@ -1922,78 +1623,12 @@ ipcMain.handle('updateMedicine', async (_, id, updatedMedicine) => {
 
       console.log('Medicine updated in Supabase')
 
-      // Also update in Excel for local backup
-      try {
-        // Read existing medicines
-        if (!fs.existsSync(medicinesFilePath)) {
-          return data[0] || { ...updatedMedicine, id } // Return Supabase data if Excel file doesn't exist
-        }
-
-        const workbook = XLSX.readFile(medicinesFilePath)
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        const medicines: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-          worksheet
-        ) as Array<{ id: string; [key: string]: unknown }>
-
-        // Find and update the medicine
-        const medicineIndex = medicines.findIndex((m) => m.id === id)
-
-        if (medicineIndex === -1) {
-          // If medicine not found in Excel, still return success
-          return data[0] || { ...updatedMedicine, id }
-        }
-
-        medicines[medicineIndex] = { ...updatedMedicine, id }
-
-        // Write back to Excel file
-        const newWorkbook = XLSX.utils.book_new()
-        const newWorksheet = XLSX.utils.json_to_sheet(medicines)
-        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
-        XLSX.writeFile(newWorkbook, medicinesFilePath)
-
-        console.log('Medicine also updated in Excel file')
-      } catch (excelError) {
-        console.error('Error updating Excel file:', excelError)
-        // Return success even if Excel update fails
-      }
-
       return data[0] || { ...updatedMedicine, id }
     } catch (supabaseError) {
       console.error('Error updating medicine in Supabase:', supabaseError)
       // Fall back to Excel-only update if Supabase fails
+      return false
     }
-
-    // Fallback to Excel-only update
-    // Read existing medicines
-    if (!fs.existsSync(medicinesFilePath)) {
-      throw new Error('Medicines file does not exist')
-    }
-
-    const workbook = XLSX.readFile(medicinesFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const medicines: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-      worksheet
-    ) as Array<{ id: string; [key: string]: unknown }>
-
-    // Find and update the medicine
-    const medicineIndex = medicines.findIndex((m) => m.id === id)
-
-    if (medicineIndex === -1) {
-      throw new Error('Medicine not found')
-    }
-
-    medicines[medicineIndex] = { ...updatedMedicine, id }
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(medicines)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
-    XLSX.writeFile(newWorkbook, medicinesFilePath)
-
-    console.log('Medicine updated in Excel file only (Supabase failed)')
-    return medicines[medicineIndex]
   } catch (error) {
     console.error('Error updating medicine:', error)
     throw error
@@ -2013,77 +1648,15 @@ ipcMain.handle('deleteMedicine', async (_, id) => {
 
       console.log('Medicine deleted from Supabase')
 
-      // Also delete from local Excel file
-      try {
-        // Read existing medicines
-        if (!fs.existsSync(medicinesFilePath)) {
-          return { success: true } // Return success if Excel file doesn't exist
-        }
-
-        const workbook = XLSX.readFile(medicinesFilePath)
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        const medicines: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-          worksheet
-        ) as Array<{ id: string; [key: string]: unknown }>
-
-        // Find the medicine to delete
-        const medicineIndex = medicines.findIndex((m) => m.id === id)
-
-        if (medicineIndex === -1) {
-          // If medicine not found in Excel, still return success
-          return { success: true }
-        }
-
-        // Filter out the medicine to delete
-        const updatedMedicines = medicines.filter((m) => m.id !== id)
-
-        // Write back to Excel file
-        const newWorkbook = XLSX.utils.book_new()
-        const newWorksheet = XLSX.utils.json_to_sheet(updatedMedicines)
-        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
-        XLSX.writeFile(newWorkbook, medicinesFilePath)
-
-        console.log('Medicine also deleted from Excel file')
-      } catch (excelError) {
-        console.error('Error updating Excel file:', excelError)
-        // Return success even if Excel update fails
-        return { success: true }
-      }
-
       return { success: true }
     } catch (supabaseError) {
       console.error('Error deleting medicine from Supabase:', supabaseError)
       // Fall back to Excel-only delete if Supabase fails
+      return false
     }
-
-    // Fallback to Excel-only delete
-    // Read existing medicines
-    if (!fs.existsSync(medicinesFilePath)) {
-      throw new Error('Medicines file does not exist')
-    }
-
-    const workbook = XLSX.readFile(medicinesFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const medicines: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-      worksheet
-    ) as Array<{ id: string; [key: string]: unknown }>
-
-    // Filter out the medicine to delete
-    const updatedMedicines = medicines.filter((m) => m.id !== id)
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(updatedMedicines)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
-    XLSX.writeFile(newWorkbook, medicinesFilePath)
-
-    console.log('Medicine deleted from Excel file only (Supabase failed)')
-    return { success: true }
   } catch (error) {
     console.error('Error deleting medicine:', error)
-    return { success: false }
+    throw error
   }
 })
 
@@ -2103,76 +1676,12 @@ ipcMain.handle('updateMedicineStatus', async (_, id, status) => {
       }
 
       console.log('Medicine status updated in Supabase')
-
-      // Also update in Excel for local backup
-      try {
-        // Read existing medicines
-        if (!fs.existsSync(medicinesFilePath)) {
-          return data[0] || { id, status }
-        }
-
-        const workbook = XLSX.readFile(medicinesFilePath)
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        const medicines: Array<{ id: string; status: string; [key: string]: unknown }> =
-          XLSX.utils.sheet_to_json(worksheet)
-
-        // Find and update the medicine status
-        const medicineIndex = medicines.findIndex((m) => m.id === id)
-
-        if (medicineIndex !== -1) {
-          medicines[medicineIndex].status = status
-
-          // Write back to Excel file
-          const newWorkbook = XLSX.utils.book_new()
-          const newWorksheet = XLSX.utils.json_to_sheet(medicines)
-          XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
-          XLSX.writeFile(newWorkbook, medicinesFilePath)
-
-          console.log('Medicine status also updated in Excel file')
-        }
-
-        return data[0] || { id, status }
-      } catch (excelError) {
-        console.error('Error updating Excel file:', excelError)
-        // Return Supabase data even if Excel update fails
-        return data[0] || { id, status }
-      }
+      return data[0] || { id, status }
     } catch (supabaseError) {
       console.error('Error updating medicine status in Supabase:', supabaseError)
       // Fall back to Excel-only update if Supabase fails
+      return false
     }
-
-    // Fallback to Excel-only update
-    // Read existing medicines
-    if (!fs.existsSync(medicinesFilePath)) {
-      throw new Error('Medicines file does not exist')
-    }
-
-    const workbook = XLSX.readFile(medicinesFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const medicines: Array<{ id: string; status: string; [key: string]: unknown }> =
-      XLSX.utils.sheet_to_json(worksheet)
-
-    // Find and update the medicine status
-    const medicineIndex = medicines.findIndex((m) => m.id === id)
-
-    if (medicineIndex === -1) {
-      throw new Error('Medicine not found')
-    }
-
-    medicines[medicineIndex].status = status
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(medicines)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
-    XLSX.writeFile(newWorkbook, medicinesFilePath)
-
-    console.log('Medicine status updated in Excel file only (Supabase failed)')
-
-    return medicines[medicineIndex]
   } catch (error) {
     console.error('Error updating medicine status:', error)
     throw error
@@ -2190,31 +1699,16 @@ ipcMain.handle('getMedicinesByStatus', async (_, status) => {
         throw new Error(`Supabase error: ${error.message}`)
       }
 
-      if (data) {
-        console.log('Medicines by status fetched from Supabase')
-        return data
-      }
+      console.log('Medicines by status fetched from Supabase')
+      return data
     } catch (supabaseError) {
       console.error('Error getting medicines by status from Supabase:', supabaseError)
       // Fall back to Excel if Supabase fails
+      return false
     }
-
-    // Fallback to Excel
-    if (!fs.existsSync(medicinesFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(medicinesFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const medicines: Array<{ status: string; [key: string]: unknown }> =
-      XLSX.utils.sheet_to_json(worksheet)
-
-    // Filter medicines by status
-    return medicines.filter((m) => m.status === status)
   } catch (error) {
     console.error('Error getting medicines by status:', error)
-    return []
+    return false
   }
 })
 
@@ -2231,41 +1725,23 @@ ipcMain.handle('getOpticalItems', async () => {
         if (error) {
           console.error('Error getting optical items from Supabase:', error)
         } else if (data && data.length > 0) {
-          return data
+          return data[0]
         }
       } catch (supabaseError) {
         console.error('Error getting optical items from Supabase:', supabaseError)
         // Fall back to Excel if Supabase fails
+        return false
       }
     }
-
-    // Fallback to Excel
-    if (!fs.existsSync(opticalsFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(opticalsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-
-    return XLSX.utils.sheet_to_json(worksheet)
   } catch (error) {
     console.error('Error getting optical items:', error)
-    return []
+    return false
   }
 })
 
 // Search optical items
 ipcMain.handle('searchOpticalItems', async (_, searchTerm, type) => {
   try {
-    let opticalItems: Array<{
-      id: string
-      type: string
-      brand: string
-      model?: string
-      [key: string]: unknown
-    }> = []
-
     // Try to get data from Supabase first
     if (supabase) {
       try {
@@ -2286,45 +1762,20 @@ ipcMain.handle('searchOpticalItems', async (_, searchTerm, type) => {
 
         if (error) {
           console.error('Error searching optical items from Supabase:', error)
-        } else if (data && data.length > 0) {
-          return data
         }
+
+        return data
       } catch (supabaseError) {
         console.error('Error searching optical items from Supabase:', supabaseError)
         // Fall back to Excel if Supabase fails
+        return false
       }
     }
 
-    // Fallback to Excel
-    if (!fs.existsSync(opticalsFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(opticalsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    opticalItems = XLSX.utils.sheet_to_json(worksheet)
-
-    // Filter by type if provided
-    let filteredItems = opticalItems
-    if (type) {
-      filteredItems = opticalItems.filter((item) => item.type === type)
-    }
-
-    // Filter by search term if provided
-    if (!searchTerm || searchTerm.trim() === '') {
-      return filteredItems
-    }
-
-    const searchTermLower = searchTerm.toLowerCase()
-    return filteredItems.filter(
-      (item) =>
-        (item.brand && item.brand.toString().toLowerCase().includes(searchTermLower)) ||
-        (item.model && item.model.toString().toLowerCase().includes(searchTermLower))
-    )
+    return false
   } catch (error) {
     console.error('Error searching optical items:', error)
-    return []
+    return false
   }
 })
 
@@ -2344,30 +1795,13 @@ ipcMain.handle('addOpticalItem', async (_, item) => {
         } else if (data && data.length > 0) {
           // Successfully added to Supabase, still add to Excel as backup
           console.log('Successfully added optical item to Supabase')
+          return data[0] || itemWithId
         }
       } catch (supabaseError) {
         console.error('Error adding optical item to Supabase:', supabaseError)
+        return false
       }
     }
-
-    // Read existing optical items from Excel
-    let opticalItems: Array<{ id: string; [key: string]: unknown }> = []
-    if (fs.existsSync(opticalsFilePath)) {
-      const workbook = XLSX.readFile(opticalsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      opticalItems = XLSX.utils.sheet_to_json(worksheet)
-    }
-
-    // Add the new optical item
-    opticalItems.push(itemWithId)
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(opticalItems)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Opticals')
-    XLSX.writeFile(newWorkbook, opticalsFilePath)
-
     return itemWithId
   } catch (error) {
     console.error('Error adding optical item:', error)
@@ -2396,38 +1830,10 @@ ipcMain.handle('updateOpticalItem', async (_, id, updatedItem) => {
         }
       } catch (supabaseError) {
         console.error('Error updating optical item in Supabase:', supabaseError)
+        return false
       }
     }
-
-    // Update in Excel as well
-    // Read existing optical items
-    if (!fs.existsSync(opticalsFilePath)) {
-      throw new Error('Opticals file does not exist')
-    }
-
-    const workbook = XLSX.readFile(opticalsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const opticalItems: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-      worksheet
-    ) as Array<{ id: string; [key: string]: unknown }>
-
-    // Find and update the optical item
-    const itemIndex = opticalItems.findIndex((item) => item.id === id)
-
-    if (itemIndex === -1) {
-      throw new Error('Optical item not found')
-    }
-
-    opticalItems[itemIndex] = itemWithId
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(opticalItems)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Opticals')
-    XLSX.writeFile(newWorkbook, opticalsFilePath)
-
-    return opticalItems[itemIndex]
+    return itemWithId
   } catch (error) {
     console.error('Error updating optical item:', error)
     throw error
@@ -2449,38 +1855,15 @@ ipcMain.handle('deleteOpticalItem', async (_, id) => {
         }
       } catch (supabaseError) {
         console.error('Error deleting optical item from Supabase:', supabaseError)
+        return false
       }
     }
-
-    // Delete from Excel as well
-    // Read existing optical items
-    if (!fs.existsSync(opticalsFilePath)) {
-      throw new Error('Opticals file does not exist')
-    }
-
-    const workbook = XLSX.readFile(opticalsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const opticalItems: Array<{ id: string; [key: string]: unknown }> = XLSX.utils.sheet_to_json(
-      worksheet
-    ) as Array<{ id: string; [key: string]: unknown }>
-
-    // Filter out the optical item to delete
-    const updatedItems = opticalItems.filter((item) => item.id !== id)
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(updatedItems)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Opticals')
-    XLSX.writeFile(newWorkbook, opticalsFilePath)
-
-    return true
+    return false
   } catch (error) {
     console.error('Error deleting optical item:', error)
     return false
   }
 })
-
 // Update optical item status
 ipcMain.handle('updateOpticalItemStatus', async (_, id, status) => {
   try {
@@ -2500,40 +1883,13 @@ ipcMain.handle('updateOpticalItemStatus', async (_, id, status) => {
         }
       } catch (supabaseError) {
         console.error('Error updating optical item status in Supabase:', supabaseError)
+        return false
       }
     }
-
-    // Update in Excel as well
-    // Read existing optical items
-    if (!fs.existsSync(opticalsFilePath)) {
-      throw new Error('Opticals file does not exist')
-    }
-
-    const workbook = XLSX.readFile(opticalsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const opticalItems: Array<{ id: string; status: string; [key: string]: unknown }> =
-      XLSX.utils.sheet_to_json(worksheet)
-
-    // Find and update the optical item status
-    const itemIndex = opticalItems.findIndex((item) => item.id === id)
-
-    if (itemIndex === -1) {
-      throw new Error('Optical item not found')
-    }
-
-    opticalItems[itemIndex].status = status
-
-    // Write back to Excel file
-    const newWorkbook = XLSX.utils.book_new()
-    const newWorksheet = XLSX.utils.json_to_sheet(opticalItems)
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Opticals')
-    XLSX.writeFile(newWorkbook, opticalsFilePath)
-
-    return opticalItems[itemIndex]
+    return false
   } catch (error) {
     console.error('Error updating optical item status:', error)
-    throw error
+    return false
   }
 })
 
@@ -2559,40 +1915,10 @@ ipcMain.handle('getOpticalItemsByStatus', async (_, status, type) => {
         }
       } catch (supabaseError) {
         console.error('Error getting optical items by status from Supabase:', supabaseError)
-        // Fall back to Excel if Supabase fails
+        return []
       }
     }
-
-    // Fallback to Excel
-    if (!fs.existsSync(opticalsFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(opticalsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const opticalItems: Array<{
-      type: string
-      brand: string
-      model: string
-      size: string
-      power: string
-      quantity: number
-      price: number
-      status: string
-      id: string
-      [key: string]: unknown
-    }> = XLSX.utils.sheet_to_json(worksheet)
-
-    // Filter by status
-    let filteredItems = opticalItems.filter((item) => item.status === status)
-
-    // Further filter by type if provided
-    if (type) {
-      filteredItems = filteredItems.filter((item) => item.type === type)
-    }
-
-    return filteredItems
+    return []
   } catch (error) {
     console.error('Error getting optical items by status:', error)
     return []
@@ -2614,23 +1940,10 @@ ipcMain.handle('getOpticalItemsByType', async (_, type) => {
         }
       } catch (supabaseError) {
         console.error('Error getting optical items by type from Supabase:', supabaseError)
-        // Fall back to Excel if Supabase fails
+        return []
       }
     }
-
-    // Fallback to Excel
-    if (!fs.existsSync(opticalsFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(opticalsFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const opticalItems: Array<{ type: string; [key: string]: unknown }> =
-      XLSX.utils.sheet_to_json(worksheet)
-
-    // Filter by type
-    return opticalItems.filter((item) => item.type === type)
+    return []
   } catch (error) {
     console.error('Error getting optical items by type:', error)
     return []
@@ -2657,8 +1970,6 @@ ipcMain.handle(
   async (_, id, quantity, dispensedBy, patientId, price, totalAmount) => {
     try {
       let medicine
-      let medicineIndex
-
       // Try to update in Supabase first
       try {
         // First get the medicine from Supabase
@@ -2725,156 +2036,12 @@ ipcMain.handle(
 
         console.log('Medicine dispense record added to Supabase')
 
-        // Also update Excel files for local backup
-        try {
-          // Update medicines Excel file
-          if (fs.existsSync(medicinesFilePath)) {
-            const workbook = XLSX.readFile(medicinesFilePath)
-            const sheetName = workbook.SheetNames[0]
-            const worksheet = workbook.Sheets[sheetName]
-            const medicines = XLSX.utils.sheet_to_json(worksheet) as Array<{
-              id: string
-              name: string
-              quantity: number
-              batchNumber: string
-              [key: string]: unknown
-            }>
-
-            medicineIndex = medicines.findIndex((m) => m.id === id)
-
-            if (medicineIndex !== -1) {
-              medicines[medicineIndex].quantity = updatedQuantity
-
-              if (updatedQuantity === 0) {
-                medicines[medicineIndex].status = 'out_of_stock'
-              }
-
-              // Write updated medicines back to Excel file
-              const newWorkbook = XLSX.utils.book_new()
-              const newWorksheet = XLSX.utils.json_to_sheet(medicines)
-              XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
-              XLSX.writeFile(newWorkbook, medicinesFilePath)
-
-              console.log('Medicine quantity also updated in Excel file')
-            }
-          }
-
-          // Update dispense records Excel file
-          let dispenseRecords: Array<{ id: string; [key: string]: unknown }> = []
-          if (fs.existsSync(medicineDispenseFilePath)) {
-            const dispenseWorkbook = XLSX.readFile(medicineDispenseFilePath)
-            const dispenseSheetName = dispenseWorkbook.SheetNames[0]
-            const dispenseWorksheet = dispenseWorkbook.Sheets[dispenseSheetName]
-            dispenseRecords = XLSX.utils.sheet_to_json(dispenseWorksheet)
-          }
-
-          // Add the new dispense record
-          dispenseRecords.push(dispenseRecord)
-
-          // Write back to Excel file
-          const dispenseWorkbook = XLSX.utils.book_new()
-          const dispenseWorksheet = XLSX.utils.json_to_sheet(dispenseRecords)
-          XLSX.utils.book_append_sheet(
-            dispenseWorkbook,
-            dispenseWorksheet,
-            'MedicineDispenseRecords'
-          )
-          XLSX.writeFile(dispenseWorkbook, medicineDispenseFilePath)
-
-          console.log('Medicine dispense record also added to Excel file')
-        } catch (excelError) {
-          console.error('Error updating Excel files:', excelError)
-          // Continue even if Excel update fails
-        }
-
         return updatedMedicine[0] || medicine
       } catch (supabaseError) {
         console.error('Error updating medicine in Supabase:', supabaseError)
         // Fall back to Excel-only update if Supabase fails
+        return false
       }
-
-      // Fallback to Excel-only update
-      // Read existing medicines
-      if (!fs.existsSync(medicinesFilePath)) {
-        throw new Error('Medicines file does not exist')
-      }
-
-      const workbook = XLSX.readFile(medicinesFilePath)
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      const medicines: Array<{
-        id: string
-        name: string
-        quantity: number
-        batchNumber: string
-        [key: string]: unknown
-      }> = XLSX.utils.sheet_to_json(worksheet)
-
-      // Find the medicine to dispense
-      medicineIndex = medicines.findIndex((m) => m.id === id)
-
-      if (medicineIndex === -1) {
-        throw new Error('Medicine not found')
-      }
-
-      medicine = medicines[medicineIndex]
-
-      // Check if there's enough quantity
-      if (medicine.quantity < quantity) {
-        throw new Error('Not enough medicine in stock')
-      }
-
-      // Update the medicine quantity
-      medicines[medicineIndex].quantity = medicine.quantity - quantity
-
-      // Update medicine status if needed
-      if (medicines[medicineIndex].quantity === 0) {
-        medicines[medicineIndex].status = 'out_of_stock'
-      }
-
-      // Write updated medicines back to Excel file
-      const newWorkbook = XLSX.utils.book_new()
-      const newWorksheet = XLSX.utils.json_to_sheet(medicines)
-      XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Medicines')
-      XLSX.writeFile(newWorkbook, medicinesFilePath)
-
-      console.log('Medicine quantity updated in Excel file only (Supabase failed)')
-
-      // Create a dispense record
-      const dispenseRecord = {
-        id: uuidv4(),
-        medicineId: id,
-        medicineName: medicine.name,
-        batchNumber: medicine.batchNumber,
-        quantity: quantity,
-        price: price,
-        totalAmount: totalAmount,
-        dispensedDate: new Date().toISOString(),
-        patientName: dispensedBy,
-        patientId: patientId || ''
-      }
-
-      // Read existing dispense records
-      let dispenseRecords: Array<{ id: string; [key: string]: unknown }> = []
-      if (fs.existsSync(medicineDispenseFilePath)) {
-        const dispenseWorkbook = XLSX.readFile(medicineDispenseFilePath)
-        const dispenseSheetName = dispenseWorkbook.SheetNames[0]
-        const dispenseWorksheet = dispenseWorkbook.Sheets[dispenseSheetName]
-        dispenseRecords = XLSX.utils.sheet_to_json(dispenseWorksheet)
-      }
-
-      // Add the new dispense record
-      dispenseRecords.push(dispenseRecord)
-
-      // Write back to Excel file
-      const dispenseWorkbook = XLSX.utils.book_new()
-      const dispenseWorksheet = XLSX.utils.json_to_sheet(dispenseRecords)
-      XLSX.utils.book_append_sheet(dispenseWorkbook, dispenseWorksheet, 'MedicineDispenseRecords')
-      XLSX.writeFile(dispenseWorkbook, medicineDispenseFilePath)
-
-      console.log('Medicine dispense record added to Excel file only (Supabase failed)')
-
-      return medicines[medicineIndex]
     } catch (error) {
       console.error('Error dispensing medicine:', error)
       throw error
@@ -2915,43 +2082,15 @@ ipcMain.handle('getMedicineDispenseRecords', async (_, page = 1, pageSize = 10) 
         console.log(`Medicine dispense records page ${page} fetched from Supabase`)
         return { data, totalCount: count, page, pageSize }
       }
+      return false
     } catch (supabaseError) {
       console.error('Error getting medicine dispense records from Supabase:', supabaseError)
       // Fall back to Excel if Supabase fails
+      return false
     }
-
-    // Fallback to Excel with manual pagination
-    if (!fs.existsSync(medicineDispenseFilePath)) {
-      return { data: [], totalCount: 0, page, pageSize }
-    }
-
-    const workbook = XLSX.readFile(medicineDispenseFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    // Get all records
-    const allRecords = XLSX.utils.sheet_to_json(worksheet) as Array<{
-      dispensedDate: string
-      [key: string]: unknown
-    }>
-    // Sort by dispensedDate in descending order (newest first)
-    const sortedRecords = allRecords.sort((a, b) => {
-      const dateA = new Date(a.dispensedDate).getTime()
-      const dateB = new Date(b.dispensedDate).getTime()
-      return dateB - dateA
-    })
-
-    // Calculate pagination
-    const totalCount = sortedRecords.length
-    const from = (page - 1) * pageSize
-    const to = Math.min(from + pageSize, totalCount)
-
-    // Get paginated data
-    const paginatedData = sortedRecords.slice(from, to)
-    console.log(`Medicine dispense records page ${page} fetched from Excel fallback`)
-    return { data: paginatedData, totalCount, page, pageSize }
   } catch (error) {
     console.error('Error getting medicine dispense records:', error)
-    return { data: [], totalCount: 0, page, pageSize }
+    return false
   }
 })
 
@@ -2979,24 +2118,12 @@ ipcMain.handle('getMedicineDispenseRecordsByPatient', async (_, patientId) => {
         supabaseError
       )
       // Fall back to Excel if Supabase fails
+      return false
     }
-
-    // Fallback to Excel
-    if (!fs.existsSync(medicineDispenseFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(medicineDispenseFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const records: Array<{ patientId: string; [key: string]: unknown }> =
-      XLSX.utils.sheet_to_json(worksheet)
-
-    // Filter records by patient ID
-    return records.filter((record) => record.patientId === patientId)
+    return false
   } catch (error) {
     console.error('Error getting medicine dispense records by patient:', error)
-    return []
+    return false
   }
 })
 
@@ -3023,25 +2150,12 @@ ipcMain.handle('getMedicineDispenseRecordsByMedicine', async (_, medicineId) => 
         'Error getting medicine dispense records by medicine from Supabase:',
         supabaseError
       )
-      // Fall back to Excel if Supabase fails
+      return false
     }
-
-    // Fallback to Excel
-    if (!fs.existsSync(medicineDispenseFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(medicineDispenseFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const records: Array<{ medicineId: string; [key: string]: unknown }> =
-      XLSX.utils.sheet_to_json(worksheet)
-
-    // Filter records by medicine ID
-    return records.filter((record) => record.medicineId === medicineId)
+    return false
   } catch (error) {
     console.error('Error getting medicine dispense records by medicine:', error)
-    return []
+    return false
   }
 })
 
@@ -3063,9 +2177,6 @@ if (!fs.existsSync(opticalDispenseFilePath)) {
 ipcMain.handle('dispenseOptical', async (_, id, quantity, patientName, patientId, dispensedBy) => {
   try {
     let supabaseOpticalItem: Record<string, unknown> | null = null
-    let excelOpticalItem: Record<string, unknown> | null = null
-    let supabaseSuccess = false
-
     // Try to update in Supabase first
     if (supabase) {
       try {
@@ -3111,7 +2222,6 @@ ipcMain.handle('dispenseOptical', async (_, id, quantity, patientName, patientId
             console.error('Error updating optical item in Supabase:', updateError)
           } else if (updateData && updateData.length > 0) {
             console.log('Successfully updated optical item in Supabase')
-            supabaseSuccess = true
 
             // Create dispense record in Supabase
             if (supabaseOpticalItem) {
@@ -3144,94 +2254,15 @@ ipcMain.handle('dispenseOptical', async (_, id, quantity, patientName, patientId
       } catch (supabaseError) {
         console.error('Error with Supabase operations:', supabaseError)
         // Fall back to Excel if Supabase fails
+        return false
       }
+      return false
     }
 
-    // Read the optical items file
-    let opticalItems: Record<string, unknown>[] = []
-
-    if (fs.existsSync(opticalsFilePath)) {
-      const workbook = XLSX.readFile(opticalsFilePath)
-      const sheetName = workbook.SheetNames[0]
-      opticalItems = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as Record<
-        string,
-        unknown
-      >[]
-    } else {
-      throw new Error('Optical items file not found')
-    }
-
-    // Find the optical item by ID
-    excelOpticalItem = opticalItems.find((item) => item.id === id) || null
-
-    if (!excelOpticalItem) {
-      throw new Error('Optical item not found')
-    }
-
-    // Check if the item is available
-    if (excelOpticalItem.status !== 'available') {
-      throw new Error('Optical item is not available')
-    }
-
-    // Check if there's enough quantity
-    if ((excelOpticalItem.quantity as number) < quantity) {
-      throw new Error(`Only ${excelOpticalItem.quantity} units available`)
-    }
-
-    // Update the quantity
-    excelOpticalItem.quantity = (excelOpticalItem.quantity as number) - quantity
-
-    // Update the status if needed
-    if ((excelOpticalItem.quantity as number) <= 0) {
-      excelOpticalItem.status = 'out_of_stock'
-    }
-
-    // Write the updated optical items back to the file
-    const newWorkbook = XLSX.utils.book_new()
-    const newSheet = XLSX.utils.json_to_sheet(opticalItems)
-    XLSX.utils.book_append_sheet(newWorkbook, newSheet, 'Optical Items')
-    XLSX.writeFile(newWorkbook, opticalsFilePath)
-
-    // Create a dispense record
-    const opticalDispenseFilePath = app.getPath('userData') + '/optical_dispense_records.xlsx'
-    let dispenseRecords: Record<string, unknown>[] = []
-
-    if (fs.existsSync(opticalDispenseFilePath)) {
-      const dispenseWorkbook = XLSX.readFile(opticalDispenseFilePath)
-      const dispenseSheetName = dispenseWorkbook.SheetNames[0]
-      dispenseRecords = XLSX.utils.sheet_to_json(
-        dispenseWorkbook.Sheets[dispenseSheetName]
-      ) as Record<string, unknown>[]
-    }
-
-    // Add the new dispense record
-    const excelDispenseRecord = {
-      id: uuidv4(),
-      opticalId: id,
-      opticalType: excelOpticalItem.type,
-      brand: excelOpticalItem.brand,
-      model: excelOpticalItem.model || '',
-      quantity: quantity,
-      price: excelOpticalItem.price || 0,
-      patientName: patientName,
-      patientId: patientId || '',
-      dispensedBy: dispensedBy || '',
-      dispensedAt: new Date().toISOString()
-    }
-
-    dispenseRecords.push(excelDispenseRecord)
-
-    // Write the updated dispense records back to the file
-    const newDispenseWorkbook = XLSX.utils.book_new()
-    const dispenseSheet = XLSX.utils.json_to_sheet(dispenseRecords)
-    XLSX.utils.book_append_sheet(newDispenseWorkbook, dispenseSheet, 'Dispense Records')
-    XLSX.writeFile(newDispenseWorkbook, opticalDispenseFilePath)
-
-    // Return the updated item - prefer Supabase item if available, otherwise Excel item
-    return supabaseSuccess && supabaseOpticalItem ? supabaseOpticalItem : excelOpticalItem
+    return false
   } catch (error) {
     console.error('Error dispensing optical item:', error)
-    throw error
+    return false
   }
 })
 
@@ -3278,35 +2309,15 @@ ipcMain.handle('getOpticalDispenseRecords', async (_, page = 1, pageSize = 10) =
       } catch (supabaseError) {
         console.error('Error with Supabase operations:', supabaseError)
         // Fall back to Excel if Supabase fails
+        return false
       }
+      return false
     }
 
-    // Fall back to Excel if Supabase failed or is not available
-    if (!fs.existsSync(opticalDispenseFilePath)) {
-      return { data: [], totalCount: 0, page, pageSize }
-    }
-
-    const workbook = XLSX.readFile(opticalDispenseFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const allRecords = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[]
-
-    // Calculate pagination
-    totalCount = allRecords.length
-    const startIndex = (page - 1) * pageSize
-    const endIndex = startIndex + pageSize
-    data = allRecords.slice(startIndex, endIndex) as Record<string, unknown>[]
-
-    // Return paginated data with metadata
-    return {
-      data,
-      totalCount,
-      page,
-      pageSize
-    }
+    return false
   } catch (error) {
     console.error('Error getting optical dispense records:', error)
-    return { data: [], totalCount: 0, page, pageSize }
+    return false
   }
 })
 
@@ -3330,25 +2341,14 @@ ipcMain.handle('getOpticalDispenseRecordsByPatient', async (_, patientId) => {
       } catch (supabaseError) {
         console.error('Error with Supabase operations:', supabaseError)
         // Fall back to Excel if Supabase fails
+        return false
       }
+      return false
     }
-
-    // Fall back to Excel if Supabase failed or is not available
-    if (!fs.existsSync(opticalDispenseFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(opticalDispenseFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const records: Array<{ patientId: string; [key: string]: unknown }> =
-      XLSX.utils.sheet_to_json(worksheet)
-
-    // Filter records by patient ID
-    return records.filter((record) => record.patientId === patientId)
+    return false
   } catch (error) {
     console.error('Error getting optical dispense records by patient:', error)
-    return []
+    return false
   }
 })
 
@@ -3372,25 +2372,13 @@ ipcMain.handle('getOpticalDispenseRecordsByType', async (_, type) => {
       } catch (supabaseError) {
         console.error('Error with Supabase operations:', supabaseError)
         // Fall back to Excel if Supabase fails
+        return false
       }
     }
-
-    // Fall back to Excel if Supabase failed or is not available
-    if (!fs.existsSync(opticalDispenseFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(opticalDispenseFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const records: Array<{ opticalType: string; [key: string]: unknown }> =
-      XLSX.utils.sheet_to_json(worksheet)
-
-    // Filter records by optical type
-    return records.filter((record) => record.opticalType === type)
+    return false
   } catch (error) {
     console.error('Error getting optical dispense records by type:', error)
-    return []
+    return false
   }
 })
 
@@ -3419,26 +2407,12 @@ ipcMain.handle('getOpticalDispenseRecordsByOptical', async (_, opticalId) => {
         // Fall back to Excel if Supabase fails
       }
     }
-
-    // Fall back to Excel if Supabase failed or is not available
-    if (!fs.existsSync(opticalDispenseFilePath)) {
-      return []
-    }
-
-    const workbook = XLSX.readFile(opticalDispenseFilePath)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const records: Array<{ opticalId: string; [key: string]: unknown }> =
-      XLSX.utils.sheet_to_json(worksheet)
-
-    // Filter records by optical ID
-    return records.filter((record) => record.opticalId === opticalId)
+    return false
   } catch (error) {
     console.error('Error getting optical dispense records by optical ID:', error)
-    return []
+    return false
   }
 })
-
 // ==================== ANALYTICS MODULE ====================
 
 // Define interfaces for analytics data
@@ -3644,31 +2618,6 @@ async function generateAnalyticsData(
       }
     } catch (supabaseError) {
       console.error('Error getting patients from Supabase for analytics:', supabaseError)
-
-      // Fallback to Excel
-      if (fs.existsSync(patientsFilePath)) {
-        const workbook = XLSX.readFile(patientsFilePath)
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        // Field names from Excel: date, patientId, name, guardian, dob, age, gender, phone, address, id
-        const allPatients: Array<{
-          id: string
-          date: string
-          gender: string
-          dob: string
-          name: string
-          patientId: string
-          age: number
-          [key: string]: unknown
-        }> = XLSX.utils.sheet_to_json(worksheet)
-
-        // Filter patients by date range
-        patients = allPatients.filter((patient) => {
-          const patientDate = new Date(patient.date)
-          return patientDate >= start && patientDate <= end
-        })
-        console.log('Falling back to Excel for patients analytics data')
-      }
     }
 
     if (patients.length > 0) {
@@ -3780,34 +2729,6 @@ async function generateAnalyticsData(
       }
     } catch (supabaseError) {
       console.error('Error getting prescriptions from Supabase for analytics:', supabaseError)
-
-      // Fallback to Excel
-      if (fs.existsSync(prescriptionsFilePath)) {
-        const workbook = XLSX.readFile(prescriptionsFilePath)
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        // Field names from Excel: Sno, DATE, RECEIPT NO, PATIENT ID, PATIENT NAME, etc.
-        const allPrescriptions: Array<{
-          DATE: string
-          'RECEIPT NO': string
-          'PATIENT ID': string
-          'PATIENT NAME': string
-          'AMOUNT RECEIVED': number
-          'PAID FOR': string
-          'TOTAL AMOUNT': number
-          'AMOUNT DUE': number
-          'PRESENT COMPLAIN': string
-          [key: string]: unknown
-        }> = XLSX.utils.sheet_to_json(worksheet)
-
-        // Filter prescriptions by date range
-        prescriptions = allPrescriptions.filter((prescription) => {
-          if (!prescription.DATE) return false
-          const prescriptionDate = new Date(prescription.DATE.toString())
-          return prescriptionDate >= start && prescriptionDate <= end
-        })
-        console.log('Falling back to Excel for prescriptions analytics data')
-      }
     }
 
     if (prescriptions.length > 0) {
@@ -3930,23 +2851,6 @@ async function generateAnalyticsData(
         'Error getting medicine dispense records from Supabase for analytics:',
         supabaseError
       )
-
-      // Fallback to Excel
-      if (fs.existsSync(medicineDispenseFilePath)) {
-        const workbook = XLSX.readFile(medicineDispenseFilePath)
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        dispenseRecords = XLSX.utils.sheet_to_json(worksheet)
-
-        //get medicine records
-        if (fs.existsSync(medicinesFilePath)) {
-          const workbook2 = XLSX.readFile(medicinesFilePath)
-          const sheetName2 = workbook2.SheetNames[0]
-          const worksheet2 = workbook2.Sheets[sheetName2]
-          medicineRecords = XLSX.utils.sheet_to_json(worksheet2)
-        }
-        console.log('Falling back to Excel for medicine dispense analytics data')
-      }
     }
 
     if (dispenseRecords.length > 0) {
@@ -4082,15 +2986,6 @@ async function generateAnalyticsData(
         'Error getting optical dispense records from Supabase for analytics:',
         supabaseError
       )
-
-      // Fallback to Excel
-      if (fs.existsSync(opticalDispenseFilePath)) {
-        const workbook = XLSX.readFile(opticalDispenseFilePath)
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        opticalDispenseRecords = XLSX.utils.sheet_to_json(worksheet)
-        console.log('Falling back to Excel for optical dispense analytics data')
-      }
     }
 
     if (opticalDispenseRecords.length > 0) {
@@ -4205,17 +3100,6 @@ async function generateAnalyticsData(
       }
     } catch (supabaseError) {
       console.error('Error getting operations from Supabase for analytics:', supabaseError)
-
-      // Fallback to Excel
-      if (fs.existsSync(operationsFilePath)) {
-        const workbook = XLSX.readFile(operationsFilePath)
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        // Field names from Excel: patientId, patientName, dateOfAdmit, timeOfAdmit, dateOfOperation, timeOfOperation,
-        // dateOfDischarge, timeOfDischarge, operationDetails, operationProcedure, provisionDiagnosis, reviewOn, operatedBy, id
-        operations = XLSX.utils.sheet_to_json(worksheet)
-        console.log('Falling back to Excel for operations analytics data')
-      }
     }
 
     if (operations.length > 0) {
@@ -4577,108 +3461,6 @@ ipcMain.handle(
 // Dropdown Options Management with Supabase
 // Table: dropdown_options (columns: id, field_name, option_value, created_at)
 
-// Fallback file path for when Supabase is unavailable
-const dropdownOptionsPath = join(__dirname, '../../renderer/src/utils/dropdownOptions.ts')
-
-// Helper function to add option to file system (fallback)
-const addDropdownOptionToFile = async (
-  fieldName: string,
-  newValue: string
-): Promise<{ success: boolean; message?: string; error?: string }> => {
-  try {
-    const fileContent = fs.readFileSync(dropdownOptionsPath, 'utf8')
-
-    let arrayName = ''
-    switch (fieldName) {
-      case 'doctorName':
-        arrayName = 'doctorOptions'
-        break
-      case 'department':
-        arrayName = 'departmentOptions'
-        break
-      case 'referredBy':
-        arrayName = 'referredByOptions'
-        break
-      default:
-        return { success: false, error: 'Invalid field name' }
-    }
-
-    const arrayRegex = new RegExp(`export const ${arrayName} = \\[([\\s\\S]*?)\\]`, 'm')
-    const match = fileContent.match(arrayRegex)
-
-    if (!match) {
-      return { success: false, error: `Array ${arrayName} not found` }
-    }
-
-    const currentArrayContent = match[1]
-    const trimmedValue = newValue.trim()
-
-    // Check if value already exists
-    if (
-      currentArrayContent.toLowerCase().includes(`'${trimmedValue.toLowerCase()}'`) ||
-      currentArrayContent.toLowerCase().includes(`"${trimmedValue.toLowerCase()}"`)
-    ) {
-      return { success: true, message: 'Value already exists' }
-    }
-
-    // Add the new value
-    const newArrayContent =
-      currentArrayContent.trim() + (currentArrayContent.trim() ? ',\n' : '') + `  '${trimmedValue}'`
-    const newFileContent = fileContent.replace(
-      arrayRegex,
-      `export const ${arrayName} = [\n${newArrayContent}\n]`
-    )
-
-    fs.writeFileSync(dropdownOptionsPath, newFileContent, 'utf8')
-    console.log(`Added '${trimmedValue}' to ${arrayName} (file fallback)`)
-    return { success: true, message: 'Option added successfully (file fallback)' }
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) }
-  }
-}
-
-// Helper function to get options from file system (fallback)
-const getDropdownOptionsFromFile = async (
-  fieldName: string
-): Promise<{ success: boolean; options?: string[]; error?: string }> => {
-  try {
-    const fileContent = fs.readFileSync(dropdownOptionsPath, 'utf8')
-
-    let arrayName = ''
-    switch (fieldName) {
-      case 'doctorName':
-        arrayName = 'doctorOptions'
-        break
-      case 'department':
-        arrayName = 'departmentOptions'
-        break
-      case 'referredBy':
-        arrayName = 'referredByOptions'
-        break
-      default:
-        return { success: false, error: 'Invalid field name' }
-    }
-
-    const arrayRegex = new RegExp(`export const ${arrayName} = \\[([\\s\\S]*?)\\]`, 'm')
-    const match = fileContent.match(arrayRegex)
-
-    if (!match) {
-      return { success: false, error: `Array ${arrayName} not found` }
-    }
-
-    const arrayContent = match[1]
-    const values = arrayContent
-      .split(',\n')
-      .map((line) => line.trim())
-      .filter((line) => line.startsWith("'") || line.startsWith('"'))
-      .map((line) => line.slice(1, -1))
-      .filter((value) => value.length > 0)
-
-    return { success: true, options: values }
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) }
-  }
-}
 
 // Add new option to dropdown
 ipcMain.handle('addDropdownOption', async (_, fieldName: string, newValue: string) => {
@@ -4718,7 +3500,6 @@ ipcMain.handle('addDropdownOption', async (_, fieldName: string, newValue: strin
 
       if (checkError) {
         console.warn('Supabase check failed, falling back to file system:', checkError.message)
-        return await addDropdownOptionToFile(fieldName, trimmedValue)
       }
 
       if (existingOptions && existingOptions.length > 0) {
@@ -4733,15 +3514,14 @@ ipcMain.handle('addDropdownOption', async (_, fieldName: string, newValue: strin
 
       if (insertError) {
         console.warn('Supabase insert failed, falling back to file system:', insertError.message)
-        return await addDropdownOptionToFile(fieldName, trimmedValue)
       }
 
       console.log(`Added '${trimmedValue}' to ${fieldName} options in Supabase`)
       return { success: true, message: 'Option added successfully' }
     } catch (supabaseError) {
       console.warn('Supabase operation failed, falling back to file system:', supabaseError)
-      return await addDropdownOptionToFile(fieldName, trimmedValue)
     }
+    return { success: false, error: 'Failed to add option' }
   } catch (error) {
     console.error('Error adding dropdown option:', error)
     return { success: false, error: error instanceof Error ? error.message : String(error) }
@@ -4780,7 +3560,6 @@ ipcMain.handle('getDropdownOptions', async (_, fieldName: string) => {
 
       if (error) {
         console.warn('Supabase fetch failed, falling back to file system:', error.message)
-        return await getDropdownOptionsFromFile(fieldName)
       }
 
       const values = options?.map((item) => item.option_value) || []
@@ -4788,14 +3567,13 @@ ipcMain.handle('getDropdownOptions', async (_, fieldName: string) => {
       // If no options in Supabase, fall back to file system
       if (values.length === 0) {
         console.log(`No options found in Supabase for ${fieldName}, falling back to file system`)
-        return await getDropdownOptionsFromFile(fieldName)
       }
 
       return { success: true, options: values }
     } catch (supabaseError) {
       console.warn('Supabase operation failed, falling back to file system:', supabaseError)
-      return await getDropdownOptionsFromFile(fieldName)
     }
+    return { success: false, error: 'Failed to get options' }
   } catch (error) {
     console.error('Error getting dropdown options:', error)
     return { success: false, error: error instanceof Error ? error.message : String(error) }

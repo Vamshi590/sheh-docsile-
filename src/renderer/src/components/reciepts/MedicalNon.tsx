@@ -131,7 +131,7 @@ const SimpleMedicalReceipt: React.FC<SimpleMedicalReceiptProps> = ({ data }) => 
         {/* Table Body */}
         <div className="flex-1 flex">
           <div className="w-12 border-r-2 border-[#000000]">
-            {items.map((item, index) => (
+            {items.map((_item, index) => (
               <div key={index} className="p-2 text-center text-xs border-b border-[#000000]">
                 {index + 1}
               </div>

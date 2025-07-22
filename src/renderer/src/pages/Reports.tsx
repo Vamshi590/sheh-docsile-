@@ -21,6 +21,12 @@ type Patient = {
   [key: string]: unknown
 }
 
+// Define the Lab type to match with other components
+type Lab = {
+  id: string
+  [key: string]: unknown
+}
+
 // Extend the window API interface for TypeScript
 // Extend the existing window API interface
 declare global {
@@ -33,9 +39,17 @@ declare global {
       deletePrescription: (id: string) => Promise<void>
       searchPrescriptions: (searchTerm: string) => Promise<Prescription[]>
       getTodaysPrescriptions: () => Promise<Prescription[]>
+      getLatestPrescriptionId: () => Promise<number>
       getDropdownOptions: (fieldName: string) => Promise<string[]>
       addDropdownOption: (fieldName: string, value: string) => Promise<void>
       openPdfInWindow: (pdfBuffer: Uint8Array) => Promise<{ success: boolean; error?: string }>
+      getLatestPatientId: () => Promise<number>
+      getLabs: () => Promise<Lab[]>
+      addLab: (lab: Omit<Lab, 'id'>) => Promise<Lab>
+      updateLab: (lab: Lab) => Promise<Lab>
+      deleteLab: (id: string) => Promise<boolean>
+      searchLabs: (patientId: string) => Promise<Lab[]>
+      getTodaysLabs: () => Promise<Lab[]>
     }
   }
 }
@@ -44,7 +58,7 @@ const Reports: React.FC = () => {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
   // We'll keep patients state even if not used directly in the UI
   // as it might be needed for future enhancements
-  const [patients, setPatients] = useState<Patient[]>([])
+  const [, setPatients] = useState<Patient[]>([])
   const [foundReports, setFoundReports] = useState<Prescription[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
