@@ -37,6 +37,7 @@ declare global {
       deletePrescription: (id: string) => Promise<void>
       searchPrescriptions: (searchTerm: string) => Promise<Prescription[]>
       getTodaysPrescriptions: () => Promise<Prescription[]>
+      getLatestPrescriptionId: () => Promise<number>
       getDropdownOptions: (fieldName: string) => Promise<string[]>
       addDropdownOption: (fieldName: string, value: string) => Promise<void>
       openPdfInWindow: (pdfBuffer: Uint8Array) => Promise<{ success: boolean; error?: string }>
@@ -150,7 +151,6 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   const [dynamicPresentComplainOptions, setDynamicPresentComplainOptions] = useState<string[]>([])
   const [dynamicPreviousHistoryOptions, setDynamicPreviousHistoryOptions] = useState<string[]>([])
   const [dynamicOthersOptions, setDynamicOthersOptions] = useState<string[]>([])
-  const [dynamicOthers1Options, setDynamicOthers1Options] = useState<string[]>([])
 
   // No need to fetch patients as they are passed as props
 
@@ -173,27 +173,17 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   // Helper function to fetch dropdown options from backend
   const fetchDropdownOptions = async (): Promise<void> => {
     try {
-      const [presentComplainOpts, previousHistoryOpts, othersOpts, others1Opts] = await Promise.all(
-        [
-          window.api.getDropdownOptions('presentComplainOptions'),
-          window.api.getDropdownOptions('previousHistoryOptions'),
-          window.api.getDropdownOptions('othersOptions'),
-          window.api.getDropdownOptions('others1Options')
-        ]
-      )
-      console.log(
-        'Dropdown options:',
-        presentComplainOpts,
-        previousHistoryOpts,
-        othersOpts,
-        others1Opts
-      )
+      const [presentComplainOpts, previousHistoryOpts, othersOpts] = await Promise.all([
+        window.api.getDropdownOptions('presentComplainOptions'),
+        window.api.getDropdownOptions('previousHistoryOptions'),
+        window.api.getDropdownOptions('othersOptions')
+      ])
+      console.log('Dropdown options:', presentComplainOpts, previousHistoryOpts, othersOpts)
 
       // Set dynamic options - API returns { success: boolean, options?: string[], error?: string }
       const presentOptions = (presentComplainOpts as { options?: string[] })?.options || []
       const previousOptions = (previousHistoryOpts as { options?: string[] })?.options || []
       const othersOptions = (othersOpts as { options?: string[] })?.options || []
-      const others1Options = (others1Opts as { options?: string[] })?.options || []
 
       console.log(
         'Present options:',
@@ -201,15 +191,12 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
         'Previous options:',
         previousOptions,
         'Others options:',
-        othersOptions,
-        'Others1 options:',
-        others1Options
+        othersOptions
       )
 
       setDynamicPresentComplainOptions([...new Set(presentOptions as string[])])
       setDynamicPreviousHistoryOptions([...new Set(previousOptions as string[])])
       setDynamicOthersOptions([...new Set(othersOptions as string[])])
-      setDynamicOthers1Options([...new Set(others1Options as string[])])
     } catch (error) {
       console.error('Error fetching dropdown options:', error)
     }
@@ -232,6 +219,35 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   useEffect(() => {
     fetchDropdownOptions()
   }, [])
+
+  // Fetch the latest prescription ID and generate the next one
+  useEffect(() => {
+    const fetchLatestPrescriptionId = async (): Promise<void> => {
+      try {
+        // Only proceed if we're not in edit mode and don't have a prescription ID yet
+        if (!initialData && !formData.id) {
+          // Get the prescription count directly from the backend (more efficient)
+          const prescriptionCount = await window.api.getLatestPrescriptionId()
+
+          // Generate the next ID by incrementing the count
+          const nextNumericId = prescriptionCount + 1
+
+          // Format with leading zeros (4 digits)
+          const nextId = String(nextNumericId).padStart(4, '0')
+          setFormData((prev) => ({ ...prev, Sno: nextId }))
+        }
+      } catch (error) {
+        console.error('Error fetching latest prescription ID:', error)
+        // Fallback to the old method if API call fails
+        if (!initialData && prescriptionCount !== null && !formData.id) {
+          const nextId = String(prescriptionCount + 1).padStart(4, '0')
+          setFormData((prev) => ({ ...prev, Sno: nextId }))
+        }
+      }
+    }
+
+    fetchLatestPrescriptionId()
+  }, [initialData, formData.id, prescriptionCount])
 
   // Handle form input changes
   const handleChange = (
@@ -438,10 +454,10 @@ const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
               id="OTHERS1"
               name="OTHERS1"
               value={(formData['OTHERS1'] as string) || ''}
-              options={dynamicOthers1Options}
+              options={dynamicOthersOptions}
               onChange={handleChange}
               onAddNewOption={(fieldName, value) =>
-                addNewOptionPermanently((fieldName = 'others1Options'), value)
+                addNewOptionPermanently((fieldName = 'othersOptions'), value)
               }
               placeholder="Select or type additional information..."
             />

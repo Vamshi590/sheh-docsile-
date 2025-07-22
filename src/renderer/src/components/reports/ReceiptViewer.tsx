@@ -62,6 +62,7 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
   // Format the patient data for the receipts
   console.log('report', report)
   const patientData = {
+    receiptNo: String(report['RECEIPT NO'] || report.id || '').substring(0, 8),
     billNumber: String(report.receiptId || report.id || '').substring(0, 8),
     patientId: String(report.patientId || report['PATIENT ID'] || ''),
     date: String(report.date || report.DATE || new Date().toISOString().split('T')[0]),
@@ -478,7 +479,7 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
                   pupil: String(report['CF-LE-PUPIL'] || ''),
                   lens: String(report['CF-LE-LENS'] || ''),
                   fundus: String(report['CF-LE-FUNDUS'] || ''),
-                  opticDisk: String(report['CF-LE-OPTIC_DISK'] || ''),
+                  opticDisk: String(report['CF-LE-OPTICALDISK'] || ''),
                   macula: String(report['CF-LE-MACULA'] || ''),
                   vessels: String(report['CF-LE-VESSELS'] || ''),
                   retinoscopy: String(report['CF-LE-RETINOSCOPY'] || ''),
@@ -498,7 +499,7 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
                   pupil: String(report['CF-RE-PUPIL'] || ''),
                   lens: String(report['CF-RE-LENS'] || ''),
                   fundus: String(report['CF-RE-FUNDUS'] || ''),
-                  opticDisk: String(report['CF-RE-OPTIC_DISK'] || ''),
+                  opticDisk: String(report['CF-RE-OPTICALDISK'] || ''),
                   macula: String(report['CF-RE-MACULA'] || ''),
                   vessels: String(report['CF-RE-VESSELS'] || ''),
                   retinoscopy: String(report['CF-RE-RETINOSCOPY'] || ''),

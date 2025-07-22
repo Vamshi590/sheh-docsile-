@@ -32,7 +32,8 @@ const AddStaffForm: React.FC<AddStaffFormProps> = ({
       operations: false,
       reports: false,
       duesFollowUp: false,
-      data: false
+      data: false,
+      labs: false
     },
     isAdmin: false
   })
@@ -510,6 +511,21 @@ const AddStaffForm: React.FC<AddStaffFormProps> = ({
                     />
                     <label htmlFor="permission-data" className="ml-2 block text-sm text-gray-700">
                       Data Module
+                    </label>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="permission-labs"
+                      name="permission-labs"
+                      checked={formData.permissions?.labs || formData.isAdmin}
+                      onChange={handleInputChange}
+                      disabled={formData.isAdmin}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="permission-labs" className="ml-2 block text-sm text-gray-700">
+                      Labs Module
                     </label>
                   </div>
 

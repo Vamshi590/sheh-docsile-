@@ -45,7 +45,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     // Basic information
     Sno: '',
     DATE: new Date().toISOString().split('T')[0],
-    'RECEIPT NO': `R${(patients.length + 1).toString().padStart(3, '0')}`,
+    'RECEIPT NO': '',
 
     // Patient information
     'PATIENT ID': '',
@@ -336,6 +336,22 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}')
     return user.fullName || user.username || 'Unknown User'
   }
+
+  useEffect(() => {
+    const fetchLatestReceiptId = async (): Promise<void> => {
+      try {
+        const latestReceiptId = await window.api.getLatestPrescriptionId()
+        setFormData((prev) => ({
+          ...prev,
+          'RECEIPT NO': `R${(latestReceiptId + 1).toString().padStart(3, '0')}`
+        }))
+      } catch (error) {
+        console.error('Error fetching latest receipt ID:', error)
+      }
+    }
+    fetchLatestReceiptId()
+  }, [])
+
   // // Doctor information autocomplete states
   // const [showDoctorDropdown, setShowDoctorDropdown] = useState(false)
   // const [filteredDoctorOptions, setFilteredDoctorOptions] = useState<string[]>(doctorOptions)

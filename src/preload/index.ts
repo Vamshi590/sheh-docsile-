@@ -118,6 +118,7 @@ const api = {
   searchPrescriptions: (searchTerm: string) =>
     ipcRenderer.invoke('searchPrescriptions', searchTerm),
   getTodaysPrescriptions: () => ipcRenderer.invoke('getTodaysPrescriptions'),
+  getLatestPrescriptionId: () => ipcRenderer.invoke('getLatestPrescriptionId'),
 
   // Labs Management
   getLabs: () => ipcRenderer.invoke('getLabs'),

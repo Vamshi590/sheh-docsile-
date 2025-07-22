@@ -183,33 +183,35 @@ const ClinicalFindingsForm: React.FC<ClinicalFindingsFormProps> = ({
             <div className="p-2 mb-4 pl-16">
               <div className="grid grid-cols-2 gap-1 text-xs">
                 <div className="font-semibold">LIDS</div>
-                <div className="text-[#000000]">{formData.leftEye.lids}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.lids}</div>
                 <div className="font-semibold">CONJUNCTIVA</div>
-                <div className="text-[#000000]">{formData.leftEye.conjunctiva}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.conjunctiva}</div>
                 <div className="font-semibold">CORNEA</div>
-                <div className="text-[#000000]">{formData.leftEye.cornea}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.cornea}</div>
                 <div className="font-semibold">A.C.</div>
-                <div className="text-[#000000]">{formData.leftEye.ac}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.ac}</div>
                 <div className="font-semibold">IRIS</div>
-                <div className="text-[#000000]">{formData.leftEye.iris}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.iris}</div>
                 <div className="font-semibold">PUPIL</div>
-                <div className="text-[#000000]">{formData.leftEye.pupil}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.pupil}</div>
                 <div className="font-semibold">LENS</div>
-                <div className="text-[#000000]">{formData.leftEye.lens}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.lens}</div>
                 <div className="font-semibold">TENSION</div>
-                <div className="text-[#000000]">{formData.leftEye.tension}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.tension}</div>
                 <div className="font-semibold">FUNDUS</div>
-                <div className="text-[#000000]">{formData.leftEye.fundus}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.fundus}</div>
                 <div className="font-semibold">OPTIC DISK</div>
-                <div className="text-[#000000]">{formData.leftEye.opticDisk}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.opticDisk}</div>
                 <div className="font-semibold">MACULA</div>
-                <div className="text-[#000000]">{formData.leftEye.macula}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.macula}</div>
                 <div className="font-semibold">VESSELS</div>
-                <div className="text-[#000000]">{formData.leftEye.vessels}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.vessels}</div>
                 <div className="font-semibold">PERIPHERIAL RETINA</div>
-                <div className="text-[#000000]">{formData.leftEye.peripheralRetina}</div>
+                <div className="text-[#000000] text-center">
+                  {formData.leftEye.peripheralRetina}
+                </div>
                 <div className="font-semibold">RETINOSCOPY</div>
-                <div className="text-[#000000]">{formData.leftEye.retinoscopy}</div>
+                <div className="text-[#000000] text-center">{formData.leftEye.retinoscopy}</div>
               </div>
             </div>
 
@@ -300,33 +302,35 @@ const ClinicalFindingsForm: React.FC<ClinicalFindingsFormProps> = ({
             <div className="p-2 mb-4 pl-16">
               <div className="grid grid-cols-2 gap-1 text-xs">
                 <div className="font-semibold">LIDS</div>
-                <div className="">{formData.rightEye.lids}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.lids}</div>
                 <div className="font-semibold">CONJUNCTIVA</div>
-                <div className="">{formData.rightEye.conjunctiva}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.conjunctiva}</div>
                 <div className="font-semibold">CORNEA</div>
-                <div className="">{formData.rightEye.cornea}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.cornea}</div>
                 <div className="font-semibold">A.C.</div>
-                <div className="">{formData.rightEye.ac}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.ac}</div>
                 <div className="font-semibold">IRIS</div>
-                <div className="">{formData.rightEye.iris}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.iris}</div>
                 <div className="font-semibold">PUPIL</div>
-                <div className="">{formData.rightEye.pupil}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.pupil}</div>
                 <div className="font-semibold">LENS</div>
-                <div className="">{formData.rightEye.lens}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.lens}</div>
                 <div className="font-semibold">TENSION</div>
-                <div>{formData.rightEye.tension}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.tension}</div>
                 <div className="font-semibold">FUNDUS</div>
-                <div>{formData.rightEye.fundus}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.fundus}</div>
                 <div className="font-semibold">OPTIC DISK</div>
-                <div className="">{formData.rightEye.opticDisk}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.opticDisk}</div>
                 <div className="font-semibold">MACULA</div>
-                <div>{formData.rightEye.macula}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.macula}</div>
                 <div className="font-semibold">VESSELS</div>
-                <div>{formData.rightEye.vessels}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.vessels}</div>
                 <div className="font-semibold">PERIPHERIAL RETINA</div>
-                <div>{formData.rightEye.peripheralRetina}</div>
+                <div className="text-[#000000] text-center">
+                  {formData.rightEye.peripheralRetina}
+                </div>
                 <div className="font-semibold">RETINOSCOPY</div>
-                <div>{formData.rightEye.retinoscopy}</div>
+                <div className="text-[#000000] text-center">{formData.rightEye.retinoscopy}</div>
               </div>
             </div>
             <div className="flex space-x-4 justify-center">

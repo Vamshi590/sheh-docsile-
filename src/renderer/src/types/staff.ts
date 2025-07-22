@@ -26,6 +26,7 @@ export interface StaffUser {
     opticals?: boolean
     receipts?: boolean
     analytics?: boolean
+    labs?: boolean
     staff?: boolean // Only admins should have this set to true
     operations?: boolean
     reports?: boolean
