@@ -12,6 +12,7 @@ import bcrypt from 'bcryptjs'
 import XLSX from 'xlsx'
 import { v4 as uuidv4 } from 'uuid'
 import crypto from 'crypto'
+import { registerLabHandlers } from './labs-handlers'
 
 // Define interfaces for better type safety
 interface StaffMember {
@@ -862,6 +863,9 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  // Register lab handlers
+  registerLabHandlers()
+
   createWindow()
 
   app.on('activate', function () {
@@ -948,6 +952,7 @@ ipcMain.handle('getPatients', async () => {
     return patients || []
   } catch (error) {
     console.error('Error getting patients from Supabase:', error)
+
     // Fallback to local Excel file if Supabase fails
     try {
       if (!fs.existsSync(patientsFilePath)) {
@@ -964,6 +969,44 @@ ipcMain.handle('getPatients', async () => {
     } catch (excelError) {
       console.error('Error reading from Excel file:', excelError)
       return []
+    }
+  }
+})
+
+// Get latest patient ID number (more efficient than fetching all patients)
+ipcMain.handle('getLatestPatientId', async (): Promise<number> => {
+  try {
+    // First try Supabase - just get the count
+    const { count, error } = await supabase
+      .from('patients')
+      .select('*', { count: 'exact', head: true })
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`)
+    }
+
+    // Return the count (frontend will format it with leading zeros)
+    console.log('Latest patient count fetched from Supabase successfully:', count)
+    return count || 0
+  } catch (error) {
+    console.error('Error getting latest patient ID from Supabase:', error)
+
+    try {
+      // Fallback to Excel if Supabase fails
+      const patientsFilePath = path.join(app.getPath('userData'), 'patients.xlsx')
+      if (!fs.existsSync(patientsFilePath)) {
+        return 0 // No patients file exists yet
+      }
+
+      const workbook = XLSX.readFile(patientsFilePath)
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const patients = XLSX.utils.sheet_to_json(worksheet)
+
+      return patients.length || 0
+    } catch (excelError) {
+      console.error('Error getting patient count from Excel:', excelError)
+      return 0
     }
   }
 })

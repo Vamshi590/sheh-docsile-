@@ -199,6 +199,10 @@ const ReadingForm: React.FC<ReadingFormProps> = ({
     'CF-RE-LENS': (initialData?.['CF-RE-LENS'] as string) || '',
     'CF-RE-TENSION': (initialData?.['CF-RE-TENSION'] as string) || '',
     'CF-RE-FUNDUS': (initialData?.['CF-RE-FUNDUS'] as string) || '',
+    'CF-RE-OPTICALDISK': (initialData?.['CF-RE-OPTICALDISK'] as string) || '',
+    'CF-RE-MACULA': (initialData?.['CF-RE-MACULA'] as string) || '',
+    'CF-RE-VESSELS': (initialData?.['CF-RE-VESSELS'] as string) || '',
+    'CF-RE-PERIPHERALRETINA': (initialData?.['CF-RE-PERIPHERALRETINA'] as string) || '',
     'CF-RE-RETINO 1': (initialData?.['CF-RE-RETINO 1'] as string) || '',
     'CF-RE-RETINO 2': (initialData?.['CF-RE-RETINO 2'] as string) || '',
     'CF-RE-RETINO 3': (initialData?.['CF-RE-RETINO 3'] as string) || '',
@@ -213,6 +217,10 @@ const ReadingForm: React.FC<ReadingFormProps> = ({
     'CF-LE-LENS': (initialData?.['CF-LE-LENS'] as string) || '',
     'CF-LE-TENSION': (initialData?.['CF-LE-TENSION'] as string) || '',
     'CF-LE-FUNDUS': (initialData?.['CF-LE-FUNDUS'] as string) || '',
+    'CF-LE-OPTICALDISK': (initialData?.['CF-LE-OPTICALDISK'] as string) || '',
+    'CF-LE-MACULA': (initialData?.['CF-LE-MACULA'] as string) || '',
+    'CF-LE-VESSELS': (initialData?.['CF-LE-VESSELS'] as string) || '',
+    'CF-LE-PERIPHERALRETINA': (initialData?.['CF-LE-PERIPHERALRETINA'] as string) || '',
     'CF-LE-RETINO 1': (initialData?.['CF-LE-RETINO 1'] as string) || '',
     'CF-LE-RETINO 2': (initialData?.['CF-LE-RETINO 2'] as string) || '',
     'CF-LE-RETINO 3': (initialData?.['CF-LE-RETINO 3'] as string) || '',
@@ -1064,6 +1072,46 @@ const ReadingForm: React.FC<ReadingFormProps> = ({
               />
             </div>
             <div>
+              <label className="block text-xs font-medium text-gray-700">Optical Disk</label>
+              <input
+                type="text"
+                name="CF-RE-OPTICALDISK"
+                value={formData['CF-RE-OPTICALDISK']}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700">Macula</label>
+              <input
+                type="text"
+                name="CF-RE-MACULA"
+                value={formData['CF-RE-MACULA']}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700">Vessels</label>
+              <input
+                type="text"
+                name="CF-RE-VESSELS"
+                value={formData['CF-RE-VESSELS']}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700">Peripheral Retina</label>
+              <input
+                type="text"
+                name="CF-RE-PERIPHERALRETINA"
+                value={formData['CF-RE-PERIPHERALRETINA']}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
               <label className="block text-xs font-medium text-gray-700">Retino 1</label>
               <input
                 type="text"
@@ -1206,6 +1254,46 @@ const ReadingForm: React.FC<ReadingFormProps> = ({
                 type="text"
                 name="CF-LE-FUNDUS"
                 value={formData['CF-LE-FUNDUS']}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700">Optical Disk</label>
+              <input
+                type="text"
+                name="CF-LE-OPTICALDISK"
+                value={formData['CF-LE-OPTICALDISK']}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700">Macula</label>
+              <input
+                type="text"
+                name="CF-LE-MACULA"
+                value={formData['CF-LE-MACULA']}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700">Vessels</label>
+              <input
+                type="text"
+                name="CF-LE-VESSELS"
+                value={formData['CF-LE-VESSELS']}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700">Peripheral Retina</label>
+              <input
+                type="text"
+                name="CF-LE-PERIPHERALRETINA"
+                value={formData['CF-LE-PERIPHERALRETINA']}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />

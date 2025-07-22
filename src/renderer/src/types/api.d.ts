@@ -89,6 +89,7 @@ interface API {
 
   // PDF Management
   openPdfInWindow: (pdfBuffer: Uint8Array) => Promise<{ success: boolean; error?: string }>
+  getLatestPatientId: () => Promise<number>
 }
 
 declare global {

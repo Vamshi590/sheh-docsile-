@@ -269,6 +269,33 @@ const Dashboard = (): React.JSX.Element => {
             </div>
           )}
 
+          {/* Labs Card */}
+          {(user?.data || user?.isAdmin) && (
+            <div
+              onClick={() => navigateTo('/labs')}
+              className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer transition-all transform hover:-translate-y-1 hover:border-indigo-100"
+            >
+              <div className="flex items-center mb-4">
+                <div className="bg-indigo-100 p-3 rounded-full mr-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-8 w-8 text-indigo-600"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7 2a1 1 0 00-.707 1.707L7 4.414v3.758a1 1 0 01-.293.707l-4 4C.817 14.769 2.354 18 4.828 18h10.343c2.474 0 4.011-3.231 2.121-5.121l-4-4A1 1 0 0113 8.172V4.414l.707-.707A1 1 0 0013 2H7zm2 6.172V4h2v4.172a3 3 0 00.879 2.12l1.027 1.028a4 4 0 00-2.171.102l-.47.156a4 4 0 01-2.53 0l-.563-.187a1.993 1.993 0 00-.114-.035l1.063-1.063A3 3 0 009 8.172z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Labs</h3>
+              </div>
+              <p className="text-gray-600 ml-16">Manage lab tests and results</p>
+            </div>
+          )}
+
           {/* Analytics Card */}
           {(user?.analytics || user?.isAdmin) && (
             <div

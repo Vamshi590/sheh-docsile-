@@ -34,6 +34,7 @@ interface API {
   getDropdownOptions: (
     fieldName: string
   ) => Promise<{ success: boolean; options?: string[]; error?: string }>
+  getLatestPatientId: () => Promise<number>
 }
 
 declare global {

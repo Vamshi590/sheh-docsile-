@@ -47,13 +47,17 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null)
   const [selectedReceiptType, setSelectedReceiptType] = useState<string | null>(null)
   const [selectedOperation, setSelectedOperation] = useState<Operation | null>(null)
+  const [isReportMode, setIsReportMode] = useState<boolean>(false)
+  const [reportReceiptTypes, setReportReceiptTypes] = useState<string[]>([])
   // State for managing receipt viewing and operations
 
   // Reset selection if current selection is no longer in filtered list
   useEffect(() => {
-    if (selectedPrescription && !prescriptions.some(p => p.id === selectedPrescription.id)) {
+    if (selectedPrescription && !prescriptions.some((p) => p.id === selectedPrescription.id)) {
       setSelectedPrescription(null)
       setSelectedReceiptType(null)
+      setIsReportMode(false)
+      setReportReceiptTypes([])
     }
   }, [prescriptions])
 
@@ -61,20 +65,49 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
   const handleRowClick = (prescription: Prescription): void => {
     if (selectedPrescription?.id === prescription.id) {
       // If clicking the same prescription, deselect it
-      setSelectedPrescription(null)
-      setSelectedReceiptType(null)
+      handleCloseReceipt()
     } else {
       setSelectedPrescription(prescription)
       setSelectedReceiptType(null) // Reset receipt type when selecting a new prescription
+      setIsReportMode(false)
+      setReportReceiptTypes([])
     }
+  }
+
+  // Handle closing the receipt viewer
+  const handleCloseReceipt = (): void => {
+    setSelectedPrescription(null)
+    setSelectedReceiptType(null)
+    setIsReportMode(false)
+    setReportReceiptTypes([])
   }
 
   // Handle receipt type selection
   const handleSelectReceiptType = (type: string, operationData?: Operation): void => {
+    // Exit report mode if we're selecting a specific receipt type
+    if (isReportMode) {
+      setIsReportMode(false)
+    }
+
     setSelectedReceiptType(type)
     if (operationData) {
       setSelectedOperation(operationData)
     }
+  }
+
+  // Handle generating a report with all receipt types
+  const handleGenerateReport = (): void => {
+    if (!selectedPrescription) {
+      alert('Please select a prescription first')
+      return
+    }
+
+    // Define the receipt types to check
+    const receiptTypesToCheck = ['cash', 'prescription', 'readings', 'clinical']
+
+    // Set report mode and store all receipt types
+    setIsReportMode(true)
+    setReportReceiptTypes(receiptTypesToCheck)
   }
 
   // Create a ref for the receipt content
@@ -86,56 +119,110 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
       alert('Please select a prescription first')
       return
     }
+
     try {
-      const receiptEl =
-        (receiptRef.current?.querySelector('[id^="receipt-"]') as HTMLElement | null) ||
-        (receiptRef.current as HTMLElement | null)
-      if (!receiptEl) {
-        alert('Receipt element not found')
-        return
-      }
-      // Clone and clean oklch colors
-      const clone = receiptEl.cloneNode(true) as HTMLElement
-      stripOKLCH(clone)
-      clone.style.width = '794px'
-      clone.style.height = '1123px'
-      clone.style.backgroundColor = '#ffffff'
-      document.body.appendChild(clone)
-
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true
-      })
-      document.body.removeChild(clone)
-      const imgData = canvas.toDataURL('image/png')
-
-      // Create PDF with A4 dimensions (points)
       const pdfDoc = await PDFDocument.create()
       const PAGE_WIDTH = 595.28
       const PAGE_HEIGHT = 841.89
-      const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
-      const pngImage = await pdfDoc.embedPng(imgData)
 
-      // Scale the image so it always fits inside the page while preserving aspect ratio
-      const imgWidth = pngImage.width
-      const imgHeight = pngImage.height
-      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
-      const drawWidth = imgWidth * scale
-      const drawHeight = imgHeight * scale
-      const x = (PAGE_WIDTH - drawWidth) / 2
-      const y = (PAGE_HEIGHT - drawHeight) / 2
+      if (isReportMode) {
+        // In report mode, capture all receipt elements directly from the DOM
+        // since they're all rendered at once in the scrollable view
+        for (let i = 0; i < reportReceiptTypes.length; i++) {
+          const receiptType = reportReceiptTypes[i]
 
-      page.drawImage(pngImage, {
-        x,
-        y,
-        width: drawWidth,
-        height: drawHeight
-      })
+          // Find the specific receipt element by its ID
+          const receiptEl = document.getElementById(`receipt-${receiptType}`) as HTMLElement | null
+
+          if (receiptEl) {
+            // Clone and clean oklch colors
+            const clone = receiptEl.cloneNode(true) as HTMLElement
+            stripOKLCH(clone)
+            clone.style.width = '794px'
+            clone.style.height = '1123px'
+            clone.style.backgroundColor = '#ffffff'
+            document.body.appendChild(clone)
+
+            const canvas = await html2canvas(clone, {
+              scale: 2,
+              backgroundColor: '#ffffff',
+              useCORS: true
+            })
+            document.body.removeChild(clone)
+            const imgData = canvas.toDataURL('image/png')
+
+            // Add a new page for each receipt type
+            const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+            const pngImage = await pdfDoc.embedPng(imgData)
+
+            // Scale the image so it always fits inside the page while preserving aspect ratio
+            const imgWidth = pngImage.width
+            const imgHeight = pngImage.height
+            const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
+            const drawWidth = imgWidth * scale
+            const drawHeight = imgHeight * scale
+            const x = (PAGE_WIDTH - drawWidth) / 2
+            const y = (PAGE_HEIGHT - drawHeight) / 2
+
+            page.drawImage(pngImage, {
+              x,
+              y,
+              width: drawWidth,
+              height: drawHeight
+            })
+          }
+        }
+      } else {
+        // Single receipt mode - original behavior
+        const receiptEl =
+          (receiptRef.current?.querySelector('[id^="receipt-"]') as HTMLElement | null) ||
+          (receiptRef.current as HTMLElement | null)
+
+        if (!receiptEl) {
+          alert('Receipt element not found')
+          return
+        }
+
+        // Clone and clean oklch colors
+        const clone = receiptEl.cloneNode(true) as HTMLElement
+        stripOKLCH(clone)
+        clone.style.width = '794px'
+        clone.style.height = '1123px'
+        clone.style.backgroundColor = '#ffffff'
+        document.body.appendChild(clone)
+
+        const canvas = await html2canvas(clone, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true
+        })
+        document.body.removeChild(clone)
+        const imgData = canvas.toDataURL('image/png')
+
+        const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+        const pngImage = await pdfDoc.embedPng(imgData)
+
+        // Scale the image so it always fits inside the page while preserving aspect ratio
+        const imgWidth = pngImage.width
+        const imgHeight = pngImage.height
+        const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
+        const drawWidth = imgWidth * scale
+        const drawHeight = imgHeight * scale
+        const x = (PAGE_WIDTH - drawWidth) / 2
+        const y = (PAGE_HEIGHT - drawHeight) / 2
+
+        page.drawImage(pngImage, {
+          x,
+          y,
+          width: drawWidth,
+          height: drawHeight
+        })
+      }
+
+      // Save the PDF and open it
       const pdfBytes = await pdfDoc.save()
 
       // Use Electron's IPC to open the PDF in a native window
-      // This is the Electron-specific approach that works better than browser blob URLs
       const result = await window.api.openPdfInWindow(pdfBytes)
 
       if (!result.success) {
@@ -167,77 +254,131 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
   }
 
   const sendWhatsAppMessage = async (): Promise<void> => {
+    if (!selectedPrescription) {
+      alert('Please select a prescription first')
+      return
+    }
     try {
-      const receiptEl =
-        (receiptRef.current?.querySelector('[id^="receipt-"]') as HTMLElement | null) ||
-        (receiptRef.current as HTMLElement | null)
-      if (!receiptEl) {
-        alert('Receipt element not found')
-        return
-      }
-      // Clone and clean oklch colors
-      const clone = receiptEl.cloneNode(true) as HTMLElement
-      stripOKLCH(clone)
-      clone.style.width = '794px'
-      clone.style.height = '1123px'
-      clone.style.backgroundColor = '#ffffff'
-      document.body.appendChild(clone)
-
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true
-      })
-      document.body.removeChild(clone)
-      const imgData = canvas.toDataURL('image/png')
-
-      // Create PDF with A4 dimensions (points)
       const pdfDoc = await PDFDocument.create()
       const PAGE_WIDTH = 595.28
       const PAGE_HEIGHT = 841.89
-      const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
-      const pngImage = await pdfDoc.embedPng(imgData)
 
-      // Scale the image so it always fits inside the page while preserving aspect ratio
-      const imgWidth = pngImage.width
-      const imgHeight = pngImage.height
-      const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
-      const drawWidth = imgWidth * scale
-      const drawHeight = imgHeight * scale
-      const x = (PAGE_WIDTH - drawWidth) / 2
-      const y = (PAGE_HEIGHT - drawHeight) / 2
-
-      page.drawImage(pngImage, {
-        x,
-        y,
-        width: drawWidth,
-        height: drawHeight
-      })
-      const pdfBytes = await pdfDoc.save()
-
-      // Save locally so the user can attach it in WhatsApp
-      // Build filename as patientNAME_date.pdf  (e.g., John_Doe_2025-07-16.pdf)
-      const dateStr = new Date().toISOString().slice(0, 19)
-
-      // Extract patient name directly from the prescription data
+      // Extract patient name directly from the prescription data for filename
       let patientName = ''
       if (selectedPrescription?.patientName) {
-        patientName = String(selectedPrescription.patientName).trim().replace(/\s+/g, '_')
-      } else if (selectedPrescription?.['PATIENT NAME']) {
-        patientName = String(selectedPrescription['PATIENT NAME']).trim().replace(/\s+/g, '_')
+        patientName = String(selectedPrescription.patientName).replace(/\s+/g, '_')
       } else {
-        // Try to find it in the DOM as fallback
-        const patientNameDiv = receiptEl.querySelector(
-          'div:has(> div.font-bold:contains("PATIENT NAME")) > div:last-child'
-        ) as HTMLElement | null
-        if (patientNameDiv?.textContent) {
-          patientName = patientNameDiv.textContent.trim().replace(/\s+/g, '_')
-        } else {
-          patientName = 'Receipt' // Last resort fallback
-        }
+        patientName = 'Receipt' // Last resort fallback
       }
 
-      const fileName = `${patientName}_${selectedReceiptType}_${dateStr}.pdf`
+      const dateStr = new Date().toISOString().slice(0, 19)
+      let fileName = ''
+      let pdfBytes: Uint8Array
+
+      if (isReportMode) {
+        // In report mode, capture all receipt elements directly from the DOM
+        // since they're all rendered at once in the scrollable view
+        for (let i = 0; i < reportReceiptTypes.length; i++) {
+          const receiptType = reportReceiptTypes[i]
+
+          // Find the specific receipt element by its ID
+          const receiptEl = document.getElementById(`receipt-${receiptType}`) as HTMLElement | null
+
+          if (receiptEl) {
+            // Clone and clean oklch colors
+            const clone = receiptEl.cloneNode(true) as HTMLElement
+            stripOKLCH(clone)
+            clone.style.width = '794px'
+            clone.style.height = '1123px'
+            clone.style.backgroundColor = '#ffffff'
+            document.body.appendChild(clone)
+
+            const canvas = await html2canvas(clone, {
+              scale: 2,
+              backgroundColor: '#ffffff',
+              useCORS: true
+            })
+            document.body.removeChild(clone)
+            const imgData = canvas.toDataURL('image/png')
+
+            // Add a new page for each receipt type
+            const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+            const pngImage = await pdfDoc.embedPng(imgData)
+
+            // Scale the image so it always fits inside the page while preserving aspect ratio
+            const imgWidth = pngImage.width
+            const imgHeight = pngImage.height
+            const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
+            const drawWidth = imgWidth * scale
+            const drawHeight = imgHeight * scale
+            const x = (PAGE_WIDTH - drawWidth) / 2
+            const y = (PAGE_HEIGHT - drawHeight) / 2
+
+            page.drawImage(pngImage, {
+              x,
+              y,
+              width: drawWidth,
+              height: drawHeight
+            })
+          }
+        }
+
+        fileName = `${patientName}_Full_Report_${dateStr}.pdf`
+        pdfBytes = await pdfDoc.save()
+      } else {
+        // Single receipt mode - original behavior
+        if (!selectedReceiptType) {
+          alert('Please select a receipt type first')
+          return
+        }
+
+        const receiptEl =
+          (receiptRef.current?.querySelector('[id^="receipt-"]') as HTMLElement | null) ||
+          (receiptRef.current as HTMLElement | null)
+
+        if (!receiptEl) {
+          alert('Receipt element not found')
+          return
+        }
+
+        // Clone and clean oklch colors
+        const clone = receiptEl.cloneNode(true) as HTMLElement
+        stripOKLCH(clone)
+        clone.style.width = '794px'
+        clone.style.height = '1123px'
+        clone.style.backgroundColor = '#ffffff'
+        document.body.appendChild(clone)
+
+        const canvas = await html2canvas(clone, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true
+        })
+        document.body.removeChild(clone)
+        const imgData = canvas.toDataURL('image/png')
+
+        const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+        const pngImage = await pdfDoc.embedPng(imgData)
+
+        // Scale the image so it always fits inside the page while preserving aspect ratio
+        const imgWidth = pngImage.width
+        const imgHeight = pngImage.height
+        const scale = Math.min(PAGE_WIDTH / imgWidth, PAGE_HEIGHT / imgHeight)
+        const drawWidth = imgWidth * scale
+        const drawHeight = imgHeight * scale
+        const x = (PAGE_WIDTH - drawWidth) / 2
+        const y = (PAGE_HEIGHT - drawHeight) / 2
+
+        page.drawImage(pngImage, {
+          x,
+          y,
+          width: drawWidth,
+          height: drawHeight
+        })
+
+        fileName = `${patientName}_${selectedReceiptType}_${dateStr}.pdf`
+        pdfBytes = await pdfDoc.save()
+      }
 
       // Attempt silent save if Node fs API is available (Electron renderer with contextIsolation disabled)
       let savedSilently = false
@@ -344,20 +485,31 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
             </button>
             <button
               className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200 transition-colors"
-              onClick={() => handleSelectReceiptType('clinical')}
+              onClick={() => {
+                // Select the clinical receipt type
+                handleSelectReceiptType('clinical')
+              }}
             >
               Clinical Findings
+            </button>
+            <button
+              className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+              onClick={() => handleGenerateReport()}
+            >
+              Report
             </button>
           </div>
 
           {/* Receipt Viewer */}
-          {selectedReceiptType && (
+          {(selectedReceiptType || isReportMode) && (
             <div
               id="receipt-container"
               className="mt-4 border border-gray-200 bg-gray-50 rounded-md overflow-hidden"
             >
               <div className="flex justify-between items-center p-2 bg-gray-100 border-b border-gray-200">
-                <h4 className="font-medium text-gray-700">Receipt Preview</h4>
+                <h4 className="font-medium text-gray-700">
+                  {isReportMode ? 'Full Report' : 'Receipt Preview'}
+                </h4>
                 <div className="flex space-x-2">
                   {onEditPrescription && (
                     <button
@@ -390,8 +542,7 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
 
                         if (window.confirm(confirmMessage)) {
                           onDeletePrescription(selectedPrescription.id as string)
-                          setSelectedPrescription(null)
-                          setSelectedReceiptType(null)
+                          handleCloseReceipt()
                         }
                       }}
                       className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors flex items-center"
@@ -415,10 +566,7 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
                     </button>
                   )}
                   <button
-                    onClick={() => {
-                      setSelectedReceiptType(null)
-                      setSelectedPrescription(null)
-                    }}
+                    onClick={handleCloseReceipt}
                     className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center"
                     title="Close Receipt"
                   >
@@ -438,52 +586,71 @@ const PrescriptionTableWithReceipts: React.FC<PrescriptionTableWithReceiptsProps
                   </button>
                 </div>
               </div>
-              <div id="receipt-content">
+
+              <div id="receipt-content" className="overflow-y-auto max-h-[70vh]">
                 <div ref={receiptRef}>
-                  <ReceiptViewer
-                    report={selectedPrescription}
-                    receiptType={selectedReceiptType}
-                    selectedOperation={selectedOperation || undefined}
-                  />
+                  {isReportMode
+                    ? // No need to restore a specific receipt type in the new scrollable view
+                      // as all receipt types are displayed simultaneously
+                      reportReceiptTypes.map((receiptType) => (
+                        <div key={receiptType} className="mb-4" id={`receipt-${receiptType}`}>
+                          <ReceiptViewer
+                            report={selectedPrescription}
+                            receiptType={receiptType}
+                            selectedOperation={selectedOperation || undefined}
+                          />
+                        </div>
+                      ))
+                    : // In single receipt mode, render just the selected receipt type
+                      selectedReceiptType && (
+                        <ReceiptViewer
+                          report={selectedPrescription}
+                          receiptType={selectedReceiptType}
+                          selectedOperation={selectedOperation || undefined}
+                        />
+                      )}
                 </div>
               </div>
 
               {/* Print and WhatsApp buttons */}
-              <div className="flex justify-end p-3 bg-gray-50 border-t border-gray-200">
-                <button
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors mr-3 flex items-center"
-                  onClick={handlePrint}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+              <div className="flex justify-between p-3 bg-gray-50 border-t border-gray-200">
+                <div></div> {/* Empty div to maintain flex spacing */}
+                <div className="flex">
+                  <button
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors mr-3 flex items-center"
+                    onClick={handlePrint}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-                    />
-                  </svg>
-                  Print
-                </button>
-                <button
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center"
-                  onClick={sendWhatsAppMessage}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                      />
+                    </svg>
+                    Print
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center"
+                    onClick={sendWhatsAppMessage}
                   >
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
-                  </svg>
-                  Share via WhatsApp
-                </button>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                    </svg>
+                    Share via WhatsApp
+                  </button>
+                </div>
               </div>
             </div>
           )}

@@ -109,14 +109,21 @@ const DuesFollowUp: React.FC = () => {
       if (api.getOperations) {
         const data = await api.getOperations()
 
-        // Filter operations with follow-up dates set to today
-        const today = new Date().toISOString().split('T')[0]
-        const followUpsToday = data.filter((operation) => {
+        // Generate dates for today and the next 4 days (5 days total)
+        const followUpDates: string[] = []
+        for (let i = 0; i < 5; i++) {
+          const date = new Date()
+          date.setDate(date.getDate() + i)
+          followUpDates.push(date.toISOString().split('T')[0])
+        }
+
+        // Filter operations with follow-up dates in the next 5 days
+        const upcomingFollowUps = data.filter((operation) => {
           const followUpDate = operation.followUpDate || operation.reviewOn || ''
-          return followUpDate === today
+          return followUpDates.includes(followUpDate)
         })
 
-        setOperations(followUpsToday)
+        setOperations(upcomingFollowUps)
       } else {
         console.error('getOperations method not available')
         setError('Failed to load operations: API method not available')
@@ -133,16 +140,23 @@ const DuesFollowUp: React.FC = () => {
     try {
       setLoading(true)
       const data = await window.api.getPrescriptions()
-      // Check if getOperations method exists
+      // Check if getPrescriptions method exists
       if (data) {
-        // Filter operations with follow-up dates set to today
-        const today = new Date().toISOString().split('T')[0]
-        const followUpsToday = data.filter((prescription) => {
-          const followUpDate = prescription['FOLLOW UP DATE'] || ''
-          return followUpDate === today
+        // Generate dates for today and the next 4 days (5 days total)
+        const followUpDates: string[] = []
+        for (let i = 0; i < 5; i++) {
+          const date = new Date()
+          date.setDate(date.getDate() + i)
+          followUpDates.push(date.toISOString().split('T')[0])
+        }
+
+        // Filter prescriptions with follow-up dates in the next 5 days
+        const upcomingFollowUps = data.filter((prescription) => {
+          const followUpDate = String(prescription['FOLLOW UP DATE'] || '')
+          return followUpDates.includes(followUpDate)
         })
 
-        setFollowUpPrescriptions(followUpsToday)
+        setFollowUpPrescriptions(upcomingFollowUps)
       } else {
         console.error('getPrescriptions method not available')
         setError('Failed to load prescriptions: API method not available')

@@ -118,13 +118,34 @@ const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, initialValues, pati
     loadDropdownOptions()
   }, [])
 
-  // Auto-generate patient ID based on patient count when creating a new patient
+  // Fetch the latest patient ID and generate the next one
   useEffect(() => {
-    if (!initialValues && patientCount !== null && !formData.patientId) {
-      const nextId = String(patientCount + 1).padStart(4, '0')
-      setFormData((prev) => ({ ...prev, patientId: nextId }))
+    const fetchLatestPatientId = async (): Promise<void> => {
+      try {
+        // Only proceed if we're not in edit mode and don't have a patient ID yet
+        if (!initialValues && !formData.patientId && !isExistingPatientMode) {
+          // Get the patient count directly from the backend (more efficient)
+          const patientCount = await window.api.getLatestPatientId()
+
+          // Generate the next ID by incrementing the count
+          const nextNumericId = patientCount + 1
+
+          // Format with leading zeros (4 digits)
+          const nextId = String(nextNumericId).padStart(4, '0')
+          setFormData((prev) => ({ ...prev, patientId: nextId }))
+        }
+      } catch (error) {
+        console.error('Error fetching latest patient ID:', error)
+        // Fallback to the old method if API call fails
+        if (!initialValues && patientCount !== null && !formData.patientId) {
+          const nextId = String(patientCount + 1).padStart(4, '0')
+          setFormData((prev) => ({ ...prev, patientId: nextId }))
+        }
+      }
     }
-  }, [patientCount, initialValues, formData.patientId])
+
+    fetchLatestPatientId()
+  }, [initialValues, formData.patientId, isExistingPatientMode, patientCount])
 
   // Helper function to fetch dropdown options from backend
   const fetchDropdownOptions = async (fieldName: string): Promise<string[]> => {
@@ -501,7 +522,7 @@ const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, initialValues, pati
 
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
+              Visit Type
             </label>
             <select
               id="status"

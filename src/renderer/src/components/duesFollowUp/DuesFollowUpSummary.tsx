@@ -77,7 +77,7 @@ const DuesFollowUpSummary: React.FC<DuesFollowUpSummaryProps> = ({ onClick }) =>
         setDuesCount(prescriptionsWithDues.length)
       }
 
-      // Load operations to count follow-ups for today
+      // Load operations to count follow-ups for the next 5 days
       // Check if getOperations exists in the API
       try {
         // Use type assertion to handle potential missing method
@@ -85,30 +85,36 @@ const DuesFollowUpSummary: React.FC<DuesFollowUpSummaryProps> = ({ onClick }) =>
         const getOperations = api.getOperations
         const getPrescriptions = api.getPrescriptions
 
+        // Generate dates for today and the next 4 days (5 days total)
+        const followUpDates: string[] = []
+        for (let i = 0; i < 5; i++) {
+          const date = new Date()
+          date.setDate(date.getDate() + i)
+          followUpDates.push(date.toISOString().split('T')[0])
+        }
+
         if (typeof getOperations === 'function') {
           const operations = await getOperations()
 
-          // Filter operations with follow-up dates set to today
-          const today = new Date().toISOString().split('T')[0]
-          const followUpsToday = operations.filter((operation) => {
+          // Filter operations with follow-up dates in the next 5 days
+          const upcomingFollowUps = operations.filter((operation) => {
             const followUpDate = operation.followUpDate || operation.reviewOn || ''
-            return followUpDate === today
+            return followUpDates.includes(followUpDate)
           })
 
-          setFollowUpsCount((prev) => prev + followUpsToday.length)
+          setFollowUpsCount((prev) => prev + upcomingFollowUps.length)
         }
 
         if (typeof getPrescriptions === 'function') {
           const prescriptions = await getPrescriptions()
 
-          // Filter prescriptions with follow-up dates set to today
-          const today = new Date().toISOString().split('T')[0]
-          const followUpsToday = prescriptions.filter((prescription) => {
-            const followUpDate = prescription['FOLLOW UP DATE'] || ''
-            return followUpDate === today
+          // Filter prescriptions with follow-up dates in the next 5 days
+          const upcomingFollowUps = prescriptions.filter((prescription) => {
+            const followUpDate = String(prescription['FOLLOW UP DATE'] || '')
+            return followUpDates.includes(followUpDate)
           })
 
-          setFollowUpsCount((prev) => prev + followUpsToday.length)
+          setFollowUpsCount((prev) => prev + upcomingFollowUps.length)
         }
       } catch (error) {
         console.error('getOperations not available:', error)

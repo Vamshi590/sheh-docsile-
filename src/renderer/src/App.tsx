@@ -11,6 +11,7 @@ import Opticals from './pages/Opticals'
 import Medicines from './pages/Medicines'
 import Analytics from './pages/Analytics'
 import Staff from './pages/Staff'
+import Labs from './pages/Labs'
 
 function App(): React.JSX.Element {
   const [route, setRoute] = useState<string>('/login')
@@ -60,6 +61,8 @@ function App(): React.JSX.Element {
         return <Analytics />
       case '/staff':
         return <Staff />
+      case '/labs':
+        return <Labs />
       default:
         return <Login />
     }

@@ -289,15 +289,6 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
     )
   }
 
-  // Format clinical findings data
-  const clinicalFindingsData = {
-    examination: String(
-      report.examination || report.EXAMINATION || report['CLINICAL_FINDINGS'] || ''
-    ),
-    diagnosis: String(report.diagnosis || report.DIAGNOSIS || ''),
-    plan: String(report.plan || report.PLAN || '')
-  }
-
   const arReadingData = {
     rightEye: {
       sph: String(report['AR-RE-SPH'] || ''),
@@ -447,49 +438,49 @@ const ReceiptViewer: React.FC<ReceiptViewerProps> = ({
         return (
           <div id={`receipt-${report.id}`}>
             <ClinicalFindingsReceipt
-              patientData={patientData}
-              clinicalData={{
+              data={{
                 leftEye: {
-                  lids: '',
-                  conjunctiva: '',
-                  cornea: '',
-                  ac: '',
-                  iris: '',
-                  pupil: '',
-                  lens: '',
-                  iop: '',
-                  vitreous: '',
-                  fundus: '',
-                  opticDisk: '',
-                  macula: '',
-                  vessels: '',
-                  periphery: '',
-                  phlephipharalRetina: '',
-                  retinoscopy: ''
+                  lids: String(report['CF-LE-LIDS'] || ''),
+                  conjunctiva: String(report['CF-LE-CONJUCTIVA'] || ''),
+                  cornea: String(report['CF-LE-CORNEA'] || ''),
+                  ac: String(report['CF-LE-A.C.'] || ''),
+                  iris: String(report['CF-LE-IRIS'] || ''),
+                  pupil: String(report['CF-LE-PUPIL'] || ''),
+                  lens: String(report['CF-LE-LENS'] || ''),
+                  fundus: String(report['CF-LE-FUNDUS'] || ''),
+                  opticDisk: String(report['CF-LE-OPTIC_DISK'] || ''),
+                  macula: String(report['CF-LE-MACULA'] || ''),
+                  vessels: String(report['CF-LE-VESSELS'] || ''),
+                  retinoscopy: String(report['CF-LE-RETINOSCOPY'] || ''),
+                  tension: String(report['CF-LE-TENSION'] || ''),
+                  peripheralRetina: String(report['CF-LE-PERIPHERAL_RETINA'] || ''),
+                  retino1: String(report['CF-LE-RETINO 1'] || ''),
+                  retino2: String(report['CF-LE-RETINO 2'] || ''),
+                  retino3: String(report['CF-LE-RETINO 3'] || ''),
+                  retino4: String(report['CF-LE-RETINO 4'] || '')
                 },
                 rightEye: {
-                  lids: '',
-                  conjunctiva: '',
-                  cornea: '',
-                  ac: '',
-                  iris: '',
-                  pupil: '',
-                  lens: '',
-                  iop: '',
-                  vitreous: '',
-                  fundus: '',
-                  opticDisk: '',
-                  macula: '',
-                  vessels: '',
-                  periphery: '',
-                  phlephipharalRetina: '',
-                  retinoscopy: ''
+                  lids: String(report['CF-RE-LIDS'] || ''),
+                  conjunctiva: String(report['CF-RE-CONJUCTIVA'] || ''),
+                  cornea: String(report['CF-RE-CORNEA'] || ''),
+                  ac: String(report['CF-RE-A.C.'] || ''),
+                  iris: String(report['CF-RE-IRIS'] || ''),
+                  pupil: String(report['CF-RE-PUPIL'] || ''),
+                  lens: String(report['CF-RE-LENS'] || ''),
+                  fundus: String(report['CF-RE-FUNDUS'] || ''),
+                  opticDisk: String(report['CF-RE-OPTIC_DISK'] || ''),
+                  macula: String(report['CF-RE-MACULA'] || ''),
+                  vessels: String(report['CF-RE-VESSELS'] || ''),
+                  retinoscopy: String(report['CF-RE-RETINOSCOPY'] || ''),
+                  tension: String(report['CF-RE-TENSION'] || ''),
+                  peripheralRetina: String(report['CF-RE-PERIPHERAL_RETINA'] || ''),
+                  retino1: String(report['CF-RE-RETINO 1'] || ''),
+                  retino2: String(report['CF-RE-RETINO 2'] || ''),
+                  retino3: String(report['CF-RE-RETINO 3'] || ''),
+                  retino4: String(report['CF-RE-RETINO 4'] || '')
                 },
-                advised: clinicalFindingsData.plan || '',
-                glasses: '',
-                dilateEye: '',
-                prescription: [],
-                reviewDate: ''
+                advised: String(report['CF-ADVICE'] || ''),
+                reviewDate: String(report['CF-REVIEW-DATE'] || '')
               }}
             />
           </div>

@@ -8,6 +8,12 @@ type Prescription = {
   [key: string]: unknown
 }
 
+// Define the Lab type to match with other components
+type Lab = {
+  id: string
+  [key: string]: unknown
+}
+
 // Define the Patient type
 type Patient = {
   'PATIENT ID': string
@@ -34,6 +40,15 @@ declare global {
       getDropdownOptions: (fieldName: string) => Promise<string[]>
       addDropdownOption: (fieldName: string, value: string) => Promise<void>
       openPdfInWindow: (pdfBuffer: Uint8Array) => Promise<{ success: boolean; error?: string }>
+      getLatestPatientId: () => Promise<number>
+      getLabs: () => Promise<Lab[]>
+      addLab: (lab: Omit<Lab, 'id'>) => Promise<Lab>
+      updateLab: (lab: Lab) => Promise<Lab>
+      deleteLab: (id: string) => Promise<boolean>
+      searchLabs: (patientId: string) => Promise<Lab[]>
+      getTodaysLabs: () => Promise<Lab[]>
+      getLabTestOptions: () => Promise<string[]>
+      addLabTestOption: (value: string) => Promise<boolean>
     }
   }
 }

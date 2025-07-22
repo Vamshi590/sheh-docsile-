@@ -45,6 +45,11 @@ interface Prescription {
   [key: string]: unknown
 }
 
+interface Lab {
+  id: string
+  [key: string]: unknown
+}
+
 interface Operation {
   id?: string
   patientId: string
@@ -96,6 +101,7 @@ const api = {
 
   // Patient Management
   getPatients: () => ipcRenderer.invoke('getPatients'),
+  getLatestPatientId: () => ipcRenderer.invoke('getLatestPatientId'),
   addPatient: (patient: Patient) => ipcRenderer.invoke('addPatient', patient),
   updatePatient: (id: string, patient: Patient) => ipcRenderer.invoke('updatePatient', id, patient),
   deletePatient: (id: string) => ipcRenderer.invoke('deletePatient', id),
@@ -112,6 +118,16 @@ const api = {
   searchPrescriptions: (searchTerm: string) =>
     ipcRenderer.invoke('searchPrescriptions', searchTerm),
   getTodaysPrescriptions: () => ipcRenderer.invoke('getTodaysPrescriptions'),
+
+  // Labs Management
+  getLabs: () => ipcRenderer.invoke('getLabs'),
+  addLab: (lab: Omit<Lab, 'id'>) => ipcRenderer.invoke('addLab', lab),
+  updateLab: (lab: Lab) => ipcRenderer.invoke('updateLab', lab),
+  deleteLab: (id: string) => ipcRenderer.invoke('deleteLab', id),
+  searchLabs: (patientId: string) => ipcRenderer.invoke('searchLabs', patientId),
+  getTodaysLabs: () => ipcRenderer.invoke('getTodaysLabs'),
+  getLabTestOptions: () => ipcRenderer.invoke('getLabTestOptions'),
+  addLabTestOption: (value: string) => ipcRenderer.invoke('addLabTestOption', value),
 
   // Operations Management
   getOperations: () => ipcRenderer.invoke('getOperations'),

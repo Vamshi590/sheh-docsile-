@@ -1,298 +1,433 @@
 'use client'
 
-import React from 'react'
-
-interface PatientData {
-  patientName: string
-  patientId: string
-  age: string
-  gender: string
-}
-
-interface EyeFindings {
-  lids: string
-  conjunctiva: string
-  cornea: string
-  ac: string
-  iris: string
-  pupil: string
-  lens: string
-  iop: string
-  vitreous: string
-  fundus: string
-  opticDisk: string
-  macula: string
-  vessels: string
-  periphery: string
-  phlephipharalRetina: string
-  retinoscopy: string
-}
-
-interface PrescriptionItem {
-  medicine?: string
-  times: string
-  days: string
-}
-
-interface ClinicalData {
-  leftEye: EyeFindings
-  rightEye: EyeFindings
+import type React from 'react'
+import nabhimage from '../../assets/nabh_accredited.jpg'
+import eyeimage from '../../assets/eye_image.jpg'
+interface ClinicalFindingsData {
+  patientName?: string
+  date?: string
+  leftEye: {
+    lids: string
+    conjunctiva: string
+    cornea: string
+    ac: string
+    iris: string
+    pupil: string
+    lens: string
+    tension: string
+    fundus: string
+    opticDisk: string
+    macula: string
+    vessels: string
+    peripheralRetina: string
+    retinoscopy: string
+    retino1: string
+    retino2: string
+    retino3: string
+    retino4: string
+  }
+  rightEye: {
+    lids: string
+    conjunctiva: string
+    cornea: string
+    ac: string
+    iris: string
+    pupil: string
+    lens: string
+    tension: string
+    fundus: string
+    opticDisk: string
+    macula: string
+    vessels: string
+    peripheralRetina: string
+    retinoscopy: string
+    retino1: string
+    retino2: string
+    retino3: string
+    retino4: string
+  }
   advised: string
-  glasses: string
-  dilateEye: string
-  prescription: PrescriptionItem[]
   reviewDate: string
 }
 
-interface ClinicalFindingsReceiptProps {
-  patientData: PatientData
-  clinicalData: ClinicalData
+interface ClinicalFindingsFormProps {
+  data?: ClinicalFindingsData
+  authorizedSignatory?: string
 }
 
-export default function ClinicalFindingsReceipt({
-  patientData,
-  clinicalData
-}: ClinicalFindingsReceiptProps): React.ReactElement {
-  const renderEyeFindings = (eyeData: EyeFindings): React.ReactNode => (
-    <div className="w-1/2 px-2">
-      <div className="space-y-1 text-[10px]">
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">LIDS</span>
-          <span>{eyeData.lids}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">CONJUNCTIVA</span>
-          <span>{eyeData.conjunctiva}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">CORNEA</span>
-          <span>{eyeData.cornea}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">A.C.</span>
-          <span>{eyeData.ac}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">IRIS</span>
-          <span>{eyeData.iris}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">PUPIL</span>
-          <span>{eyeData.pupil}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">LENS</span>
-          <span>{eyeData.lens}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">I.O.P.</span>
-          <span>{eyeData.iop}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">VITREOUS</span>
-          <span>{eyeData.vitreous}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">FUNDUS</span>
-          <span>{eyeData.fundus}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">OPTIC DISK</span>
-          <span>{eyeData.opticDisk}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">MACULA</span>
-          <span>{eyeData.macula}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">VESSELS</span>
-          <span>{eyeData.vessels}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">PERIPHERY</span>
-          <span>{eyeData.periphery}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">PHLEPHIPHARAL RETINA</span>
-          <span>{eyeData.phlephipharalRetina}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-300 pb-0.5">
-          <span className="font-semibold">RETINOSCOPY</span>
-          <span>{eyeData.retinoscopy}</span>
-        </div>
-      </div>
+const ClinicalFindingsForm: React.FC<ClinicalFindingsFormProps> = ({
+  data,
+  authorizedSignatory = ''
+}) => {
+  const defaultData: ClinicalFindingsData = {
+    leftEye: {
+      lids: 'Normal',
+      conjunctiva: 'Normal',
+      cornea: 'Normal',
+      ac: 'Normal',
+      iris: 'Normal',
+      pupil: 'Normal',
+      lens: 'Normal',
+      tension: '-',
+      fundus: '-',
+      opticDisk: 'Normal',
+      macula: '-',
+      vessels: '-',
+      peripheralRetina: '-',
+      retinoscopy: '-',
+      retino1: '-',
+      retino2: '-',
+      retino3: '-',
+      retino4: '-'
+    },
+    rightEye: {
+      lids: 'Normal',
+      conjunctiva: 'Normal',
+      cornea: 'Normal',
+      ac: 'Normal',
+      iris: 'Normal',
+      pupil: 'Normal',
+      lens: 'Normal',
+      tension: '-',
+      fundus: '-',
+      opticDisk: 'Normal',
+      macula: '-',
+      vessels: '-',
+      peripheralRetina: '-',
+      retinoscopy: '-',
+      retino1: '-',
+      retino2: '-',
+      retino3: '-',
+      retino4: '-'
+    },
+    advised: '',
+    reviewDate: ''
+  }
+  const formData = data || defaultData
 
-      {/* Eye Diagram */}
-      <div className="flex justify-center mt-4 mb-4">
-        <div className="w-24 h-24 border-2 border-black rounded-full relative bg-white">
-          {/* Outer circle divisions */}
-          <div className="absolute inset-1 border border-gray-400 rounded-full">
-            {/* Inner circle */}
-            <div className="absolute inset-4 border border-gray-400 rounded-full">
-              {/* Center pupil */}
-              <div className="absolute inset-2 bg-black rounded-full"></div>
-            </div>
-          </div>
-          {/* Vertical line */}
-          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-black transform -translate-x-px"></div>
-          {/* Horizontal line */}
-          <div className="absolute left-0 right-0 top-1/2 h-px bg-black transform -translate-y-px"></div>
-          {/* Diagonal lines */}
-          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-black transform rotate-45 origin-center"></div>
-          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-black transform -rotate-45 origin-center"></div>
-        </div>
-      </div>
-    </div>
-  )
-
+  console.log('formData', formData)
   return (
-    <div className="receipt-container bg-white mx-auto">
+    <div className="receipt-container bg-[#ffffff] mx-auto relative">
       {/* Main Content */}
       <div className="receipt-content">
-        {/* Simple Header */}
-        <div className="pb-2 mb-4 border-b-2 border-black">
-          <div className="flex justify-between items-center">
-            {/* Left Eye Symbol */}
-            <div className="w-12 h-8 border-2 border-black rounded-full flex items-center justify-center">
-              <div className="w-6 h-4 bg-black rounded-full relative">
-                <div className="absolute inset-1 bg-white rounded-full"></div>
-                <div className="absolute inset-2 bg-black rounded-full"></div>
+        {/* Header Section */}
+        <div className="pb-2 mb-2 border-b-2 border-[#000000]">
+          {/* Hospital Name Row */}
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={eyeimage} alt="eye image" className="w-full h-full object-contain" />
+            </div>
+            <div className="text-center flex-1 mx-2">
+              <h1 className="text-lg font-bold leading-tight">SRI HARSHA EYE HOSPITAL</h1>
+              <p className="text-[10px] leading-tight mt-0.5">
+                Near Mancherial Chowrasta, Ambedkarnagar, Choppadandi Road, KARIMNAGAR-505001
+              </p>
+            </div>
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={eyeimage} alt="eye image" className="w-full h-full object-contain" />
+            </div>
+          </div>
+          {/* Doctor Information Row */}
+          <div className="flex justify-between items-start text-[9px] leading-[1.2] mb-2">
+            {/* Left Doctor */}
+            <div className="w-[30%] pr-1">
+              <p className="font-bold">డా. శ్రీలత</p>
+              <p>M.B.B.S., M.S.(Ophth)</p>
+              <p>FICLEP (LVPEI), FICO (UK),</p>
+              <p>Obs. Paediatric Ophthalmology</p>
+              <p>& Squint (AEH, Madurai)</p>
+              <p>Ex. Asst. Professor in CAIMS, MIMS (Hyd)</p>
+              <p>Ex. Civil Assistant Surgeon, Karimnagar</p>
+              <p>Phaco Surgeon</p>
+              <p className="mt-0.5">Regd. No. 46756</p>
+            </div>
+            {/* Center NABH */}
+            <div className="w-[20%] flex justify-center">
+              <div className="w-24 h-24 flex items-center justify-center bg-[#ffffff]">
+                <img
+                  src={nabhimage}
+                  alt="NABH Accredited"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            </div>
+            {/* Right Doctor */}
+            <div className="w-[30%] pl-1 text-right">
+              <p className="font-bold">Dr. CH. SRILATHA</p>
+              <p>M.B.B.S., M.S.(Ophth)</p>
+              <p>FICLEP (LVPEI), FICO (UK),</p>
+              <p>Obs. Paediatric Ophthalmology</p>
+              <p>& Squint (AEH, Madurai)</p>
+              <p>Ex. Asst. Professor in CAIMS, MIMS (Hyd)</p>
+              <p>Ex. Civil Assistant Surgeon, Karimnagar</p>
+              <p>Phaco Surgeon</p>
+              <p className="mt-0.5">Regd. No. 46756</p>
+            </div>
+          </div>
+          {/* Timing Only */}
+          <div className="text-center text-[9px] mt-1">
+            <p className="font-semibold">Daily Timings: 9:00 am to 2:30 pm & 5:30 pm to 7:30 pm</p>
+          </div>
+        </div>
+
+        {/* Clinical Findings Title */}
+        <h2 className="text-sm text-center font-bold py-1 px-2 mb-4">CLINICAL FINDINGS</h2>
+
+        {/* Eye Examination Section */}
+        <div className="flex justify-between mb-6">
+          {/* Left Eye */}
+          <div className="w-[48%]">
+            <div className="text-center mb-2">
+              <p className="text-sm font-bold">Left Eye</p>
+            </div>
+            <div className="p-2 mb-4 pl-16">
+              <div className="grid grid-cols-2 gap-1 text-xs">
+                <div className="font-semibold">LIDS</div>
+                <div className="text-[#000000]">{formData.leftEye.lids}</div>
+                <div className="font-semibold">CONJUNCTIVA</div>
+                <div className="text-[#000000]">{formData.leftEye.conjunctiva}</div>
+                <div className="font-semibold">CORNEA</div>
+                <div className="text-[#000000]">{formData.leftEye.cornea}</div>
+                <div className="font-semibold">A.C.</div>
+                <div className="text-[#000000]">{formData.leftEye.ac}</div>
+                <div className="font-semibold">IRIS</div>
+                <div className="text-[#000000]">{formData.leftEye.iris}</div>
+                <div className="font-semibold">PUPIL</div>
+                <div className="text-[#000000]">{formData.leftEye.pupil}</div>
+                <div className="font-semibold">LENS</div>
+                <div className="text-[#000000]">{formData.leftEye.lens}</div>
+                <div className="font-semibold">TENSION</div>
+                <div className="text-[#000000]">{formData.leftEye.tension}</div>
+                <div className="font-semibold">FUNDUS</div>
+                <div className="text-[#000000]">{formData.leftEye.fundus}</div>
+                <div className="font-semibold">OPTIC DISK</div>
+                <div className="text-[#000000]">{formData.leftEye.opticDisk}</div>
+                <div className="font-semibold">MACULA</div>
+                <div className="text-[#000000]">{formData.leftEye.macula}</div>
+                <div className="font-semibold">VESSELS</div>
+                <div className="text-[#000000]">{formData.leftEye.vessels}</div>
+                <div className="font-semibold">PERIPHERIAL RETINA</div>
+                <div className="text-[#000000]">{formData.leftEye.peripheralRetina}</div>
+                <div className="font-semibold">RETINOSCOPY</div>
+                <div className="text-[#000000]">{formData.leftEye.retinoscopy}</div>
               </div>
             </div>
 
-            {/* Title */}
-            <div className="text-center flex-1">
-              <h1 className="text-lg font-bold">CLINICAL FINDINGS</h1>
-            </div>
+            <div className="flex justify-center space-x-4">
+              <div className="relative w-32 h-32">
+                {/* Outer circle */}
+                <div className="absolute inset-0 rounded-full border-2 border-[#000000]"></div>
+                {/* Smaller center circle */}
+                <div className="absolute w-6 h-6 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#000000] z-10 bg-[#ffffff]"></div>
+                {/* Diagonal lines within the circle only */}
+                <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full z-0">
+                  <line x1="15" y1="15" x2="85" y2="85" stroke="#000000" strokeWidth="2" />
+                  <line x1="85" y1="15" x2="15" y2="85" stroke="#000000" strokeWidth="2" />
+                </svg>
+                {/* Text Inputs */}
+                <div className="absolute top-0 left-10 w-[40%] h-[40%] flex items-center justify-center z-20">
+                  <input
+                    defaultValue={formData.leftEye.retino1}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute top-10 right-0 w-[40%] h-[40%] flex items-center justify-center z-20">
+                  <input
+                    defaultValue={formData.leftEye.retino2}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute bottom-0 left-10 w-[40%] h-[40%] flex items-center justify-center z-20">
+                  <input
+                    defaultValue={formData.leftEye.retino3}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute bottom-10 left-0 w-[40%] h-[40%] flex items-center justify-center z-20">
+                  <input
+                    defaultValue={formData.leftEye.retino4}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+              </div>
 
-            {/* Right Eye Symbol */}
-            <div className="w-12 h-8 border-2 border-black rounded-full flex items-center justify-center">
-              <div className="w-6 h-4 bg-black rounded-full relative">
-                <div className="absolute inset-1 bg-white rounded-full"></div>
-                <div className="absolute inset-2 bg-black rounded-full"></div>
+              <div className="relative w-32 h-32">
+                <div className="absolute inset-0 flex justify-center items-center">
+                  <div className="absolute w-px h-full bg-[#000000]"></div>
+                  <div className="absolute h-px w-full bg-[#000000]"></div>
+                </div>
+                <div className="absolute top-2 left-2 w-1/2 h-1/2 flex items-center justify-center">
+                  <input
+                    defaultValue={formData.leftEye.retino1}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute top-2 right-2 w-1/2 h-1/2 flex items-center justify-center">
+                  <input
+                    defaultValue={formData.leftEye.retino2}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute bottom-2 left-2 w-1/2 h-1/2 flex items-center justify-center">
+                  <input
+                    defaultValue={formData.leftEye.retino3}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute bottom-2 right-2 w-1/2 h-1/2 flex items-center justify-center">
+                  <input
+                    defaultValue={formData.leftEye.retino4}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Eye */}
+          <div className="w-[48%]">
+            <div className="text-center mb-2">
+              <p className="text-sm font-bold">Right Eye</p>
+            </div>
+            <div className="p-2 mb-4 pl-16">
+              <div className="grid grid-cols-2 gap-1 text-xs">
+                <div className="font-semibold">LIDS</div>
+                <div className="">{formData.rightEye.lids}</div>
+                <div className="font-semibold">CONJUNCTIVA</div>
+                <div className="">{formData.rightEye.conjunctiva}</div>
+                <div className="font-semibold">CORNEA</div>
+                <div className="">{formData.rightEye.cornea}</div>
+                <div className="font-semibold">A.C.</div>
+                <div className="">{formData.rightEye.ac}</div>
+                <div className="font-semibold">IRIS</div>
+                <div className="">{formData.rightEye.iris}</div>
+                <div className="font-semibold">PUPIL</div>
+                <div className="">{formData.rightEye.pupil}</div>
+                <div className="font-semibold">LENS</div>
+                <div className="">{formData.rightEye.lens}</div>
+                <div className="font-semibold">TENSION</div>
+                <div>{formData.rightEye.tension}</div>
+                <div className="font-semibold">FUNDUS</div>
+                <div>{formData.rightEye.fundus}</div>
+                <div className="font-semibold">OPTIC DISK</div>
+                <div className="">{formData.rightEye.opticDisk}</div>
+                <div className="font-semibold">MACULA</div>
+                <div>{formData.rightEye.macula}</div>
+                <div className="font-semibold">VESSELS</div>
+                <div>{formData.rightEye.vessels}</div>
+                <div className="font-semibold">PERIPHERIAL RETINA</div>
+                <div>{formData.rightEye.peripheralRetina}</div>
+                <div className="font-semibold">RETINOSCOPY</div>
+                <div>{formData.rightEye.retinoscopy}</div>
+              </div>
+            </div>
+            <div className="flex space-x-4 justify-center">
+              <div className="relative w-32 h-32">
+                {/* Outer circle */}
+                <div className="absolute inset-0 rounded-full border-2 border-[#000000]"></div>
+                {/* Smaller center circle */}
+                <div className="absolute w-6 h-6 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#000000] z-10 bg-[#ffffff]"></div>
+                {/* Diagonal lines within the circle only */}
+                <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full z-0">
+                  <line x1="15" y1="15" x2="85" y2="85" stroke="#000000" strokeWidth="2" />
+                  <line x1="85" y1="15" x2="15" y2="85" stroke="#000000" strokeWidth="2" />
+                </svg>
+                {/* Text Inputs */}
+                <div className="absolute top-0 left-10 w-[40%] h-[40%] flex items-center justify-center z-20">
+                  <input
+                    defaultValue={formData.rightEye.retino1}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute top-10 right-0 w-[40%] h-[40%] flex items-center justify-center z-20">
+                  <input
+                    defaultValue={formData.rightEye.retino2}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute bottom-0 left-10 w-[40%] h-[40%] flex items-center justify-center z-20">
+                  <input
+                    defaultValue={formData.rightEye.retino3}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute bottom-10 left-0 w-[40%] h-[40%] flex items-center justify-center z-20">
+                  <input
+                    defaultValue={formData.rightEye.retino4}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              <div className="relative w-32 h-32">
+                <div className="absolute inset-0 flex justify-center items-center">
+                  <div className="absolute w-px h-full bg-[#000000]"></div>
+                  <div className="absolute h-px w-full bg-[#000000]"></div>
+                </div>
+                <div className="absolute top-2 left-2 w-1/2 h-1/2 flex items-center justify-center">
+                  <input
+                    defaultValue={formData.rightEye.retino1}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute top-2 right-2 w-1/2 h-1/2 flex items-center justify-center">
+                  <input
+                    defaultValue={formData.rightEye.retino2}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute bottom-2 left-2 w-1/2 h-1/2 flex items-center justify-center">
+                  <input
+                    defaultValue={formData.rightEye.retino3}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
+                <div className="absolute bottom-2 right-2 w-1/2 h-1/2 flex items-center justify-center">
+                  <input
+                    defaultValue={formData.rightEye.retino4}
+                    className="text-center w-full bg-[#ffffff] outline-none"
+                    readOnly
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Patient Information Section */}
-        <div className="mb-4 border-b border-gray-300 pb-2">
-          <div className="text-[11px] font-bold mb-1">PATIENT INFORMATION</div>
-          <div className="flex justify-between text-[10px]">
-            <div>
-              <span className="font-semibold">Name: </span>
-              <span>{patientData.patientName}</span>
-            </div>
-            <div>
-              <span className="font-semibold">ID: </span>
-              <span>{patientData.patientId}</span>
-            </div>
-            <div>
-              <span className="font-semibold">Age: </span>
-              <span>{patientData.age}</span>
-            </div>
-            <div>
-              <span className="font-semibold">Gender: </span>
-              <span>{patientData.gender}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Clinical Findings Section */}
-        <div className="mb-6">
-          <div className="flex border-b-2 border-black">
-            {renderEyeFindings(clinicalData.leftEye)}
-            <div className="w-px bg-black"></div>
-            {renderEyeFindings(clinicalData.rightEye)}
-          </div>
-        </div>
-
-        {/* Advised Section */}
-        <div className="mb-4 border-b border-gray-300 pb-2">
-          <div className="text-[11px] font-bold mb-1">ADVISED</div>
-          <div className="min-h-[20px] text-[10px]">{clinicalData.advised}</div>
-        </div>
-
-        {/* Glasses Section */}
-        <div className="mb-4 border-b border-gray-300 pb-2">
-          <div className="text-[11px] font-bold mb-1">GLASSES</div>
-          <div className="min-h-[20px] text-[10px]">{clinicalData.glasses}</div>
-        </div>
-
-        {/* Dilate Eye Section */}
-        <div className="mb-4 border-b border-gray-300 pb-2">
-          <div className="text-[11px] font-bold mb-1">DILATE EYE {clinicalData.dilateEye}</div>
-          <div className="min-h-[20px]"></div>
-        </div>
-
-        {/* Prescription Section */}
-        <div className="mb-6 border-b border-gray-300 pb-4">
-          <div className="text-[11px] font-bold mb-2">PRESCRIPTION</div>
-          <table className="w-full border-collapse border border-black text-[10px]">
-            <thead>
-              <tr className="border-b border-black">
-                <th className="border-r border-black p-2 text-left font-bold">MEDICINE</th>
-                <th className="border-r border-black p-2 text-center font-bold">NO OF TIMES</th>
-                <th className="p-2 text-center font-bold">NO OF DAYS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clinicalData.prescription.map((item, index) => (
-                <tr key={index} className="border-b border-gray-300">
-                  <td className="border-r border-black p-2">{item.medicine || ''}</td>
-                  <td className="border-r border-black p-2 text-center">{item.times}</td>
-                  <td className="p-2 text-center">{item.days}</td>
-                </tr>
-              ))}
-              {/* Add empty rows to match the image */}
-              {Array.from({ length: Math.max(0, 6 - clinicalData.prescription.length) }).map(
-                (_, index) => (
-                  <tr key={`empty-${index}`} className="border-b border-gray-300">
-                    <td className="border-r border-black p-2 h-6"></td>
-                    <td className="border-r border-black p-2 h-6"></td>
-                    <td className="p-2 h-6"></td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Review Date Section */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center text-[11px]">
-            <div>
-              <span className="font-bold">REVIEW DATE: </span>
-              <span>{clinicalData.reviewDate}</span>
-            </div>
-            <div className="text-right"></div>
-          </div>
-        </div>
-
-        {/* Empty space */}
-        <div className="h-32"></div>
       </div>
 
-      {/* Same Footer as Previous Receipt */}
+      {/* Clean Fixed Footer */}
       <div className="receipt-footer">
         <div className="pt-3">
           {/* Hospital Authorization */}
           <div className="flex justify-between items-center">
             <div className="text-left text-[11px]"></div>
-
             <div className="text-right text-[11px] space-y-1">
               <p className="font-bold">AUTHORISED SIGNATORY</p>
-              <p className="font-bold">For SRI HARSHA EYE HOSPITAL</p>
+              <p className="font-bold">{authorizedSignatory || 'For SRI HARSHA EYE HOSPITAL'}</p>
               <p className="text-[10px]">Ph: 08728-234567, Cell: 9849639237</p>
               <p className="text-[10px]">🌐 www.sriharshaeye.com</p>
             </div>
           </div>
-
           {/* Bottom Disclaimer */}
-          <div className="border-t border-gray-300 pt-2 text-center text-[9px] text-gray-500">
+          <div className="border-t border-[#000000] pt-2 text-center text-[9px] text-[#000000] mt-2">
             <div className="flex justify-between items-center">
               <span>
-                This is a computer generated certificate. Please preserve this for your records.
+                This is a computer generated receipt. Please preserve this for your records.
               </span>
               <span>Generated on: {new Date().toLocaleString()}</span>
             </div>
@@ -314,23 +449,19 @@ export default function ClinicalFindingsReceipt({
           display: flex;
           flex-direction: column;
         }
-
         .receipt-content {
           flex: 1;
         }
-
         .receipt-footer {
           margin-top: auto;
           padding-top: 20px;
         }
-
         @media print {
           body {
             margin: 0;
             padding: 0;
             background: white;
           }
-
           .receipt-container {
             width: 210mm;
             height: 297mm;
@@ -339,7 +470,6 @@ export default function ClinicalFindingsReceipt({
             box-shadow: none;
             page-break-after: avoid;
           }
-
           @page {
             size: A4 portrait;
             margin: 0;
@@ -349,3 +479,5 @@ export default function ClinicalFindingsReceipt({
     </div>
   )
 }
+
+export default ClinicalFindingsForm
